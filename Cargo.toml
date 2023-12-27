@@ -1,0 +1,34 @@
+[package]
+name = "pwos"
+version = "0.1.0"
+authors = ["Fábián Varga <23280129+br0kenpixel@users.noreply.github.com>"]
+edition = "2021"
+resolver = "2"
+rust-version = "1.71"
+
+[profile.release]
+opt-level = 3
+
+[profile.dev]
+debug = true    # Symbols are nice and they don't increase the size on Flash
+opt-level = "z"
+
+[features]
+default = ["std"]
+std = ["alloc", "esp-idf-svc/binstart", "esp-idf-svc/std"]
+alloc = ["esp-idf-svc/alloc"]
+
+[dependencies]
+log = { version = "0.4", default-features = false }
+esp-idf-svc = { version = "0.47.3", default-features = false }
+build-time = "0.1.3"
+thiserror = "1.0.51"
+heapless = "0.7.17"
+simple_logger = { version = "4.3.0", default-features = false, features = [
+    "colors",
+    "colored",
+] }
+pwmp-client = { git = "ssh://git@github.com/PixelWeatherProject/pwmp-stack.git" }
+
+[build-dependencies]
+embuild = "0.31.3"
