@@ -40,8 +40,9 @@ The project currently only supports the ESP32 and no support is planned for any 
 
 ## Building
 1. Follow the toolchain setup in [Espressifs Rust Book](https://esp-rs.github.io/book/)
-2. Use `cargo build` to compile the firmware.
-3. Use `cargo espflash flash --baud 921600 --port /dev/yourserialport --frozen --locked --partition-table partitions.csv` to burn the firmware onto the microcontroller.
+2. Create a custom `sys.rs` config using the [example](src/config/sys.rs.example).
+3. Use `cargo build` to compile the firmware.
+4. Use `cargo espflash flash --baud 921600 --port /dev/yourserialport --frozen --locked --partition-table partitions.csv` to burn the firmware onto the microcontroller.
 
 ### Caveats
 - If you're planning to flash the firmware and use it "in production", you should always use release builds. Just pass `--release` to `cargo build` **and** `cargo espflash`.
