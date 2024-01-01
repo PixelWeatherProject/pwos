@@ -1,13 +1,14 @@
 use crate::{
     config::{AppConfig, MAX_NET_SCAN, PWMP_SERVER, WIFI_NETWORKS},
-    os_debug, os_error, os_info,
+    os_debug, os_error, os_info, os_warn,
     sysc::{
-        battery::Battery,
+        battery::{Battery, CRITICAL_VOLTAGE},
         drivers::{
             AnySensor, EnvironmentSensor, FakeEnvSensor, Htu21d, MeasurementResults, Si7021,
         },
         ledctl::BoardLed,
         net::{PowerSavingMode, WiFi},
+        sleep::deep_sleep,
         OsError, OsResult,
     },
 };
@@ -22,7 +23,8 @@ use esp_idf_svc::{
     nvs::EspDefaultNvsPartition,
     wifi::AccessPointInfo,
 };
-use pwmp_client::{pwmp_types::setting::SettingName, PwmpClient};
+use pwmp_client::{bigdecimal::BigDecimal, pwmp_types::setting::SettingName, PwmpClient};
+use std::str::FromStr;
 #[cfg(debug_assertions)]
 use std::time::Instant;
 
@@ -41,6 +43,11 @@ pub fn fw_main(
     let mut battery = Battery::new(peripherals.adc1, peripherals.pins.gpio35)?;
     let bat_voltage = battery.read_voltage(4)?;
     os_info!("Battery: {:.02}V", bat_voltage);
+
+    if bat_voltage <= BigDecimal::from_str(CRITICAL_VOLTAGE).unwrap() && cfg.sbop {
+        os_warn!("Battery voltage too low, activating sBOP");
+        deep_sleep(None);
+    }
 
     let i2c_driver = I2cDriver::new(
         peripherals.i2c1,

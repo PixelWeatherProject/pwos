@@ -23,6 +23,8 @@ type BatteryAdc = ADC1;
 type BatteryDriver = AdcDriver<'static, BatteryAdc>;
 type BatteryChDriver = AdcChannelDriver<'static, ATTEN, BatteryGpio>;
 
+pub const CRITICAL_VOLTAGE: &str = "2.7";
+
 pub struct Battery(BatteryDriver, BatteryChDriver);
 
 impl Battery {
