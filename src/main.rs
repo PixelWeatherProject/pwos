@@ -1,3 +1,5 @@
+#![feature(allocator_api)]
+#![feature(strict_provenance)]
 #![allow(
     clippy::module_name_repetitions,
     clippy::cast_lossless,
@@ -14,16 +16,22 @@ use esp_idf_svc::{
     nvs::EspDefaultNvsPartition,
 };
 use log::LevelFilter;
+use os_alloc::BumpAllocator;
 use simple_logger::SimpleLogger;
 use std::time::Instant;
 use sysc::ledctl::BoardLed;
 
 mod config;
 mod firmware;
+mod os_alloc;
 mod sysc;
+
+#[global_allocator]
+static BALLAST: BumpAllocator = BumpAllocator::new();
 
 fn main() {
     esp_idf_svc::sys::link_patches();
+    BALLAST.init(1_000_000);
 
     let logger = SimpleLogger::new().with_module_level("esp_idf_svc", LevelFilter::Off);
 
