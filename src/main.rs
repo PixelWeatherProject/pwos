@@ -62,13 +62,14 @@ fn main() {
     let start = Instant::now();
     let fw_exit = firmware::fw_main(peripherals, sys_loop, nvs, led, &mut appcfg);
     let runtime = start.elapsed();
+    let mut sleep_time = Some(appcfg.sleep_time);
 
     match fw_exit {
         Ok(()) => os_info!("Tasks completed successfully"),
         Err(why) => {
             if !why.recoverable() {
                 os_error!("Fatal OS Error: {why}");
-                return;
+                sleep_time = None;
             }
             os_error!("OS Error: {why}");
         }
@@ -76,5 +77,5 @@ fn main() {
     os_info!("Tasks completed in {:.02}s", runtime.as_secs_f32());
 
     os_debug!("Sleeping for {}s", appcfg.sleep_time.as_secs());
-    sysc::sleep::deep_sleep(Some(appcfg.sleep_time));
+    sysc::sleep::deep_sleep(sleep_time);
 }
