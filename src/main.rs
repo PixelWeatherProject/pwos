@@ -76,6 +76,8 @@ fn main() {
     }
     os_info!("Tasks completed in {:.02}s", runtime.as_secs_f32());
 
-    os_debug!("Sleeping for {}s", appcfg.sleep_time.as_secs());
+    if let Some(time) = sleep_time {
+        os_debug!("Sleeping for {}s", time.as_secs());
+    }
     sysc::sleep::deep_sleep(sleep_time);
 }
