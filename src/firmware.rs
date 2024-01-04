@@ -152,6 +152,9 @@ fn setup_envsensor(mut i2c_driver: I2cDriver<'_>) -> OsResult<AnySensor<'_>> {
         if i2c_driver.write(addr, &[], 1000).is_ok() {
             os_debug!("Found device @ I2C/0x{addr:X}");
             working = Some(addr);
+
+            /* We expect only ONE device, so the loop can be broken here. */
+            break;
         }
     }
 
