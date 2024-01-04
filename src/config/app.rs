@@ -11,12 +11,6 @@ pub struct AppConfig {
 }
 
 impl AppConfig {
-    pub const DEF_BATTERY_IGNORE: bool = false;
-    pub const DEF_OTA: bool = false;
-    pub const DEF_SLEEP_TIME: Duration = Duration::from_secs(60);
-    pub const DEF_SBOP: bool = true;
-    pub const DEF_MUTE_NOTIFICATIONS: bool = false;
-
     const N_SETTINGS: usize = 5;
     pub const ALL_SETTINGS: [SettingName; Self::N_SETTINGS] = [
         SettingName::BatteryIgnore,
@@ -47,11 +41,19 @@ impl AppConfig {
 impl Default for AppConfig {
     fn default() -> Self {
         Self {
-            battery_ignore: Self::DEF_BATTERY_IGNORE,
-            ota: Self::DEF_OTA,
-            sleep_time: Self::DEF_SLEEP_TIME,
-            sbop: Self::DEF_SBOP,
-            mute_notifications: Self::DEF_MUTE_NOTIFICATIONS,
+            battery_ignore: SettingName::BatteryIgnore
+                .default_value()
+                .as_bool()
+                .unwrap(),
+            ota: SettingName::Ota.default_value().as_bool().unwrap(),
+            sleep_time: Duration::from_secs(
+                SettingName::SleepTime.default_value().as_number().unwrap() as _,
+            ),
+            sbop: SettingName::Sbop.default_value().as_bool().unwrap(),
+            mute_notifications: SettingName::MuteNotifications
+                .default_value()
+                .as_bool()
+                .unwrap(),
         }
     }
 }
