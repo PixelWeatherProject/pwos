@@ -169,13 +169,13 @@ fn setup_envsensor(mut i2c_driver: I2cDriver<'_>) -> OsResult<AnySensor<'_>> {
                     os_debug!("Detected SI7021");
                     Ok(AnySensor::Si7021(si))
                 }
-                Err((_, driver)) => match Htu21d::new_with_driver(driver) {
-                    Ok(htu) => {
+                Err((_, driver)) => Htu21d::new_with_driver(driver).map_or_else(
+                    |_| Err(OsError::NoEnvSensor),
+                    |htu| {
                         os_debug!("Detected HTU21D");
                         Ok(AnySensor::Htu21d(htu))
-                    }
-                    Err(_) => Err(OsError::NoEnvSensor),
-                },
+                    },
+                ),
             }
         }
         Some(FakeEnvSensor::DEV_ADDR) => {
