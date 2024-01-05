@@ -160,28 +160,34 @@ fn setup_envsensor(mut i2c_driver: I2cDriver<'_>) -> OsResult<AnySensor<'_>> {
     // To force the "fake" sensor uncomment the following line:
     //working = Some(0xFF);
 
-    #[allow(unreachable_patterns)] // TODO: Fix
-    let driver = match working {
+    match working {
         Some(Si7021::DEV_ADDR) => {
-            os_debug!("Detected SI7021");
-            AnySensor::Si7021(Si7021::new_with_driver(i2c_driver)?)
-        }
-        Some(Htu21d::DEV_ADDR) => {
-            os_debug!("Detected HTU21D");
-            AnySensor::Htu21d(Htu21d::new_with_driver(i2c_driver)?)
+            /* The SI7021 and HTU21D have the same address, so we'll try both drivers. */
+
+            match Si7021::new_with_driver(i2c_driver) {
+                Ok(si) => {
+                    os_debug!("Detected SI7021");
+                    Ok(AnySensor::Si7021(si))
+                }
+                Err((_, driver)) => match Htu21d::new_with_driver(driver) {
+                    Ok(htu) => {
+                        os_debug!("Detected HTU21D");
+                        Ok(AnySensor::Htu21d(htu))
+                    }
+                    Err(_) => Err(OsError::NoEnvSensor),
+                },
+            }
         }
         Some(FakeEnvSensor::DEV_ADDR) => {
             os_debug!("Detected FakeSensor");
-            AnySensor::Fake(FakeEnvSensor::new()?)
+            Ok(AnySensor::Fake(FakeEnvSensor::new()?))
         }
         Some(other) => {
             os_error!("Unrecognised device @ I2C/0x{other:X}");
-            return Err(OsError::NoEnvSensor);
+            Err(OsError::NoEnvSensor)
         }
-        None => return Err(OsError::NoEnvSensor),
-    };
-
-    Ok(driver)
+        None => Err(OsError::NoEnvSensor),
+    }
 }
 
 fn read_environment(mut env: AnySensor) -> OsResult<MeasurementResults> {

@@ -33,11 +33,13 @@ impl<'s> Htu21d<'s> {
     const BUS_TIMEOUT: u32 = 1000;
     const OPERATION_TIMEOUT: Duration = Duration::from_millis(1000);
 
-    pub fn new_with_driver(driver: I2cDriver<'s>) -> OsResult<Self> {
+    pub fn new_with_driver(driver: I2cDriver<'s>) -> Result<Self, (OsError, I2cDriver)> {
         os_debug!("Loading driver");
         let mut dev = Self(driver);
 
-        dev.command(Command::Reset)?;
+        if let Err(err) = dev.command(Command::Reset) {
+            return Err((err, dev.0));
+        }
         sleep(Duration::from_millis(Self::CMD_WAITTIME_MS));
 
         Ok(dev)
