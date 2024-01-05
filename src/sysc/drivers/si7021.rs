@@ -1,9 +1,9 @@
 use super::EnvironmentSensor;
 use crate::{os_debug, os_warn, sysc::OsResult};
 use esp_idf_svc::hal::i2c::I2cDriver;
-use pwmp_client::{
-    bigdecimal::{BigDecimal, FromPrimitive},
-    pwmp_types::aliases::{AirPressure, Humidity, Temperature},
+use pwmp_client::pwmp_types::{
+    aliases::{AirPressure, Humidity, Temperature},
+    dec, Decimal,
 };
 use std::{thread::sleep, time::Duration};
 
@@ -45,6 +45,18 @@ impl<'s> Si7021<'s> {
 
         Ok(((buffer[0] as u16) << 8) | (buffer[1] as u16))
     }
+
+    fn calc_temperature(raw: u16) -> Temperature {
+        // ((175.72 * raw) / 65536.0) - 46.85
+        let mut value = Decimal::new(raw as i64 * 100, 2);
+
+        value *= dec!(175.72);
+        value /= dec!(65536.00);
+        value -= dec!(46.85);
+        value.rescale(2);
+
+        value
+    }
 }
 
 impl<'s> EnvironmentSensor for Si7021<'s> {
@@ -55,9 +67,8 @@ impl<'s> EnvironmentSensor for Si7021<'s> {
 
     fn read_temperature(&mut self) -> OsResult<Temperature> {
         let raw = self.command(Command::ReadTemperature)?;
-        let temp = ((175.72 * raw as f32) / 65536.0) - 46.85;
 
-        Ok(BigDecimal::from_f32(temp).unwrap().with_scale(2))
+        Ok(Self::calc_temperature(raw))
     }
 
     fn read_humidity(&mut self) -> OsResult<Humidity> {

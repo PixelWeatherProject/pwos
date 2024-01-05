@@ -23,8 +23,7 @@ use esp_idf_svc::{
     nvs::EspDefaultNvsPartition,
     wifi::AccessPointInfo,
 };
-use pwmp_client::{bigdecimal::BigDecimal, pwmp_types::setting::SettingName, PwmpClient};
-use std::str::FromStr;
+use pwmp_client::{pwmp_types::setting::SettingName, PwmpClient};
 #[cfg(debug_assertions)]
 use std::time::Instant;
 
@@ -44,7 +43,7 @@ pub fn fw_main(
     let bat_voltage = battery.read_voltage(4)?;
     os_info!("Battery: {:.02}V", bat_voltage);
 
-    if bat_voltage <= BigDecimal::from_str(CRITICAL_VOLTAGE).unwrap() && cfg.sbop {
+    if (bat_voltage <= CRITICAL_VOLTAGE) && cfg.sbop {
         os_warn!("Battery voltage too low, activating sBOP");
         deep_sleep(None);
     }

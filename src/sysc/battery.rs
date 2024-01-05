@@ -9,10 +9,7 @@ use esp_idf_svc::{
         esp_adc_cal_characteristics_t, esp_adc_cal_characterize, esp_adc_cal_raw_to_voltage,
     },
 };
-use pwmp_client::{
-    bigdecimal::{BigDecimal, FromPrimitive},
-    pwmp_types::aliases::BatteryVoltage,
-};
+use pwmp_client::pwmp_types::{aliases::BatteryVoltage, dec, Decimal};
 use std::{thread::sleep, time::Duration};
 
 const ATTEN: adc_atten_t = adc_atten_t_ADC_ATTEN_DB_11;
@@ -23,7 +20,7 @@ type BatteryAdc = ADC1;
 type BatteryDriver = AdcDriver<'static, BatteryAdc>;
 type BatteryChDriver = AdcChannelDriver<'static, ATTEN, BatteryGpio>;
 
-pub const CRITICAL_VOLTAGE: &str = "2.7";
+pub const CRITICAL_VOLTAGE: Decimal = dec!(2.70);
 
 pub struct Battery(BatteryDriver, BatteryChDriver);
 
@@ -41,7 +38,10 @@ impl Battery {
         let vin = div_out * (DIVIDER_R1 + DIVIDER_R2) / DIVIDER_R2;
         let voltage = vin.clamp(0.0, 4.2);
 
-        Ok(BigDecimal::from_f32(voltage).unwrap().with_scale(2))
+        let mut decimal = Decimal::from_f32_retain(voltage).unwrap();
+        decimal.rescale(2);
+
+        Ok(decimal)
     }
 
     pub fn read_raw_voltage(&mut self, samples: u16) -> OsResult<f32> {

@@ -7,9 +7,9 @@ use esp_idf_svc::{
     hal::i2c::I2cDriver,
     sys::{EspError, ESP_ERR_TIMEOUT, ESP_FAIL},
 };
-use pwmp_client::{
-    bigdecimal::{BigDecimal, FromPrimitive},
-    pwmp_types::aliases::{AirPressure, Humidity, Temperature},
+use pwmp_client::pwmp_types::{
+    aliases::{AirPressure, Humidity, Temperature},
+    dec, Decimal,
 };
 use std::{
     thread::sleep,
@@ -96,6 +96,17 @@ impl<'s> Htu21d<'s> {
             os_warn!("Error sending command to device, retrying");
         }
     }
+
+    fn calc_temperature(raw: u16) -> Temperature {
+        // -46.85 + ((175.72 * raw) / 65536.0)
+        let mut value = Decimal::new(raw as i64 * 100, 2);
+
+        value *= dec!(175.72);
+        value /= dec!(65536.00);
+        value.rescale(2);
+
+        value
+    }
 }
 
 impl<'s> EnvironmentSensor for Htu21d<'s> {
@@ -108,9 +119,8 @@ impl<'s> EnvironmentSensor for Htu21d<'s> {
 
     fn read_temperature(&mut self) -> OsResult<Temperature> {
         let raw = self.command(Command::ReadTemperature)?;
-        let temp = -46.85 + (175.72 * (raw as f32) / 65536.0);
 
-        Ok(BigDecimal::from_f32(temp).unwrap().with_scale(2))
+        Ok(Self::calc_temperature(raw))
     }
 
     fn read_humidity(&mut self) -> OsResult<Humidity> {

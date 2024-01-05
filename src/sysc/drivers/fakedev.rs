@@ -1,8 +1,8 @@
 use super::EnvironmentSensor;
 use crate::{os_debug, sysc::OsResult};
-use pwmp_client::{
-    bigdecimal::BigDecimal,
-    pwmp_types::aliases::{AirPressure, Humidity, Temperature},
+use pwmp_client::pwmp_types::{
+    aliases::{AirPressure, Humidity, Temperature},
+    Decimal,
 };
 
 pub struct FakeEnvSensor;
@@ -23,7 +23,7 @@ impl EnvironmentSensor for FakeEnvSensor {
     }
 
     fn read_temperature(&mut self) -> OsResult<Temperature> {
-        Ok(BigDecimal::default())
+        Ok(Decimal::default())
     }
 
     fn read_humidity(&mut self) -> OsResult<Humidity> {
