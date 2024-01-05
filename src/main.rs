@@ -16,7 +16,7 @@ use esp_idf_svc::{
 use log::LevelFilter;
 use simple_logger::SimpleLogger;
 use std::time::Instant;
-use sysc::ledctl::BoardLed;
+use sysc::{ledctl::BoardLed, sleep::deep_sleep};
 
 mod config;
 mod firmware;
@@ -62,22 +62,19 @@ fn main() {
     let start = Instant::now();
     let fw_exit = firmware::fw_main(peripherals, sys_loop, nvs, led, &mut appcfg);
     let runtime = start.elapsed();
-    let mut sleep_time = Some(appcfg.sleep_time);
 
     match fw_exit {
         Ok(()) => os_info!("Tasks completed successfully"),
         Err(why) => {
             if !why.recoverable() {
                 os_error!("Fatal OS Error: {why}");
-                sleep_time = None;
+                deep_sleep(None);
             }
             os_error!("OS Error: {why}");
         }
     }
     os_info!("Tasks completed in {:.02}s", runtime.as_secs_f32());
 
-    if let Some(time) = sleep_time {
-        os_debug!("Sleeping for {}s", time.as_secs());
-    }
-    sysc::sleep::deep_sleep(sleep_time);
+    os_debug!("Sleeping for {}s", appcfg.sleep_time.as_secs());
+    deep_sleep(Some(appcfg.sleep_time));
 }
