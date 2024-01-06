@@ -3,9 +3,7 @@ use crate::{
     os_debug, os_error, os_info, os_warn,
     sysc::{
         battery::{Battery, CRITICAL_VOLTAGE},
-        drivers::{
-            AnySensor, EnvironmentSensor, FakeEnvSensor, Htu21d, MeasurementResults, Si7021,
-        },
+        drivers::{AnySensor, EnvironmentSensor, Htu21d, MeasurementResults, Si7021},
         ledctl::BoardLed,
         net::{PowerSavingMode, WiFi},
         sleep::deep_sleep,
@@ -177,10 +175,6 @@ fn setup_envsensor(mut i2c_driver: I2cDriver<'_>) -> OsResult<AnySensor<'_>> {
                     },
                 ),
             }
-        }
-        Some(FakeEnvSensor::DEV_ADDR) => {
-            os_debug!("Detected FakeSensor");
-            Ok(AnySensor::Fake(FakeEnvSensor::new()?))
         }
         Some(other) => {
             os_error!("Unrecognised device @ I2C/0x{other:X}");
