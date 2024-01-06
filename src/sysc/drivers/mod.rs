@@ -41,7 +41,7 @@ impl<'s> EnvironmentSensor for AnySensor<'s> {
         }
     }
 
-    fn read_air_pressure(&mut self) -> Option<OsResult<AirPressure>> {
+    fn read_air_pressure(&mut self) -> OsResult<Option<AirPressure>> {
         match self {
             Self::Si7021(dev) => dev.read_air_pressure(),
             Self::Htu21d(dev) => dev.read_air_pressure(),

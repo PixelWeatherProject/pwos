@@ -185,11 +185,6 @@ fn read_environment(mut env: AnySensor) -> OsResult<MeasurementResults> {
     Ok(MeasurementResults {
         temperature: env.read_temperature()?,
         humidity: env.read_humidity()?,
-        air_pressure: {
-            match env.read_air_pressure() {
-                Some(res) => Some(res?),
-                None => None,
-            }
-        },
+        air_pressure: env.read_air_pressure()?,
     })
 }

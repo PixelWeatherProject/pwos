@@ -1,6 +1,6 @@
 use super::EnvironmentSensor;
 use crate::{
-    os_debug, os_warn,
+    os_debug,
     sysc::{OsError, OsResult},
 };
 use esp_idf_svc::hal::i2c::I2cDriver;
@@ -82,8 +82,9 @@ impl<'s> EnvironmentSensor for Si7021<'s> {
         Ok(hum.floor().clamp(0.0, 100.0) as u8)
     }
 
-    fn read_air_pressure(&mut self) -> Option<OsResult<AirPressure>> {
-        os_warn!("Air pressure is not supported");
-        None
+    fn read_air_pressure(&mut self) -> OsResult<Option<AirPressure>> {
+        #[cfg(debug_assertions)]
+        crate::os_warn!("Air pressure is not supported");
+        Ok(None)
     }
 }

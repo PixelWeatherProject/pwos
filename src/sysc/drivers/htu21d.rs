@@ -131,7 +131,9 @@ impl<'s> EnvironmentSensor for Htu21d<'s> {
         Ok(hum.floor().clamp(0.0, 100.0) as u8)
     }
 
-    fn read_air_pressure(&mut self) -> Option<OsResult<AirPressure>> {
-        None
+    fn read_air_pressure(&mut self) -> OsResult<Option<AirPressure>> {
+        #[cfg(debug_assertions)]
+        os_warn!("Air pressure is not supported");
+        Ok(None)
     }
 }
