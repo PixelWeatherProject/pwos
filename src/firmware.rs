@@ -155,9 +155,6 @@ fn setup_envsensor(mut i2c_driver: I2cDriver<'_>) -> OsResult<AnySensor<'_>> {
         }
     }
 
-    // To force the "fake" sensor uncomment the following line:
-    //working = Some(0xFF);
-
     match working {
         Some(Si7021::DEV_ADDR) => {
             /* The SI7021 and HTU21D have the same address, so we'll try both drivers. */
