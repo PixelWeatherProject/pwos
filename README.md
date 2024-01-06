@@ -33,6 +33,8 @@ As of now, this firmware has been tested with:
 It's recommended to use hardware from reputable brands such as Adafruit, SparkFun, DFRobot, etc. These are generally more expensive but also higher quality.
 
 ## Drivers
+All drivers for external hardware are in [`src/sysc/drivers`](src/sysc/drivers).
+
 The firmware includes drivers for the Si7021 and HTU21D temperature & humidity sensors. You could also implement your own driver, however the sensor must support temperature **and** humidity measuring at minimum. Your driver then must implement the `EnvironmentSensor` trait.
 
 ## Other hardware
