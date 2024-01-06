@@ -6,7 +6,7 @@ use crate::{
 use esp_idf_svc::hal::i2c::I2cDriver;
 use pwmp_client::pwmp_types::{
     aliases::{AirPressure, Humidity, Temperature},
-    dec, Decimal,
+    Decimal,
 };
 use std::{thread::sleep, time::Duration};
 
@@ -54,14 +54,12 @@ impl<'s> Si7021<'s> {
 
     fn calc_temperature(raw: u16) -> Temperature {
         // ((175.72 * raw) / 65536.0) - 46.85
-        let mut value = Decimal::new(raw as i64 * 100, 2);
+        let temp = ((175.72 * (raw as f32)) / 65536.0) - 46.85;
+        let mut decimal = Decimal::from_f32_retain(temp).unwrap();
 
-        value *= dec!(175.72);
-        value /= dec!(65536.00);
-        value -= dec!(46.85);
-        value.rescale(2);
+        decimal.rescale(2);
 
-        value
+        decimal
     }
 }
 

@@ -9,7 +9,7 @@ use esp_idf_svc::{
 };
 use pwmp_client::pwmp_types::{
     aliases::{AirPressure, Humidity, Temperature},
-    dec, Decimal,
+    Decimal,
 };
 use std::{
     thread::sleep,
@@ -101,13 +101,12 @@ impl<'s> Htu21d<'s> {
 
     fn calc_temperature(raw: u16) -> Temperature {
         // -46.85 + ((175.72 * raw) / 65536.0)
-        let mut value = Decimal::new(raw as i64 * 100, 2);
+        let temp = -46.85 + ((175.72 * (raw as f32)) / 65536.0);
+        let mut decimal = Decimal::from_f32_retain(temp).unwrap();
 
-        value *= dec!(175.72);
-        value /= dec!(65536.00);
-        value.rescale(2);
+        decimal.rescale(2);
 
-        value
+        decimal
     }
 }
 
