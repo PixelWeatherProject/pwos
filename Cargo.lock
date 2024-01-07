@@ -885,9 +885,9 @@ checksum = "b9e0384b61958566e926dc50660321d12159025e767c18e043daf26b70104c39"
 
 [[package]]
 name = "ignore"
-version = "0.4.21"
+version = "0.4.22"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "747ad1b4ae841a78e8aba0d63adbfbeaea26b517b63705d47856b73015d27060"
+checksum = "b46810df39e66e925525d6e38ce1e7f6e1d208f72dc39757880fcb66e2c58af1"
 dependencies = [
  "crossbeam-deque",
  "globset",
@@ -1048,18 +1048,18 @@ dependencies = [
 
 [[package]]
 name = "num_enum"
-version = "0.7.1"
+version = "0.7.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "683751d591e6d81200c39fb0d1032608b77724f34114db54f571ff1317b337c0"
+checksum = "02339744ee7253741199f897151b38e72257d13802d4ee837285cc2990a90845"
 dependencies = [
  "num_enum_derive",
 ]
 
 [[package]]
 name = "num_enum_derive"
-version = "0.7.1"
+version = "0.7.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6c11e44798ad209ccdd91fc192f0526a369a01234f7373e1b141c96d7cee4f0e"
+checksum = "681030a937600a36906c185595136d26abfebb4aa9c65701cefcaf8578bb982b"
 dependencies = [
  "proc-macro-crate",
  "proc-macro2",
@@ -1162,8 +1162,8 @@ dependencies = [
 
 [[package]]
 name = "pwmp-client"
-version = "1.0.4"
-source = "git+ssh://git@github.com/PixelWeatherProject/pwmp-stack.git#3f184b1243b945840cf6536936b3d0731970a5bc"
+version = "1.0.5"
+source = "git+ssh://git@github.com/PixelWeatherProject/pwmp-stack.git#d8d2f071692757475118f1a8cc07a091ddaa0e2d"
 dependencies = [
  "pwmp-types",
  "thiserror",
@@ -1171,8 +1171,8 @@ dependencies = [
 
 [[package]]
 name = "pwmp-types"
-version = "1.0.4"
-source = "git+ssh://git@github.com/PixelWeatherProject/pwmp-stack.git#3f184b1243b945840cf6536936b3d0731970a5bc"
+version = "1.0.5"
+source = "git+ssh://git@github.com/PixelWeatherProject/pwmp-stack.git#d8d2f071692757475118f1a8cc07a091ddaa0e2d"
 dependencies = [
  "bincode",
  "rust_decimal",
