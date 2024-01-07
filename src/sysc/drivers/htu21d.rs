@@ -21,6 +21,8 @@ use std::{
 enum Command {
     ReadTemperature = 0xE3,
     ReadHumidity = 0xE5,
+    ReadSerialPt1 = 0xFA, // ((0xFA0F >> 8) & 0xFF)
+    ReadSerialPt2 = 0xFC, // ((0xFCC9 >> 8) & 0xFF),
     Reset = 0xFE,
 }
 
@@ -97,6 +99,23 @@ impl<'s> Htu21d<'s> {
             }
             os_warn!("Error sending command to device, retrying");
         }
+    }
+
+    pub fn read_serial(&mut self) -> [u8; 8] {
+        let cmd = ((0xFA0F >> 8) & 0xFF) as u8;
+        let cmd2 = (0xFA0F & 0xFF) as u8;
+
+        os_debug!("{cmd} {cmd2}");
+
+        self.0
+            .write(Self::DEV_ADDR, &[cmd, cmd2], Self::BUS_TIMEOUT)
+            .unwrap();
+        sleep(Duration::from_millis(Self::CMD_WAITTIME_MS));
+
+        let mut result = [0; 8];
+        self.read(&mut result).unwrap();
+
+        result
     }
 
     fn calc_temperature(raw: u16) -> Temperature {

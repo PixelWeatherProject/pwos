@@ -32,40 +32,19 @@ pub fn fw_main(
     mut led: BoardLed,
     cfg: &mut AppConfig,
 ) -> OsResult<()> {
-    let (wifi, ap) = setup_wifi(peripherals.modem, sys_loop, nvs)?;
-    let mut pws = PwmpClient::new(PWMP_SERVER, wifi.get_mac()?)?;
-
-    read_appcfg(&mut pws, cfg)?;
-
-    let mut battery = Battery::new(peripherals.adc1, peripherals.pins.gpio35)?;
-    let bat_voltage = battery.read_voltage(4)?;
-    os_info!("Battery: {:.02}V", bat_voltage);
-
-    if (bat_voltage <= CRITICAL_VOLTAGE) && cfg.sbop {
-        os_warn!("Battery voltage too low, activating sBOP");
-        deep_sleep(None);
-    }
-
     let i2c_driver = I2cDriver::new(
         peripherals.i2c1,
         peripherals.pins.gpio21,
         peripherals.pins.gpio22,
         &Config::default().baudrate(400u32.kHz().into()),
     )?;
-    let env_sensor = setup_envsensor(i2c_driver)?;
+    let mut htu = Htu21d::new_with_driver(i2c_driver)
+        .map_err(|err| err.0)
+        .unwrap();
 
-    let results = read_environment(env_sensor)?;
-    os_info!("{}*C / {}%", results.temperature, results.humidity);
-    os_debug!("Posting measurements");
-    pws.post_measurements(results.temperature, results.humidity, results.air_pressure)?;
+    let serial = htu.read_serial();
+    os_info!("{serial:?}");
 
-    os_debug!("Posting stats");
-    pws.post_stats(bat_voltage, &ap.ssid, ap.signal_strength)?;
-
-    // Peacefully disconnect
-    drop(pws);
-
-    led.off();
     Ok(())
 }
 
