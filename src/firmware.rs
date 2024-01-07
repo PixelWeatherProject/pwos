@@ -3,7 +3,7 @@ use crate::{
     os_debug, os_error, os_info, os_warn,
     sysc::{
         battery::{Battery, CRITICAL_VOLTAGE},
-        drivers::{AnySensor, EnvironmentSensor, Htu21d, MeasurementResults, Si7021},
+        drivers::{AnySensor, EnvironmentSensor, Htu, MeasurementResults},
         ledctl::BoardLed,
         net::{PowerSavingMode, WiFi},
         sleep::deep_sleep,
@@ -156,22 +156,9 @@ fn setup_envsensor(mut i2c_driver: I2cDriver<'_>) -> OsResult<AnySensor<'_>> {
     }
 
     match working {
-        Some(Si7021::DEV_ADDR) => {
-            /* The SI7021 and HTU21D have the same address, so we'll try both drivers. */
-
-            match Si7021::new_with_driver(i2c_driver) {
-                Ok(si) => {
-                    os_debug!("Detected SI7021");
-                    Ok(AnySensor::Si7021(si))
-                }
-                Err((_, driver)) => Htu21d::new_with_driver(driver).map_or_else(
-                    |_| Err(OsError::NoEnvSensor),
-                    |htu| {
-                        os_debug!("Detected HTU21D");
-                        Ok(AnySensor::Htu21d(htu))
-                    },
-                ),
-            }
+        Some(Htu::DEV_ADDR) => {
+            os_debug!("Detected HTU-compatible sensor");
+            Ok(AnySensor::HtuCompatible(Htu::new_with_driver(i2c_driver)?))
         }
         Some(other) => {
             os_error!("Unrecognised device @ I2C/0x{other:X}");

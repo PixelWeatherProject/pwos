@@ -35,7 +35,11 @@ It's recommended to use hardware from reputable brands such as Adafruit, SparkFu
 ## Drivers
 All drivers for external hardware are in [`src/sysc/drivers`](src/sysc/drivers).
 
-The firmware includes drivers for the Si7021 and HTU21D temperature & humidity sensors. You could also implement your own driver, however the sensor must support temperature **and** humidity measuring at minimum. Your driver then must implement the `EnvironmentSensor` trait.
+The firmware includes one universal driver that should be compatible with any HTU21-like sensor. It works with:
+- [HTU21D from SparkFun](https://www.sparkfun.com/products/retired/12064)
+- [Adafruit Si7021 Temperature & Humidity Sensor](https://www.adafruit.com/product/3251)
+
+You could also implement your own driver, however the sensor must support temperature **and** humidity measuring at minimum. Your driver then must implement the `EnvironmentSensor` trait.
 
 ## Other hardware
 The project currently only supports the ESP32 and no support is planned for any other hardware at the moment.

@@ -13,26 +13,24 @@ use std::{thread::sleep, time::Duration};
 #[derive(PartialEq, Clone, Copy)]
 #[repr(u8)]
 enum Command {
-    ReadTemperature = 0xF3,
-    ReadHumidity = 0xF5,
+    ReadTemperature = 0xE3,
+    ReadHumidity = 0xE5,
     Reset = 0xFE,
 }
 
-pub struct Si7021<'s>(I2cDriver<'s>);
+pub struct Htu<'s>(I2cDriver<'s>);
 
-impl<'s> Si7021<'s> {
+impl<'s> Htu<'s> {
     pub const DEV_ADDR: u8 = 0x40;
 
     const BUS_TIMEOUT: u32 = 1000;
     const CMD_WAIT_TIME: u64 = 50;
 
-    pub fn new_with_driver(driver: I2cDriver<'s>) -> Result<Self, (OsError, I2cDriver)> {
+    pub fn new_with_driver(driver: I2cDriver<'s>) -> Result<Self, OsError> {
         os_debug!("Loading driver");
         let mut dev = Self(driver);
 
-        if let Err(err) = dev.command(Command::Reset) {
-            return Err((err, dev.0));
-        }
+        dev.command(Command::Reset)?;
 
         Ok(dev)
     }
@@ -63,7 +61,7 @@ impl<'s> Si7021<'s> {
     }
 }
 
-impl<'s> EnvironmentSensor for Si7021<'s> {
+impl<'s> EnvironmentSensor for Htu<'s> {
     fn connected(&mut self) -> OsResult<bool> {
         self.command(Command::Reset)?;
         Ok(true)
