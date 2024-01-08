@@ -1,5 +1,4 @@
 # PixelWeatherOS
-
 This is a universal firmware for all PixelWeather nodes. It was created using the [esp-idf template](https://github.com/esp-rs/esp-idf-template).
 
 Hardware requirements:
@@ -23,14 +22,19 @@ Hardware requirements:
 Software requirements (for building):
 - [Rust](https://rustlang.org/)
 - [ESP32 Rust toolchain](https://esp-rs.github.io/book/)
-- A PixelWeather Messaging Protocol server
 
-## Recommended hardware
+## Recommended sensor hardware
 As of now, this firmware has been tested with:
 - [Adafruit Si7021 Temperature & Humidity Sensor](https://www.adafruit.com/product/3251)
-- Generic ESP32 Dev board with 4MB PSRAM
+- [HTU21D from SparkFun](https://www.sparkfun.com/products/retired/12064)
 
 It's recommended to use hardware from reputable brands such as Adafruit, SparkFun, DFRobot, etc. These are generally more expensive but also higher quality.
+
+## Recommended ESP32 boards
+As of now, this firmware has been tested with:
+- [x] Generic ESP32 Dev board with 4MB PSRAM
+- [ ] ESP32-S3
+- [ ] ESP32-C3
 
 ## Drivers
 All drivers for external hardware are in [`src/sysc/drivers`](src/sysc/drivers).
@@ -39,10 +43,10 @@ The firmware includes one universal driver that should be compatible with any HT
 - [HTU21D from SparkFun](https://www.sparkfun.com/products/retired/12064)
 - [Adafruit Si7021 Temperature & Humidity Sensor](https://www.adafruit.com/product/3251)
 
-You could also implement your own driver, however the sensor must support temperature **and** humidity measuring at minimum. Your driver then must implement the `EnvironmentSensor` trait.
+You could also implement your own driver, however the sensor must support temperature **and** humidity measuring at minimum. Your driver then must implement the [`EnvironmentSensor`](src/sysc/drivers/envsensor_trait.rs) trait.
 
 ## Other hardware
-The project currently only supports the ESP32 and no support is planned for any other hardware at the moment.
+The project currently only supports the ESP32. There are no plans to support any other MCU.
 
 ## Building
 1. Follow the toolchain setup in [Espressifs Rust Book](https://esp-rs.github.io/book/)
