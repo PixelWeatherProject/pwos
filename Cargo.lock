@@ -1155,8 +1155,8 @@ dependencies = [
 
 [[package]]
 name = "pwmp-client"
-version = "1.0.7"
-source = "git+ssh://git@github.com/PixelWeatherProject/pwmp-stack.git#13181d0333a9adb528180d8cad659e9d387e2228"
+version = "1.0.8"
+source = "git+ssh://git@github.com/PixelWeatherProject/pwmp-stack.git#90b71572996820e50fc72a812a3e6903195d7887"
 dependencies = [
  "pwmp-types",
  "thiserror",
@@ -1164,8 +1164,8 @@ dependencies = [
 
 [[package]]
 name = "pwmp-types"
-version = "1.0.7"
-source = "git+ssh://git@github.com/PixelWeatherProject/pwmp-stack.git#13181d0333a9adb528180d8cad659e9d387e2228"
+version = "1.0.8"
+source = "git+ssh://git@github.com/PixelWeatherProject/pwmp-stack.git#90b71572996820e50fc72a812a3e6903195d7887"
 dependencies = [
  "bincode",
  "rust_decimal",
