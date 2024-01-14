@@ -15,7 +15,7 @@ pub enum OsError {
     WifiConnect(i32),
     #[error("offline")]
     NoInternet,
-    #[error("pwmp")]
+    #[error("pwmp: {0}")]
     PwmpError(pwmp_client::error::Error),
     #[error("pwmp server reject")]
     PwmpRejected,
