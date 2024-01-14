@@ -43,6 +43,11 @@ pub fn fw_main(
 
     if (bat_voltage <= CRITICAL_VOLTAGE) && cfg.sbop {
         os_warn!("Battery voltage too low, activating sBOP");
+
+        if let Err(why) = pws.send_notification("Battery voltage too low, activating sBOP") {
+            os_warn!("Failed to send sBOP notification: {why}");
+        }
+
         deep_sleep(None);
     }
 
