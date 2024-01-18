@@ -7,7 +7,7 @@ use crate::{
         ledctl::BoardLed,
         net::{PowerSavingMode, WiFi},
         sleep::deep_sleep,
-        OsError, OsResult,
+        OsError, OsResult, ReportableError,
     },
 };
 use esp_idf_svc::{
@@ -44,9 +44,8 @@ pub fn fw_main(
     if (bat_voltage <= CRITICAL_VOLTAGE) && cfg.sbop {
         os_warn!("Battery voltage too low, activating sBOP");
 
-        if let Err(why) = pws.send_notification("Battery voltage too low, activating sBOP") {
-            os_warn!("Failed to send sBOP notification: {why}");
-        }
+        pws.send_notification("Battery voltage too low, activating sBOP")
+            .report("Failed to send sBOP notification");
 
         deep_sleep(None);
     }

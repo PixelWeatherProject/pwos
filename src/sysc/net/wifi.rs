@@ -1,7 +1,7 @@
 use super::PowerSavingMode;
 use crate::{
-    os_debug, os_warn,
-    sysc::{OsError, OsResult},
+    os_debug,
+    sysc::{OsError, OsResult, ReportableError},
     wrap_oserr,
 };
 use esp_idf_svc::{
@@ -99,13 +99,9 @@ impl Drop for WiFi {
         os_debug!("Deinitializing WiFi");
 
         if self.connected() {
-            if let Err(why) = self.0.disconnect() {
-                os_warn!("Failed to disconnect (error {why})");
-            }
+            self.0.disconnect().report("Failed to disconnect");
         }
 
-        if let Err(why) = self.0.stop() {
-            os_warn!("Failed to disable (error {why})");
-        }
+        self.0.stop().report("Failed to disable");
     }
 }

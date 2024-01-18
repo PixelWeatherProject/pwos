@@ -1,4 +1,6 @@
+use crate::os_warn;
 use esp_idf_svc::sys::EspError;
+use std::fmt::Display;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -30,6 +32,18 @@ macro_rules! wrap_oserr {
     ($e: expr, $variant: ident) => {
         $e.map_err(|err| OsError::$variant(err.code()))
     };
+}
+
+pub trait ReportableError {
+    fn report(self, desc: &str);
+}
+
+impl<T, E: Display> ReportableError for Result<T, E> {
+    fn report(self, desc: &str) {
+        if let Err(why) = self {
+            os_warn!("{desc}: {why}");
+        }
+    }
 }
 
 impl From<pwmp_client::error::Error> for OsError {

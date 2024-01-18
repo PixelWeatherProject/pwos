@@ -7,5 +7,5 @@ pub mod logging;
 pub mod net;
 pub mod sleep;
 
-pub use error::OsError;
+pub use error::{OsError, ReportableError};
 pub type OsResult<T> = ::std::result::Result<T, OsError>;
