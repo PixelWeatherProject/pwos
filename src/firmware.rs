@@ -39,7 +39,7 @@ pub fn fw_main(
 
     let mut battery = Battery::new(peripherals.adc1, peripherals.pins.gpio35)?;
     let bat_voltage = battery.read_voltage(4)?;
-    os_info!("Battery: {:.02}V", bat_voltage);
+    os_info!("Battery: {bat_voltage}V");
 
     if (bat_voltage <= CRITICAL_VOLTAGE) && cfg.sbop {
         os_warn!("Battery voltage too low, activating sBOP");

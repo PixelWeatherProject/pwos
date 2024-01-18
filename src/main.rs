@@ -73,7 +73,7 @@ fn main() {
             os_error!("OS Error: {why}");
         }
     }
-    os_info!("Tasks completed in {:.02}s", runtime.as_secs_f32());
+    os_info!("Tasks completed in {runtime:.02?}s");
 
     os_debug!("Sleeping for {}s", appcfg.sleep_time.as_secs());
     deep_sleep(Some(appcfg.sleep_time));
