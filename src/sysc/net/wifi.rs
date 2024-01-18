@@ -16,10 +16,10 @@ use esp_idf_svc::{
 };
 use pwmp_client::pwmp_types::mac::Mac;
 
-pub struct WiFi<'a>(BlockingWifi<EspWifi<'a>>);
+pub struct WiFi(BlockingWifi<EspWifi<'static>>);
 
 #[allow(clippy::unused_self)]
-impl<'a> WiFi<'a> {
+impl WiFi {
     pub fn new(
         modem: Modem,
         sys_loop: EspSystemEventLoop,
@@ -94,7 +94,7 @@ impl<'a> WiFi<'a> {
     }
 }
 
-impl<'a> Drop for WiFi<'a> {
+impl Drop for WiFi {
     fn drop(&mut self) {
         os_debug!("Deinitializing WiFi");
 

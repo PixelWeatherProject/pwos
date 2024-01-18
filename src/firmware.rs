@@ -78,7 +78,7 @@ fn setup_wifi(
     modem: Modem,
     sys_loop: EspSystemEventLoop,
     nvs: EspDefaultNvsPartition,
-) -> OsResult<(WiFi<'static>, AccessPointInfo)> {
+) -> OsResult<(WiFi, AccessPointInfo)> {
     os_debug!("Initializing WiFi");
     let mut wifi = WiFi::new(modem, sys_loop, nvs)?;
 
