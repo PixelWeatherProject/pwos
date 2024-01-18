@@ -1178,6 +1178,7 @@ name = "pwos"
 version = "1.0.8"
 dependencies = [
  "build-time",
+ "defmt",
  "embuild",
  "esp-idf-svc",
  "heapless",

@@ -67,13 +67,13 @@ fn main() {
         Ok(()) => os_info!("Tasks completed successfully"),
         Err(why) => {
             if !why.recoverable() {
-                os_error!("Fatal OS Error: {why}");
+                os_error!("Fatal OS Error: {}", why);
                 deep_sleep(None);
             }
-            os_error!("OS Error: {why}");
+            os_error!("OS Error: {}", why);
         }
     }
-    os_info!("Tasks completed in {:.02}s", runtime.as_secs_f32());
+    os_info!("Tasks completed in {:?}s", runtime);
 
     os_debug!("Sleeping for {}s", appcfg.sleep_time.as_secs());
     deep_sleep(Some(appcfg.sleep_time));

@@ -39,13 +39,13 @@ pub fn fw_main(
 
     let mut battery = Battery::new(peripherals.adc1, peripherals.pins.gpio35)?;
     let bat_voltage = battery.read_voltage(4)?;
-    os_info!("Battery: {:.02}V", bat_voltage);
+    os_info!("Battery: {}V", bat_voltage);
 
     if (bat_voltage <= CRITICAL_VOLTAGE) && cfg.sbop {
         os_warn!("Battery voltage too low, activating sBOP");
 
         if let Err(why) = pws.send_notification("Battery voltage too low, activating sBOP") {
-            os_warn!("Failed to send sBOP notification: {why}");
+            os_warn!("Failed to send sBOP notification: {}", why);
         }
 
         deep_sleep(None);
@@ -96,7 +96,8 @@ fn setup_wifi(
             .collect::<heapless::Vec<&str, MAX_NET_SCAN>>();
 
         os_debug!(
-            "Found networks: {network_names:?} in {:?}",
+            "Found networks: {:?} in {:?}",
+            network_names,
             scan_start.elapsed()
         );
     }
@@ -123,7 +124,7 @@ fn setup_wifi(
                 os_debug!("IP: {}", wifi.get_ip_info().unwrap().ip);
                 return Ok((wifi, ap));
             }
-            Err(why) => os_error!("Failed to connect: {why}"),
+            Err(why) => os_error!("Failed to connect: {}", why),
         }
     }
 
@@ -152,7 +153,7 @@ fn setup_envsensor(mut i2c_driver: I2cDriver<'_>) -> OsResult<AnySensor<'_>> {
 
     for addr in 1..128 {
         if i2c_driver.write(addr, &[], 1000).is_ok() {
-            os_debug!("Found device @ I2C/0x{addr:X}");
+            os_debug!("Found device @ I2C/0x{:X}", addr);
             working = Some(addr);
 
             /* We expect only ONE device, so the loop can be broken here. */
@@ -166,7 +167,7 @@ fn setup_envsensor(mut i2c_driver: I2cDriver<'_>) -> OsResult<AnySensor<'_>> {
             Ok(AnySensor::HtuCompatible(Htu::new_with_driver(i2c_driver)?))
         }
         Some(other) => {
-            os_error!("Unrecognised device @ I2C/0x{other:X}");
+            os_error!("Unrecognised device @ I2C/0x{:X}", other);
             Err(OsError::NoEnvSensor)
         }
         None => Err(OsError::NoEnvSensor),

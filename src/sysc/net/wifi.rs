@@ -100,12 +100,12 @@ impl Drop for WiFi {
 
         if self.connected() {
             if let Err(why) = self.0.disconnect() {
-                os_warn!("Failed to disconnect (error {why})");
+                os_warn!("Failed to disconnect (error {})", why);
             }
         }
 
         if let Err(why) = self.0.stop() {
-            os_warn!("Failed to disable (error {why})");
+            os_warn!("Failed to disable (error {})", why);
         }
     }
 }
