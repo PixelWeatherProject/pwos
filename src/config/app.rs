@@ -32,7 +32,6 @@ impl AppConfig {
                 SettingName::SleepTime => {
                     self.sleep_time = Duration::from_secs(value.as_number().unwrap() as u64);
                 }
-                SettingName::DeviceSpecific => (),
             }
         }
     }
