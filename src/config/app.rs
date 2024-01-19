@@ -39,20 +39,31 @@ impl AppConfig {
 
 impl Default for AppConfig {
     fn default() -> Self {
-        Self {
-            battery_ignore: SettingName::BatteryIgnore
-                .default_value()
-                .as_bool()
-                .unwrap(),
-            ota: SettingName::Ota.default_value().as_bool().unwrap(),
-            sleep_time: Duration::from_secs(
-                SettingName::SleepTime.default_value().as_number().unwrap() as _,
-            ),
-            sbop: SettingName::Sbop.default_value().as_bool().unwrap(),
-            mute_notifications: SettingName::MuteNotifications
-                .default_value()
-                .as_bool()
-                .unwrap(),
+        unsafe {
+            Self {
+                battery_ignore: SettingName::BatteryIgnore
+                    .default_value()
+                    .as_bool()
+                    .unwrap_unchecked(),
+                ota: SettingName::Ota
+                    .default_value()
+                    .as_bool()
+                    .unwrap_unchecked(),
+                sleep_time: Duration::from_secs(
+                    SettingName::SleepTime
+                        .default_value()
+                        .as_number()
+                        .unwrap_unchecked() as _,
+                ),
+                sbop: SettingName::Sbop
+                    .default_value()
+                    .as_bool()
+                    .unwrap_unchecked(),
+                mute_notifications: SettingName::MuteNotifications
+                    .default_value()
+                    .as_bool()
+                    .unwrap_unchecked(),
+            }
         }
     }
 }

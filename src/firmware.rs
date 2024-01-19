@@ -108,11 +108,13 @@ fn setup_wifi(
     for ap in networks {
         os_info!("Connecting to {}", ap.ssid);
 
-        let psk = WIFI_NETWORKS
-            .iter()
-            .find(|entry| entry.0 == ap.ssid)
-            .unwrap()
-            .1;
+        let psk = unsafe {
+            WIFI_NETWORKS
+                .iter()
+                .find(|entry| entry.0 == ap.ssid)
+                .unwrap_unchecked()
+                .1
+        };
 
         #[cfg(debug_assertions)]
         let start = Instant::now();
