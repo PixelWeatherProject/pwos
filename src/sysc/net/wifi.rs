@@ -56,8 +56,7 @@ impl WiFi {
     }
 
     pub fn scan<const MAXN: usize>(&mut self) -> OsResult<heapless::Vec<AccessPointInfo, MAXN>> {
-        let result = self.0.scan_n::<MAXN>()?.0;
-        Ok(result)
+        Ok(self.0.scan_n::<MAXN>()?.0)
     }
 
     pub fn connect(&mut self, ssid: &str, psk: &str, auth: AuthMethod) -> OsResult<()> {

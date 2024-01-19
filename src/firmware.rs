@@ -21,7 +21,7 @@ use esp_idf_svc::{
     nvs::EspDefaultNvsPartition,
     wifi::AccessPointInfo,
 };
-use pwmp_client::{pwmp_types::setting::SettingName, PwmpClient};
+use pwmp_client::PwmpClient;
 #[cfg(debug_assertions)]
 use std::time::Instant;
 
@@ -134,14 +134,7 @@ fn setup_wifi(
 fn read_appcfg(pws: &mut PwmpClient, appcfg: &mut AppConfig) -> OsResult<()> {
     os_debug!("Reading settings");
 
-    let values = pws.get_settings([
-        SettingName::BatteryIgnore,
-        SettingName::Ota,
-        SettingName::SleepTime,
-        SettingName::Sbop,
-        SettingName::MuteNotifications,
-    ])?;
-
+    let values = pws.get_settings(AppConfig::ALL_SETTINGS)?;
     appcfg.update_settings(values);
 
     os_debug!("Settings updated");
