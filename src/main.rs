@@ -66,11 +66,12 @@ fn main() {
     match fw_exit {
         Ok(()) => os_info!("Tasks completed successfully"),
         Err(why) => {
+            os_error!("OS Error: {why}");
+
             if !why.recoverable() {
-                os_error!("Fatal OS Error: {why}");
+                os_error!("System will now halt");
                 deep_sleep(None);
             }
-            os_error!("OS Error: {why}");
         }
     }
     os_info!("Tasks completed in {runtime:.02?}");
