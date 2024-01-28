@@ -30,11 +30,11 @@ impl log::Log for PwosLogger {
         let mut text = String::with_capacity(8);
 
         let level_name = match record.level() {
-            Level::Info => "INFO",
-            Level::Warn => "WARN",
-            Level::Error => "ERROR",
-            Level::Debug => "DEBUG",
-            Level::Trace => "TRACE",
+            Level::Info => "INFO  ",
+            Level::Warn => "WARN  ",
+            Level::Error => "ERROR ",
+            Level::Debug => "DEBUG ",
+            Level::Trace => "TRACE ",
         };
         let component = record.module_path().unwrap_or("unknown");
 
@@ -44,7 +44,7 @@ impl log::Log for PwosLogger {
 
         let message = record.args().to_string();
 
-        ufmt::uwriteln!(text, "{} {}: {}", level_name, component, message).unwrap();
+        ufmt::uwriteln!(text, "{} [{}] {}", level_name, component, message).unwrap();
         stdout.write_all(text.as_bytes()).unwrap();
     }
 }
