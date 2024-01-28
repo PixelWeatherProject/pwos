@@ -106,7 +106,7 @@ fn setup_wifi(
     networks.sort_by(|a, b| b.signal_strength.partial_cmp(&a.signal_strength).unwrap());
 
     for ap in networks {
-        os_info!("Connecting to {}", ap.ssid);
+        os_debug!("Connecting to {}", ap.ssid);
 
         let psk = unsafe {
             WIFI_NETWORKS
