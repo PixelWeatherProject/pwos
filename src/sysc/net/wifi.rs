@@ -2,7 +2,6 @@ use super::PowerSavingMode;
 use crate::{
     os_debug,
     sysc::{OsError, OsResult, ReportableError},
-    wrap_oserr,
 };
 use esp_idf_svc::{
     eventloop::EspSystemEventLoop,
@@ -25,14 +24,11 @@ impl WiFi {
         sys_loop: EspSystemEventLoop,
         nvs: EspDefaultNvsPartition,
     ) -> OsResult<Self> {
-        let esp_wifi = wrap_oserr!(EspWifi::new(modem, sys_loop.clone(), Some(nvs)), WifiInit)?;
-        let mut wifi = wrap_oserr!(BlockingWifi::wrap(esp_wifi, sys_loop), WifiBlockingInit)?;
+        let esp_wifi = EspWifi::new(modem, sys_loop.clone(), Some(nvs))?;
+        let mut wifi = BlockingWifi::wrap(esp_wifi, sys_loop)?;
 
-        wrap_oserr!(
-            wifi.set_configuration(&Configuration::Client(ClientConfiguration::default())),
-            WifiConfig
-        )?;
-        wrap_oserr!(wifi.start(), WifiStart)?;
+        wifi.set_configuration(&Configuration::Client(ClientConfiguration::default()))?;
+        wifi.start()?;
 
         Ok(Self(wifi))
     }
@@ -60,19 +56,18 @@ impl WiFi {
     }
 
     pub fn connect(&mut self, ssid: &str, psk: &str, auth: AuthMethod) -> OsResult<()> {
-        wrap_oserr!(
-            self.0
-                .set_configuration(&Configuration::Client(ClientConfiguration {
-                    ssid: ssid.into(),
-                    password: psk.into(),
-                    auth_method: auth,
-                    ..Default::default()
-                })),
-            WifiConfig
-        )?;
+        self.0
+            .set_configuration(&Configuration::Client(ClientConfiguration {
+                ssid: ssid.into(),
+                password: psk.into(),
+                auth_method: auth,
+                ..Default::default()
+            }))?;
 
-        wrap_oserr!(self.0.connect(), WifiConnect)?;
-        self.0.wait_netif_up()?;
+        self.0
+            .connect()
+            .and(self.0.wait_netif_up())
+            .map_err(OsError::WifiConnect)?;
 
         Ok(())
     }
