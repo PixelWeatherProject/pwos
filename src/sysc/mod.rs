@@ -3,6 +3,7 @@ pub mod brownout;
 pub mod drivers;
 mod error;
 pub mod ledctl;
+pub mod log;
 pub mod logging;
 pub mod net;
 pub mod sleep;

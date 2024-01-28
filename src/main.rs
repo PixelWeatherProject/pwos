@@ -6,15 +6,13 @@
     clippy::cast_sign_loss
 )]
 
-use crate::config::AppConfig;
+use crate::{config::AppConfig, sysc::log::PwosLogger};
 use build_time::build_time_local;
 use esp_idf_svc::{
     eventloop::EspSystemEventLoop,
     hal::{peripheral::Peripheral, peripherals::Peripherals},
     nvs::EspDefaultNvsPartition,
 };
-use log::LevelFilter;
-use simple_logger::SimpleLogger;
 use std::time::Instant;
 use sysc::{ledctl::BoardLed, sleep::deep_sleep};
 
@@ -25,12 +23,7 @@ mod sysc;
 fn main() {
     esp_idf_svc::sys::link_patches();
 
-    let logger = SimpleLogger::new().with_module_level("esp_idf_svc", LevelFilter::Off);
-
-    #[cfg(not(debug_assertions))]
-    let logger = logger.with_level(LevelFilter::Info);
-
-    logger.init().unwrap();
+    PwosLogger::init();
 
     os_info!(
         "PixelWeatherOS v{} ({})",
