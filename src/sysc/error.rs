@@ -13,7 +13,7 @@ pub enum OsError {
     PwmpError(#[from] pwmp_client::error::Error),
     #[error("environment sensor")]
     NoEnvSensor,
-    #[error("esp api")]
+    #[error("esp api: {0}")]
     Esp(#[from] EspError),
 }
 
