@@ -17,13 +17,6 @@ pub enum OsError {
     Esp(#[from] EspError),
 }
 
-#[macro_export]
-macro_rules! wrap_oserr {
-    ($e: expr, $variant: ident) => {
-        $e.map_err(|err| OsError::$variant(err.code()))
-    };
-}
-
 pub trait ReportableError {
     fn report(self, desc: &str);
 }
