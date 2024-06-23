@@ -1,7 +1,12 @@
+use std::time::Duration;
+
 /// WiFi Networks to connect to
 pub const WIFI_NETWORKS: &[(&str, &str)] = &[
     ("My wifi 1", "mypass123"),
 ];
+
+/// WiFi Connection timeout
+pub const WIFI_TIMEOUT: Duration = Duration::from_secs(10);
 
 /// Maximum number of networks to scan
 pub const MAX_NET_SCAN: usize = 4;

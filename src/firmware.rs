@@ -1,5 +1,5 @@
 use crate::{
-    config::{AppConfig, MAX_NET_SCAN, PWMP_SERVER, WIFI_NETWORKS},
+    config::{AppConfig, MAX_NET_SCAN, PWMP_SERVER, WIFI_NETWORKS, WIFI_TIMEOUT},
     os_debug, os_error, os_info, os_warn,
     sysc::{
         battery::{Battery, CRITICAL_VOLTAGE},
@@ -109,7 +109,12 @@ fn setup_wifi(
 
         #[cfg(debug_assertions)]
         let start = Instant::now();
-        match wifi.connect(&ap.ssid, psk, ap.auth_method.unwrap_or(AuthMethod::None)) {
+        match wifi.connect(
+            &ap.ssid,
+            psk,
+            ap.auth_method.unwrap_or(AuthMethod::None),
+            WIFI_TIMEOUT,
+        ) {
             Ok(()) => {
                 os_debug!("Connected in {:?}", start.elapsed());
                 os_debug!("IP: {}", wifi.get_ip_info().unwrap().ip);

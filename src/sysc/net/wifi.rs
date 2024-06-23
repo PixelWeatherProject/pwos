@@ -4,18 +4,22 @@ use crate::{
     sysc::{OsError, OsResult, ReportableError},
 };
 use esp_idf_svc::{
-    eventloop::EspSystemEventLoop,
+    eventloop::{EspEventLoop, EspSystemEventLoop, System, Wait},
     hal::modem::Modem,
     nvs::EspDefaultNvsPartition,
     sys::{esp_wifi_set_max_tx_power, esp_wifi_set_ps, EspError},
     wifi::{
-        AccessPointInfo, AuthMethod, BlockingWifi, ClientConfiguration, Configuration, EspWifi,
-        WifiDeviceId,
+        AccessPointInfo, AuthMethod, ClientConfiguration, Configuration, EspWifi, WifiDeviceId,
+        WifiEvent,
     },
 };
 use pwmp_client::pwmp_types::mac::Mac;
+use std::time::Duration;
 
-pub struct WiFi(BlockingWifi<EspWifi<'static>>);
+pub struct WiFi {
+    driver: EspWifi<'static>,
+    event_loop: EspEventLoop<System>,
+}
 
 #[allow(clippy::unused_self)]
 impl WiFi {
@@ -24,13 +28,15 @@ impl WiFi {
         sys_loop: EspSystemEventLoop,
         nvs: EspDefaultNvsPartition,
     ) -> OsResult<Self> {
-        let esp_wifi = EspWifi::new(modem, sys_loop.clone(), Some(nvs))?;
-        let mut wifi = BlockingWifi::wrap(esp_wifi, sys_loop)?;
+        let mut wifi = EspWifi::new(modem, sys_loop.clone(), Some(nvs))?;
 
         wifi.set_configuration(&Configuration::Client(ClientConfiguration::default()))?;
         wifi.start()?;
 
-        Ok(Self(wifi))
+        Ok(Self {
+            driver: wifi,
+            event_loop: sys_loop.clone(),
+        })
     }
 
     pub fn set_power_saving(&self, mode: PowerSavingMode) -> OsResult<()> {
@@ -52,21 +58,27 @@ impl WiFi {
     }
 
     pub fn scan<const MAXN: usize>(&mut self) -> OsResult<heapless::Vec<AccessPointInfo, MAXN>> {
-        Ok(self.0.scan_n::<MAXN>()?.0)
+        Ok(self.driver.scan_n::<MAXN>()?.0)
     }
 
-    pub fn connect(&mut self, ssid: &str, psk: &str, auth: AuthMethod) -> OsResult<()> {
-        self.0
+    pub fn connect(
+        &mut self,
+        ssid: &str,
+        psk: &str,
+        auth: AuthMethod,
+        timeout: Duration,
+    ) -> OsResult<()> {
+        self.driver
             .set_configuration(&Configuration::Client(ClientConfiguration {
                 ssid: ssid.try_into().unwrap(),
                 password: psk.try_into().unwrap(),
                 auth_method: auth,
                 ..Default::default()
             }))?;
+        self.driver.connect().map_err(OsError::WifiConnect)?;
 
-        self.0
-            .connect()
-            .and(self.0.wait_netif_up())
+        let wait = Wait::new::<WifiEvent>(&self.event_loop)?;
+        wait.wait_while(|| self.driver.is_connected().map(|s| !s), Some(timeout))
             .map_err(OsError::WifiConnect)?;
 
         Ok(())
@@ -74,17 +86,17 @@ impl WiFi {
 
     #[cfg(debug_assertions)]
     pub fn get_ip_info(&self) -> OsResult<esp_idf_svc::ipv4::IpInfo> {
-        Ok(self.0.wifi().sta_netif().get_ip_info()?)
+        Ok(self.driver.sta_netif().get_ip_info()?)
     }
 
     pub fn get_mac(&self) -> OsResult<Mac> {
-        let raw = self.0.wifi().get_mac(WifiDeviceId::Sta)?;
+        let raw = self.driver.get_mac(WifiDeviceId::Sta)?;
 
         Ok(Mac::new(raw[0], raw[1], raw[2], raw[3], raw[4], raw[5]))
     }
 
     fn connected(&self) -> bool {
-        self.0.is_connected().unwrap_or(false)
+        self.driver.is_connected().unwrap_or(false)
     }
 }
 
@@ -93,9 +105,9 @@ impl Drop for WiFi {
         os_debug!("Deinitializing WiFi");
 
         if self.connected() {
-            self.0.disconnect().report("Failed to disconnect");
+            self.driver.disconnect().report("Failed to disconnect");
         }
 
-        self.0.stop().report("Failed to disable");
+        self.driver.stop().report("Failed to disable");
     }
 }
