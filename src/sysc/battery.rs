@@ -68,15 +68,14 @@ impl Battery {
     }
 
     fn read_raw(&mut self, samples: u16) -> OsResult<u16> {
-        let mut avg = 0;
+        let mut avg = 0.0f32;
 
         for _ in 0..samples {
-            avg += self.0.read(&mut self.1)?;
+            avg += self.0.read(&mut self.1)? as f32;
             sleep(Duration::from_millis(20));
         }
 
-        let avg = (avg / samples) as f32;
-
+        avg /= samples as f32;
         Ok(avg as u16)
     }
 }
