@@ -108,6 +108,7 @@ fn setup_wifi(
     for ap in networks {
         os_debug!("Connecting to {}", ap.ssid);
 
+        // SAFETY: Unknown APs are filtered out, so `find`` will always return something.
         let psk = unsafe {
             WIFI_NETWORKS
                 .iter()
