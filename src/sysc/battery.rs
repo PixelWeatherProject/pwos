@@ -45,8 +45,7 @@ impl Battery {
     }
 
     pub fn read_raw_voltage(&mut self, samples: u16) -> OsResult<f32> {
-        let raw = self.read_raw(samples)?;
-        Ok(Self::raw_to_voltage(raw))
+        Ok(Self::raw_to_voltage(self.read_raw(samples)?))
     }
 
     fn raw_to_voltage(raw: u16) -> f32 {
