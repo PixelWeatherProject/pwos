@@ -58,8 +58,8 @@ impl WiFi {
     pub fn connect(&mut self, ssid: &str, psk: &str, auth: AuthMethod) -> OsResult<()> {
         self.0
             .set_configuration(&Configuration::Client(ClientConfiguration {
-                ssid: ssid.into(),
-                password: psk.into(),
+                ssid: ssid.try_into().unwrap(),
+                password: psk.try_into().unwrap(),
                 auth_method: auth,
                 ..Default::default()
             }))?;

@@ -14,7 +14,7 @@ use esp_idf_svc::{
     eventloop::EspSystemEventLoop,
     hal::{i2c::I2cDriver, modem::Modem},
     nvs::EspDefaultNvsPartition,
-    wifi::AccessPointInfo,
+    wifi::{AccessPointInfo, AuthMethod},
 };
 use pwmp_client::PwmpClient;
 #[cfg(debug_assertions)]
@@ -109,7 +109,7 @@ fn setup_wifi(
 
         #[cfg(debug_assertions)]
         let start = Instant::now();
-        match wifi.connect(&ap.ssid, psk, ap.auth_method) {
+        match wifi.connect(&ap.ssid, psk, ap.auth_method.unwrap_or(AuthMethod::None)) {
             Ok(()) => {
                 os_debug!("Connected in {:?}", start.elapsed());
                 os_debug!("IP: {}", wifi.get_ip_info().unwrap().ip);
