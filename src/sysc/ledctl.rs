@@ -13,11 +13,14 @@ impl BoardLed {
         i
     }
 
+    // On/Off operations are usually not failable, but errors are not fatal either.
+    // They can be safely ignored. This also reduces the size of the firmware.
+
     pub fn on(&mut self) {
-        unsafe { self.0.set_high().unwrap_unchecked() }
+        let _ = self.0.set_high();
     }
 
     pub fn off(&mut self) {
-        unsafe { self.0.set_low().unwrap_unchecked() }
+        let _ = self.0.set_low();
     }
 }
