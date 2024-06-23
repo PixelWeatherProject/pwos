@@ -54,6 +54,23 @@ The project currently only supports the ESP32. There are no plans to support any
 3. Use `cargo build` to compile the firmware.
 4. Use `cargo espflash flash --baud 921600 --port /dev/yourserialport --frozen --locked --partition-table partitions.csv` to burn the firmware onto the microcontroller.
 
+If you just want to build the image, use the following command:
+```sh
+cargo espflash save-image --chip esp32 -s 4mb --merge -T partitions.csv --frozen --release --locked image.bin
+```
+
+## Build variants
+Firmware size (at the time of writing this):
+- Release build: `1,114,176/3,145,728 bytes, 35.42%`
+- Debug build: `1,182,256/3,145,728 bytes, 37.58%`
+
+Debug builds may be slower and contain a lot of debug messages. As such they are ~2% larger.
+
+## Stability
+__Latest verified stale version: ❓__
+
+A version is deemed "stable" if it runs without interruptions/buggy behaviour for at least 1 month.
+
 ### Caveats
 - If you're planning to flash the firmware and use it "in production", you should always use release builds. Just pass `--release` to `cargo build` **and** `cargo espflash`.
 - If you just want to test the firmware, you should use debug builds. They are smaller and have more verbose logging.
