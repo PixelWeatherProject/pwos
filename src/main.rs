@@ -10,13 +10,17 @@ use crate::config::AppConfig;
 use build_time::build_time_local;
 use esp_idf_svc::{
     eventloop::EspSystemEventLoop,
-    hal::{peripheral::Peripheral, peripherals::Peripherals},
+    hal::{
+        i2c::{config::Config, I2cDriver},
+        peripherals::Peripherals,
+        units::FromValueType,
+    },
     nvs::EspDefaultNvsPartition,
 };
 use log::LevelFilter;
 use simple_logger::SimpleLogger;
 use std::time::Instant;
-use sysc::{ledctl::BoardLed, sleep::deep_sleep};
+use sysc::{battery::Battery, ledctl::BoardLed, sleep::deep_sleep};
 
 mod config;
 mod firmware;
@@ -43,7 +47,7 @@ fn main() {
     sysc::brownout::disable_brownout_detector();
 
     os_debug!("Initializing peripherals");
-    let mut peripherals = Peripherals::take().expect("Failed to initialize peripherals");
+    let peripherals = Peripherals::take().expect("Failed to initialize peripherals");
 
     os_debug!("Initializing System Event Loop");
     let sys_loop = EspSystemEventLoop::take().expect("SEL init error");
@@ -52,7 +56,20 @@ fn main() {
     let nvs = EspDefaultNvsPartition::take().expect("NVS init error");
 
     os_debug!("Initializing system LED");
-    let led = BoardLed::new(unsafe { peripherals.pins.gpio19.clone_unchecked() });
+    let led = BoardLed::new(peripherals.pins.gpio19);
+
+    os_debug!("Initializing system Battery");
+    let battery = Battery::new(peripherals.adc1, peripherals.pins.gpio35)
+        .expect("Failed to initialize battery ADC");
+
+    os_debug!("Initializing I2C bus");
+    let i2c = I2cDriver::new(
+        peripherals.i2c1,
+        peripherals.pins.gpio21,
+        peripherals.pins.gpio22,
+        &Config::default().baudrate(400u32.kHz().into()),
+    )
+    .expect("Failed to initialize I2C");
 
     os_debug!("Initializing app configuration");
     let mut appcfg = AppConfig::default();
@@ -60,7 +77,15 @@ fn main() {
     os_info!("Staring main");
 
     let start = Instant::now();
-    let fw_exit = firmware::fw_main(peripherals, sys_loop, nvs, led, &mut appcfg);
+    let fw_exit = firmware::fw_main(
+        battery,
+        i2c,
+        peripherals.modem,
+        sys_loop,
+        nvs,
+        led,
+        &mut appcfg,
+    );
     let runtime = start.elapsed();
 
     match fw_exit {

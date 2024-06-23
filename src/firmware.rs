@@ -12,12 +12,7 @@ use crate::{
 };
 use esp_idf_svc::{
     eventloop::EspSystemEventLoop,
-    hal::{
-        i2c::{config::Config, I2cDriver},
-        modem::Modem,
-        peripherals::Peripherals,
-        units::FromValueType,
-    },
+    hal::{i2c::I2cDriver, modem::Modem},
     nvs::EspDefaultNvsPartition,
     wifi::AccessPointInfo,
 };
@@ -26,18 +21,19 @@ use pwmp_client::PwmpClient;
 use std::time::Instant;
 
 pub fn fw_main(
-    peripherals: Peripherals,
+    mut battery: Battery,
+    i2c: I2cDriver,
+    modem: Modem,
     sys_loop: EspSystemEventLoop,
     nvs: EspDefaultNvsPartition,
     mut led: BoardLed,
     cfg: &mut AppConfig,
 ) -> OsResult<()> {
-    let (wifi, ap) = setup_wifi(peripherals.modem, sys_loop, nvs)?;
+    let (wifi, ap) = setup_wifi(modem, sys_loop, nvs)?;
     let mut pws = PwmpClient::new(PWMP_SERVER, wifi.get_mac()?)?;
 
     read_appcfg(&mut pws, cfg)?;
 
-    let mut battery = Battery::new(peripherals.adc1, peripherals.pins.gpio35)?;
     let bat_voltage = battery.read_voltage(4)?;
     os_info!("Battery: {bat_voltage}V");
 
@@ -50,13 +46,7 @@ pub fn fw_main(
         deep_sleep(None);
     }
 
-    let i2c_driver = I2cDriver::new(
-        peripherals.i2c1,
-        peripherals.pins.gpio21,
-        peripherals.pins.gpio22,
-        &Config::default().baudrate(400u32.kHz().into()),
-    )?;
-    let env_sensor = setup_envsensor(i2c_driver)?;
+    let env_sensor = setup_envsensor(i2c)?;
 
     let results = read_environment(env_sensor)?;
     os_info!("{}*C / {}%", results.temperature, results.humidity);
