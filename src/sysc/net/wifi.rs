@@ -4,7 +4,7 @@ use crate::{
     sysc::{OsError, OsResult, ReportableError},
 };
 use esp_idf_svc::{
-    eventloop::{EspEventLoop, EspSystemEventLoop, System, Wait},
+    eventloop::{EspEventLoop, EspEventSource, EspSystemEventLoop, System, Wait},
     hal::modem::Modem,
     netif::IpEvent,
     nvs::EspDefaultNvsPartition,
@@ -78,17 +78,28 @@ impl WiFi {
             }))?;
         self.driver.connect().map_err(OsError::WifiConnect)?;
 
-        let wait = Wait::new::<WifiEvent>(&self.event_loop)?;
         // wait until connected
-        wait.wait_while(|| self.driver.is_connected().map(|s| !s), Some(timeout))
-            .map_err(OsError::WifiConnect)?;
+        self.await_event::<WifiEvent, _, _>(
+            || self.driver.is_connected(),
+            OsError::WifiConnect,
+            timeout,
+        )?;
 
-        let wait = Wait::new::<IpEvent>(&self.event_loop)?;
         // wait until we get an IP
-        wait.wait_while(|| self.driver.is_up().map(|s| !s), Some(timeout))
-            .map_err(OsError::WifiConnect)?;
+        self.await_event::<IpEvent, _, _>(|| self.driver.is_up(), OsError::WifiConnect, timeout)?;
 
         Ok(())
+    }
+
+    fn await_event<S, F, U>(&self, matcher: F, err_map: U, timeout: Duration) -> OsResult<()>
+    where
+        S: EspEventSource,
+        F: Fn() -> Result<bool, EspError>,
+        U: Fn(EspError) -> OsError,
+    {
+        let wait = Wait::new::<S>(&self.event_loop)?;
+        wait.wait_while(|| matcher().map(|s| !s), Some(timeout))
+            .map_err(err_map)
     }
 
     #[cfg(debug_assertions)]
