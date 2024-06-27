@@ -85,7 +85,7 @@ fn setup_wifi(
             .collect::<heapless::Vec<&str, MAX_NET_SCAN>>();
 
         os_debug!(
-            "Found networks: {network_names:?} in {:?}",
+            "Found networks: {network_names:?} in {:.02?}",
             scan_start.elapsed()
         );
     }
