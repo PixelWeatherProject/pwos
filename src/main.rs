@@ -101,6 +101,6 @@ fn main() {
     }
     os_info!("Tasks completed in {runtime:.02?}");
 
-    os_debug!("Sleeping for {:?}s", appcfg.sleep_time);
+    os_debug!("Sleeping for {:?}", appcfg.sleep_time);
     deep_sleep(Some(appcfg.sleep_time));
 }
