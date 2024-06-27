@@ -48,11 +48,11 @@ You could also implement your own driver, however the sensor must support temper
 ## Other hardware
 The project currently only supports the ESP32. There are no plans to support any other MCU.
 
-## Power
+## Power
 Consumption measurements:
-| **Board**                    | **Test voltage** | **Running** | **Sleeping** | **Peak** | **Notes**          |
-|------------------------------|------------------|-------------|--------------|----------|--------------------|
-| LYLYGO T7 V1.3 MINI 32 ESP32 | 4.2V             | 150mA       | 400µA        | >2A      | 6612C power supply |
+| **Board**                    | **Sensor**      | **Test voltage** | **Running** | **Sleeping** | **Peak** | **Notes**                     |
+|------------------------------|-----------------|------------------|-------------|--------------|----------|-------------------------------|
+| LYLYGO T7 V1.3 MINI 32 ESP32 | Adafruit Si7012 | 4.2V             | 150mA       | 400µA        | >2A      | 6612C power supply, peaks >2? |
 
 ## Building
 1. Follow the toolchain setup in [Espressifs Rust Book](https://esp-rs.github.io/book/)
