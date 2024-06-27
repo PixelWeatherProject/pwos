@@ -6,6 +6,7 @@ use crate::{
 use esp_idf_svc::{
     eventloop::{EspEventLoop, EspSystemEventLoop, System, Wait},
     hal::modem::Modem,
+    netif::IpEvent,
     nvs::EspDefaultNvsPartition,
     sys::{esp_wifi_set_max_tx_power, esp_wifi_set_ps, EspError},
     wifi::{
@@ -78,7 +79,13 @@ impl WiFi {
         self.driver.connect().map_err(OsError::WifiConnect)?;
 
         let wait = Wait::new::<WifiEvent>(&self.event_loop)?;
+        // wait until connected
         wait.wait_while(|| self.driver.is_connected().map(|s| !s), Some(timeout))
+            .map_err(OsError::WifiConnect)?;
+
+        let wait = Wait::new::<IpEvent>(&self.event_loop)?;
+        // wait until we get an IP
+        wait.wait_while(|| self.driver.is_up().map(|s| !s), Some(timeout))
             .map_err(OsError::WifiConnect)?;
 
         Ok(())
