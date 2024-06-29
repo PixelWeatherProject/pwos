@@ -24,6 +24,7 @@ pub struct WiFi {
 
 #[allow(clippy::unused_self)]
 impl WiFi {
+    #[allow(clippy::needless_pass_by_value)]
     pub fn new(
         modem: Modem,
         sys_loop: EspSystemEventLoop,
@@ -36,7 +37,7 @@ impl WiFi {
 
         Ok(Self {
             driver: wifi,
-            event_loop: sys_loop.clone(),
+            event_loop: sys_loop,
         })
     }
 
