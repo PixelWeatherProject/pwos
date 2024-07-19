@@ -70,10 +70,18 @@ impl WiFi {
         auth: AuthMethod,
         timeout: Duration,
     ) -> OsResult<()> {
+        if ssid.len() > 32 {
+            return Err(OsError::SsidTooLong);
+        }
+
+        if psk.len() > 64 {
+            return Err(OsError::PskTooLong);
+        }
+
         self.driver
             .set_configuration(&Configuration::Client(ClientConfiguration {
-                ssid: ssid.try_into().unwrap(),
-                password: psk.try_into().unwrap(),
+                ssid: unsafe { ssid.try_into().unwrap_unchecked() },
+                password: unsafe { psk.try_into().unwrap_unchecked() },
                 auth_method: auth,
                 ..Default::default()
             }))?;

@@ -15,6 +15,10 @@ pub enum OsError {
     NoEnvSensor,
     #[error("esp api: {0}")]
     Esp(#[from] EspError),
+    #[error("SSID too long")]
+    SsidTooLong,
+    #[error("PSK too long")]
+    PskTooLong,
 }
 
 pub trait ReportableError {
