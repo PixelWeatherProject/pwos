@@ -10,12 +10,13 @@ use esp_idf_svc::{
     nvs::EspDefaultNvsPartition,
     sys::{esp_wifi_set_max_tx_power, esp_wifi_set_ps, EspError},
     wifi::{
+        config::{ScanConfig, ScanType},
         AccessPointInfo, AuthMethod, ClientConfiguration, Configuration, EspWifi, WifiDeviceId,
         WifiEvent,
     },
 };
 use pwmp_client::pwmp_types::mac::Mac;
-use std::time::Duration;
+use std::{thread::sleep, time::Duration};
 
 pub struct WiFi {
     driver: EspWifi<'static>,
@@ -59,8 +60,25 @@ impl WiFi {
         Ok(())
     }
 
-    pub fn scan<const MAXN: usize>(&mut self) -> OsResult<heapless::Vec<AccessPointInfo, MAXN>> {
-        Ok(self.driver.scan_n::<MAXN>()?.0)
+    pub fn scan<const MAXN: usize>(
+        &mut self,
+        timeout: Duration,
+    ) -> OsResult<heapless::Vec<AccessPointInfo, MAXN>> {
+        self.driver.start_scan(
+            &ScanConfig {
+                bssid: None,
+                ssid: None,
+                channel: None,
+                scan_type: ScanType::Passive(timeout),
+                show_hidden: false,
+            },
+            false,
+        )?;
+
+        sleep(timeout);
+        self.driver.stop_scan()?;
+
+        Ok(self.driver.get_scan_result_n()?.0)
     }
 
     pub fn connect(

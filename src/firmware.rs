@@ -17,6 +17,7 @@ use esp_idf_svc::{
     wifi::{AccessPointInfo, AuthMethod},
 };
 use pwmp_client::PwmpClient;
+use std::time::Duration;
 #[cfg(debug_assertions)]
 use std::time::Instant;
 
@@ -76,7 +77,7 @@ fn setup_wifi(
 
     #[cfg(debug_assertions)]
     let scan_start = Instant::now();
-    let mut networks = wifi.scan::<MAX_NET_SCAN>()?;
+    let mut networks = wifi.scan::<MAX_NET_SCAN>(Duration::from_secs(2))?;
     #[cfg(debug_assertions)]
     {
         let network_names = networks
