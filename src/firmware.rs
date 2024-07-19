@@ -115,14 +115,15 @@ fn setup_wifi(
                 .1
         };
 
+        let auth_method = match ap.auth_method.unwrap_or(AuthMethod::None) {
+            AuthMethod::WPA2WPA3Personal => AuthMethod::WPA2Personal,
+            // add other overrides if needed
+            other => other,
+        };
+
         #[cfg(debug_assertions)]
         let start = Instant::now();
-        match wifi.connect(
-            &ap.ssid,
-            psk,
-            ap.auth_method.unwrap_or(AuthMethod::None),
-            WIFI_TIMEOUT,
-        ) {
+        match wifi.connect(&ap.ssid, psk, auth_method, WIFI_TIMEOUT) {
             Ok(()) => {
                 os_debug!("Connected in {:?}", start.elapsed());
                 os_debug!("IP: {}", wifi.get_ip_info().unwrap().ip);
