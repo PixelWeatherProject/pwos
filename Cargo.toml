@@ -20,7 +20,7 @@ alloc = ["esp-idf-svc/alloc"]
 
 [dependencies]
 log = { version = "0.4", default-features = false }
-esp-idf-svc = { version = "0.48.1", default-features = false }
+esp-idf-svc = { version = "0.49.1", default-features = false }
 build-time = "0.1.3"
 thiserror = "1.0.51"
 heapless = "0.8.0"
@@ -31,4 +31,4 @@ simple_logger = { version = "5.0.0", default-features = false, features = [
 pwmp-client = { git = "ssh://git@github.com/PixelWeatherProject/pwmp-stack.git", tag = "v1.1.4" }
 
 [build-dependencies]
-embuild = "0.31.3"
+embuild = "0.32.0"
