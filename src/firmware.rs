@@ -95,6 +95,13 @@ fn setup_wifi(
     networks.retain(|ap| WIFI_NETWORKS.iter().any(|entry| entry.0 == ap.ssid));
     // sort by signal strength
     networks.sort_by(|a, b| b.signal_strength.partial_cmp(&a.signal_strength).unwrap());
+    // filter out APs with RSSI >= -90
+    networks.retain(|ap| ap.signal_strength >= -90);
+
+    if networks.is_empty() {
+        os_warn!("No usable networks found");
+        return Err(OsError::NoInternet);
+    }
 
     for ap in networks {
         os_debug!("Connecting to {}", ap.ssid);
