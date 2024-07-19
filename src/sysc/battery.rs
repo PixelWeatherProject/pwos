@@ -1,35 +1,45 @@
 use super::OsResult;
 use esp_idf_svc::{
     hal::{
-        adc::{config::Config, Adc, AdcChannelDriver, AdcDriver, ADC1},
+        adc::{
+            attenuation::DB_11,
+            oneshot::{config::AdcChannelConfig, AdcChannelDriver, AdcDriver},
+            Adc, Resolution, ADC1,
+        },
         gpio::Gpio35,
     },
     sys::{
-        adc_atten_t, adc_atten_t_ADC_ATTEN_DB_11, adc_bits_width_t_ADC_WIDTH_BIT_12,
-        esp_adc_cal_characteristics_t, esp_adc_cal_characterize, esp_adc_cal_raw_to_voltage,
+        adc_atten_t, esp_adc_cal_characteristics_t, esp_adc_cal_characterize,
+        esp_adc_cal_raw_to_voltage,
     },
 };
 use pwmp_client::pwmp_types::{aliases::BatteryVoltage, dec, Decimal};
 use std::{thread::sleep, time::Duration};
 
-const ATTEN: adc_atten_t = adc_atten_t_ADC_ATTEN_DB_11;
+const ATTEN: adc_atten_t = DB_11;
 const DIVIDER_R1: f32 = 20_000.0; // 20kOhm
 const DIVIDER_R2: f32 = 6800.0; // 6.8kOhm
 type BatteryGpio = Gpio35;
 type BatteryAdc = ADC1;
 type BatteryDriver = AdcDriver<'static, BatteryAdc>;
-type BatteryChDriver = AdcChannelDriver<'static, ATTEN, BatteryGpio>;
+type BatteryChDriver = AdcChannelDriver<'static, BatteryGpio, BatteryDriver>;
 
 pub const CRITICAL_VOLTAGE: Decimal = dec!(2.70);
+pub const RESOLUTION: Resolution = Resolution::Resolution12Bit;
+pub const ADC_CONFIG: AdcChannelConfig = AdcChannelConfig {
+    attenuation: ATTEN,
+    calibration: true,
+    resolution: Resolution::Resolution12Bit,
+};
 
-pub struct Battery(BatteryDriver, BatteryChDriver);
+pub struct Battery(BatteryChDriver);
 
 impl Battery {
     pub fn new(adc: BatteryAdc, gpio: BatteryGpio) -> OsResult<Self> {
-        let driver = BatteryDriver::new(adc, &Config::new().calibration(true))?;
-        let ch_driver = BatteryChDriver::new(gpio)?;
+        let driver = BatteryDriver::new(adc)?;
+        let ch_driver = BatteryChDriver::new(driver, gpio, &ADC_CONFIG)?;
 
-        Ok(Self(driver, ch_driver))
+        Ok(Self(ch_driver))
     }
 
     pub fn read_voltage(&mut self, samples: u16) -> OsResult<BatteryVoltage> {
@@ -54,8 +64,8 @@ impl Battery {
         unsafe {
             esp_adc_cal_characterize(
                 ADC1::unit(),
-                adc_atten_t_ADC_ATTEN_DB_11,
-                adc_bits_width_t_ADC_WIDTH_BIT_12,
+                ATTEN,
+                RESOLUTION.into(),
                 1100,
                 &mut characteristics,
             );
@@ -70,7 +80,7 @@ impl Battery {
         let mut avg = 0.0f32;
 
         for _ in 0..samples {
-            avg += self.0.read(&mut self.1)? as f32;
+            avg += self.0.read()? as f32;
             sleep(Duration::from_millis(20));
         }
 
