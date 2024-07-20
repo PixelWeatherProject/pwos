@@ -54,6 +54,14 @@ Consumption measurements:
 |------------------------------|-----------------|------------------|-------------|--------------|----------|-------------------------------|
 | LYLYGO T7 V1.3 MINI 32 ESP32 | Adafruit Si7012 | 4.2V             | 150mA       | 400µA        | >2A      | 6612C power supply, peaks >2? |
 
+Battery life measurements:
+| **Board**                    | **Sensor**      | **Battery model** | **Capacity** | **Environment** | **Time** | **Notes** |
+|------------------------------|-----------------|-------------------|--------------|-----------------|:--------:|-----------|
+| LYLYGO T7 V1.3 MINI 32 ESP32 | Adafruit Si7012 | Generic 18650     | 2.2Ah        | Outdoor         | WIP      |           |
+| LYLYGO T7 V1.3 MINI 32 ESP32 | Adafruit Si7012 | Generic 18650     | ~2Ah         | Indoor          | WIP      |           |
+
+**Note that the battery voltage measurement is currently unreliable.**
+
 ## Building
 1. Follow the toolchain setup in [Espressifs Rust Book](https://esp-rs.github.io/book/)
 2. Create a custom `sys.rs` config using the [example](src/config/sys.rs.example).
