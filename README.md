@@ -75,8 +75,8 @@ cargo espflash save-image --chip esp32 -s 4mb --merge -T partitions.csv --frozen
 
 ## Build variants
 Firmware size (at the time of writing this):
-- Release build: `1,114,176/3,145,728 bytes, 35.42%`
-- Debug build: `1,182,256/3,145,728 bytes, 37.58%`
+- Release build: `1,108,800/3,145,728 bytes, 35.25%`
+- Debug build: `1,193,744/3,145,728 bytes, 37.95%`
 
 Debug builds may be slower and contain a lot of debug messages. As such they are ~2% larger.
 
