@@ -66,12 +66,19 @@ Battery life measurements:
 1. Follow the toolchain setup in [Espressifs Rust Book](https://esp-rs.github.io/book/)
 2. Create a custom `sys.rs` config using the [example](src/config/sys.rs.example).
 3. Use `cargo build` to compile the firmware.
-4. Use `cargo espflash flash --baud 921600 --port /dev/yourserialport --frozen --locked --partition-table partitions.csv` to burn the firmware onto the microcontroller.
+4. Use the commands below to build an image or flash the firmware.
 
 If you just want to build the image, use the following command:
 ```sh
 cargo espflash save-image --chip esp32 -s 4mb --merge -T partitions.csv --frozen --release --locked image.bin
 ```
+
+To directly flash the firmware, use the command below. **Remember to change the serial port for your machine.**
+```sh
+cargo espflash flash --baud 921600 --port /dev/cu.usbserial-XXXXXXXX --monitor --frozen --locked --partition-table partitions.csv --release
+```
+
+To build a debug image (or flash it) remove the `--release` flag from the above commands.
 
 ## Build variants
 Firmware size (at the time of writing this):
