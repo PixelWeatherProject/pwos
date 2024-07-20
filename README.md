@@ -74,12 +74,12 @@ Battery life measurements:
 
 If you just want to build the image, use the following command:
 ```sh
-cargo espflash save-image --chip esp32 -s 4mb --merge -T partitions.csv --frozen --release --locked image.bin
+cargo espflash save-image -T partitions.csv --frozen --locked --release --chip esp32 -s 4mb --merge image.bin
 ```
 
 To directly flash the firmware, use the command below. **Remember to change the serial port for your machine.**
 ```sh
-cargo espflash flash --baud 921600 --port /dev/cu.usbserial-XXXXXXXX --monitor --frozen --locked --partition-table partitions.csv --release
+cargo espflash flash -T partitions.csv --frozen --locked --release --baud 921600 --port /dev/cu.usbserial-XXXXXXXX
 ```
 
 To build a debug image (or flash it) remove the `--release` flag from the above commands.
