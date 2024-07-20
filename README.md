@@ -45,6 +45,8 @@ The firmware includes one universal driver that should be compatible with any HT
 
 You could also implement your own driver, however the sensor must support temperature **and** humidity measuring at minimum. Your driver then must implement the [`EnvironmentSensor`](src/sysc/drivers/envsensor_trait.rs) trait.
 
+Using multiple environment sensors is **not** supported. The firmware will use the first sensor it finds (which is typically the one with the lowest I2C address). This also means that every I2C hardware must use a different address.
+
 ## Other hardware
 The project currently only supports the ESP32. There are no plans to support any other MCU.
 
