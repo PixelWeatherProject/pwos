@@ -4,6 +4,8 @@ This is a universal firmware for all PixelWeather nodes. It was created using th
 Hardware requirements:
 - Espressif ESP32 microcontroller
     - Both Xtensa (S3 series) and RISC-V (C3 series) are supported.
+    - 4MB Flash minimum
+        - Read section [Build variants](#build-variants) for details
     - 512KB SRAM (models with less may be sufficient)
     - PSRAM **required**
         - 2MB minimum
@@ -89,6 +91,8 @@ Firmware size (at the time of writing this):
 
 Debug builds may be slower and contain a lot of debug messages. As such they are ~2% larger.
 
+You will likely need an ESP32 chip with at least 4MB of Flash memory. About ~25% of this memory is reserved for [PHY init data](https://en.m.wikipedia.org/w/index.php?title=Physical_layer&diffonly=true#PHY) and [NVS](https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-reference/storage/nvs_flash.html?highlight=nvs) (read more [here](https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-guides/partition-tables.html#built-in-partition-tables)).
+
 ## Stability
 __Latest verified stale version: ❓__
 
@@ -96,7 +100,7 @@ A version is deemed "stable" if it runs without interruptions/buggy behaviour fo
 
 ### Caveats
 - If you're planning to flash the firmware and use it "in production", you should always use release builds. Just pass `--release` to `cargo build` **and** `cargo espflash`.
-- If you just want to test the firmware, you should use debug builds. They are smaller and have more verbose logging.
+- For troubleshooting, you should use debug builds, as they have more verbose logging.
 - Make sure to use the given partition layout ([`partitions.csv`](partitions.csv)) by passing `--partition-table partitions.csv` to `cargo espflash`. The default partition layout has a way too small `app` partition.
 - Some lower-quality ESP32 clones and USB cables may require a lower baud rate. Use `115200` if `921600` does not work for you.
 
