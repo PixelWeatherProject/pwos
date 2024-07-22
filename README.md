@@ -1,6 +1,10 @@
 # PixelWeatherOS
 This is a universal firmware for all PixelWeather nodes. It was created using the [esp-idf template](https://github.com/esp-rs/esp-idf-template).
 
+PixelWeather is a weather station network that collects environment data using "nodes" (a collection of microcontrollers and sensors). This repository contains the firware for said nodes _(PWOS)_.
+
+**⚠️ Note that this project is under development. While it is decently stable, is not complete! There are missing and incomplete implementations of features. Production use is highly discouraged!**
+
 Hardware requirements:
 - Espressif ESP32 microcontroller
     - Both Xtensa (S3 series) and RISC-V (C3 series) are supported.
@@ -37,6 +41,12 @@ As of now, this firmware has been tested with:
 - [x] Generic ESP32 Dev board with 4MB PSRAM
 - [ ] ESP32-S3
 - [ ] ESP32-C3
+
+## Code structure
+- [`src/firmware.rs`](/src/firmware.rs) - This is the entry point for the firmware. If you want to explore this project, you should start from here.
+- [`src/main.rs`](/src/main.rs) - The main entry point, it's responsible for initializing core components.
+- [`src/sysc/`](/src/sysc/) - Contains components of PWOS
+- [`src/config/`](src/config/) - Contains configuration definitions for the firmware.
 
 ## Drivers
 All drivers for external hardware are in [`src/sysc/drivers`](src/sysc/drivers).
