@@ -69,10 +69,10 @@ Consumption measurements:
 | LYLYGO T7 V1.3 MINI 32 ESP32 | Adafruit Si7012 | 4.2V             | 150mA       | 400µA        | >2A      | 6612C power supply, peaks >2? |
 
 Battery life measurements:
-| **Board**                    | **Sensor**      | **Battery model** | **Capacity** | **Environment** | **Time** | **Notes** |
-|------------------------------|-----------------|-------------------|--------------|-----------------|:--------:|-----------|
-| LYLYGO T7 V1.3 MINI 32 ESP32 | Adafruit Si7012 | Generic 18650     | 2.2Ah        | Outdoor         | WIP      |           |
-| LYLYGO T7 V1.3 MINI 32 ESP32 | Adafruit Si7012 | Generic 18650     | ~2Ah         | Indoor          | WIP      |           |
+| **Board**                    | **Sensor**      | **Battery model** | **Capacity** | **Environment**      | **Sleep time** | **Time**        |
+|------------------------------|-----------------|-------------------|--------------|----------------------|:--------------:|:---------------:|
+| LYLYGO T7 V1.3 MINI 32 ESP32 | Adafruit Si7012 | Generic 18650     | 2.2Ah        | Outdoor              | 10m            | WIP             |
+| LYLYGO T7 V1.3 MINI 32 ESP32 | Adafruit Si7012 | Generic 18650     | ~2Ah         | Indoor (26-32°C)     | 10m            | 27d/4h/55m      |
 
 **Note that the battery voltage measurement is currently unreliable.**
 
