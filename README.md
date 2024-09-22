@@ -116,3 +116,6 @@ A version is deemed "stable" if it runs without interruptions/buggy behaviour fo
 
 ## WIP Features
 - [ ] OTA firmware updates
+
+## Emulation
+You can download prebuilt binaries of Espressif's QEMU fork from [here](https://github.com/espressif/qemu/releases). However as of now, PWOS cannot be emulated. You will get a panic on boot. This is likely due to the emulator not being able to emulate the WiFi hardware.
