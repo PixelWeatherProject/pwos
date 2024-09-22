@@ -104,7 +104,7 @@ Debug builds may be slower and contain a lot of debug messages. As such they are
 You will likely need an ESP32 chip with at least 4MB of Flash memory. About ~25% of this memory is reserved for [PHY init data](https://en.m.wikipedia.org/w/index.php?title=Physical_layer&diffonly=true#PHY) and [NVS](https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-reference/storage/nvs_flash.html?highlight=nvs) (read more [here](https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-guides/partition-tables.html#built-in-partition-tables)).
 
 ## Stability
-__Latest verified stable version: ❓__
+__Latest verified stable version: 1.1.5__
 
 A version is deemed "stable" if it runs without interruptions/buggy behaviour for at least 1 month.
 
