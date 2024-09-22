@@ -108,7 +108,7 @@ __Latest verified stale version: ❓__
 
 A version is deemed "stable" if it runs without interruptions/buggy behaviour for at least 1 month.
 
-### Caveats
+## Caveats
 - If you're planning to flash the firmware and use it "in production", you should always use release builds. Just pass `--release` to `cargo build` **and** `cargo espflash`.
 - For troubleshooting, you should use debug builds, as they have more verbose logging.
 - Make sure to use the given partition layout ([`partitions.csv`](partitions.csv)) by passing `--partition-table partitions.csv` to `cargo espflash`. The default partition layout has a way too small `app` partition.
