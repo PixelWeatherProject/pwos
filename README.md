@@ -71,7 +71,7 @@ Consumption measurements:
 Battery life measurements:
 | **Board**                    | **Sensor**      | **Battery model** | **Capacity** | **Environment**      | **Sleep time** | **Time**        |
 |------------------------------|-----------------|-------------------|--------------|----------------------|:--------------:|:---------------:|
-| LYLYGO T7 V1.3 MINI 32 ESP32 | Adafruit Si7012 | Generic 18650     | 2.2Ah        | Outdoor              | 10m            | WIP             |
+| LYLYGO T7 V1.3 MINI 32 ESP32 | Adafruit Si7012 | Generic 18650     | 2.2Ah        | Outdoor (12-37°C)    | 10m            | 41d/7h/58m      |
 | LYLYGO T7 V1.3 MINI 32 ESP32 | Adafruit Si7012 | Generic 18650     | ~2Ah         | Indoor (26-32°C)     | 10m            | 27d/4h/55m      |
 
 **Note that the battery voltage measurement is currently unreliable.**
