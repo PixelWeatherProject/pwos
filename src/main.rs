@@ -37,8 +37,9 @@ fn main() {
     logger.init().unwrap();
 
     os_info!(
-        "PixelWeatherOS v{} ({})",
+        "PixelWeatherOS v{}-{} ({})",
         env!("CARGO_PKG_VERSION"),
+        env!("PWOS_COMMIT"),
         build_time_local!("%d.%m.%Y %H:%M:%S")
     );
     os_info!("(C) Fábián Varga 2024");
