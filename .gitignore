@@ -15,3 +15,6 @@ target/
 
 # Private
 src/config/sys.rs
+
+# Prebuilt images for testing
+*.bin
