@@ -96,8 +96,8 @@ To build a debug image (or flash it) remove the `--release` flag from the above 
 
 ## Build variants
 Firmware size (at the time of writing this):
-- Release build: `1,108,800/3,145,728 bytes, 35.25%`
-- Debug build: `1,193,744/3,145,728 bytes, 37.95%`
+- Release build: `1,130,896/3,145,728 bytes, 35.95%`
+- Debug build: `1,212,432/3,145,728 bytes, 38.54%`
 
 Debug builds may be slower and contain a lot of debug messages. As such they are ~2% larger.
 
