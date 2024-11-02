@@ -16,11 +16,12 @@ use esp_idf_svc::{
         units::FromValueType,
     },
     nvs::EspDefaultNvsPartition,
+    ota::EspOta,
 };
 use log::LevelFilter;
 use simple_logger::SimpleLogger;
 use std::time::Instant;
-use sysc::{battery::Battery, ledctl::BoardLed, sleep::deep_sleep};
+use sysc::{battery::Battery, ledctl::BoardLed, sleep::deep_sleep, OsError, OsResult};
 
 mod config;
 mod firmware;
@@ -75,6 +76,19 @@ fn main() {
 
     os_debug!("Initializing app configuration");
     let mut appcfg = AppConfig::default();
+
+    let ota = EspOta::new().unwrap();
+
+    os_debug!("Boot slot: {:#?}", ota.get_boot_slot());
+    os_debug!("Last invalid slot: {:#?}", ota.get_last_invalid_slot());
+    os_debug!("Running slot: {:#?}", ota.get_running_slot());
+    os_debug!("Update slot: {:#?}", ota.get_update_slot());
+    os_debug!(
+        "Factory reset supported: {:#?}",
+        ota.is_factory_reset_supported()
+    );
+
+    return;
 
     os_info!("Staring main");
 
