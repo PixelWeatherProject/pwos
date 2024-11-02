@@ -8,6 +8,7 @@ use pwmp_client::pwmp_types::aliases::{AirPressure, Humidity, Temperature};
 
 pub enum AnySensor<'s> {
     HtuCompatible(Htu<'s>),
+    // add future sensors here...
 }
 
 pub struct MeasurementResults {
