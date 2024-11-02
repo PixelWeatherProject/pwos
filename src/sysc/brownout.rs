@@ -3,6 +3,6 @@ use std::ptr;
 
 pub fn disable_brownout_detector() {
     unsafe {
-        ptr::write(RTC_CNTL_BROWN_OUT_REG as *mut i32, 0);
+        ptr::write_volatile(RTC_CNTL_BROWN_OUT_REG as *mut i32, 0);
     }
 }
