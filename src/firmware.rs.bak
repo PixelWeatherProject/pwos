@@ -16,10 +16,6 @@ use esp_idf_svc::{
     hal::{i2c::I2cDriver, modem::Modem},
     nvs::EspDefaultNvsPartition,
     ota::EspOta,
-    sys::{
-        esp, esp_ota_begin, esp_ota_end, esp_ota_get_next_update_partition, esp_ota_handle_t,
-        esp_ota_write, OTA_SIZE_UNKNOWN,
-    },
     wifi::{AccessPointInfo, AuthMethod},
 };
 use pwmp_client::PwmpClient;
@@ -43,6 +39,20 @@ pub fn fw_main(
 ) -> OsResult<()> {
     let (wifi, ap) = setup_wifi(modem, sys_loop, nvs)?;
 
+    /*let mut ota = EspOta::new().unwrap();
+
+    match ota.get_update_slot() {
+        Ok(slot) => {
+            os_debug!("Found available OTA slot: {}", slot.label);
+        }
+        Err(..) => {
+            os_error!("No available OTA partition");
+            return Ok(());
+        }
+    }*/
+
+    let mut ota = Ota::new()?;
+
     os_debug!("Downloading firmware...");
     let mut client = TcpStream::connect("192.168.0.130:8080").unwrap();
     let mut buf = Vec::with_capacity(400 * 1000);
@@ -52,26 +62,26 @@ pub fn fw_main(
     os_debug!("First byte: {:X}", buf[0]);
     os_debug!("Last byte: {:X}", buf.last().unwrap());
 
-    /*let ota_part = unsafe { esp_ota_get_next_update_partition(std::ptr::null()).as_ref() }.unwrap();
-    let mut handle: esp_ota_handle_t = Default::default();
-
-    esp!(unsafe { esp_ota_begin(ota_part, OTA_SIZE_UNKNOWN.try_into().unwrap(), &mut handle,) })?;
-    esp!(unsafe { esp_ota_write(handle, buf.as_ptr().cast(), buf.len()) })?;
-    esp!(unsafe { esp_ota_end(handle) })?;*/
-
-    let mut ota = EspOta::new()?;
-    let mut update = ota.initiate_update()?;
-
-    update.write(&but)?;
-    update.flush()?;
-
-    update.complete()?;
-
-    /*let ota = Ota::new()?;
     let mut update = ota.update(None)?;
-
+    os_debug!("Writing image...");
     update.write_all(&buf).unwrap();
-    update.finish()?;*/
+    update.finish()?;
+
+    os_debug!("Done!");
+
+    /*let mut update = ota.initiate_update().unwrap();
+    os_debug!("Writing update image...");
+    update.write(&buf).unwrap();
+    update.complete().unwrap();
+
+    os_debug!("Boot slot: {:#?}", ota.get_boot_slot());
+    os_debug!("Last invalid slot: {:#?}", ota.get_last_invalid_slot());
+    os_debug!("Running slot: {:#?}", ota.get_running_slot());
+    os_debug!("Update slot: {:#?}", ota.get_update_slot());
+    os_debug!(
+        "Factory reset supported: {:#?}",
+        ota.is_factory_reset_supported()
+    );*/
 
     /* let mut pws = PwmpClient::new(PWMP_SERVER, wifi.get_mac()?)?;
 

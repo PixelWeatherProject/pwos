@@ -77,19 +77,6 @@ fn main() {
     os_debug!("Initializing app configuration");
     let mut appcfg = AppConfig::default();
 
-    let ota = EspOta::new().unwrap();
-
-    os_debug!("Boot slot: {:#?}", ota.get_boot_slot());
-    os_debug!("Last invalid slot: {:#?}", ota.get_last_invalid_slot());
-    os_debug!("Running slot: {:#?}", ota.get_running_slot());
-    os_debug!("Update slot: {:#?}", ota.get_update_slot());
-    os_debug!(
-        "Factory reset supported: {:#?}",
-        ota.is_factory_reset_supported()
-    );
-
-    return;
-
     os_info!("Staring main");
 
     let start = Instant::now();
