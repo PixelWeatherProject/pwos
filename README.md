@@ -97,13 +97,11 @@ cargo espflash flash -T partitions.csv --frozen --locked --release --baud 921600
 To build a debug image (or flash it) remove the `--release` flag from the above commands.
 
 ## Build variants
-Firmware size (as of commit 673d9fc):
-- Release build: `156,496/3,145,728 bytes, 4.97%`
-- Debug build: `150,160/3,145,728 bytes, 4.77%`
+Firmware size (as of commit 2b34673):
+- Release build: `1,131,776/3,145,728 bytes, 35.98%`
+- Debug build: `1,209,696/3,145,728 bytes, 38.46%`
 
-~~Debug builds may be slower and contain a lot of debug messages. As such they are ~2% larger.~~
-
-**Update as of commit `673d9fc`:** Something has massively reduced the firmware size after updating to Rust 1.77. Debug builds are optimized for size, while release builds are optimized for performance - which might sacrifice some size improvemnts. This may be why the release build is slightly larger.
+Debug builds may be slower and contain a lot of debug messages. As such they are ~2% larger.
 
 You will likely need an ESP32 chip with at least 4MB of Flash memory. About ~25% of this memory is reserved for [PHY init data](https://en.m.wikipedia.org/w/index.php?title=Physical_layer&diffonly=true#PHY) and [NVS](https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-reference/storage/nvs_flash.html?highlight=nvs) (read more [here](https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-guides/partition-tables.html#built-in-partition-tables)).
 
