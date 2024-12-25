@@ -21,4 +21,4 @@ ESP_IDF_VERSION = "v5.2.2"
 CRATE_CC_NO_DEFAULTS = "1"
 
 [net]
-git-fetch-from-cli = true
+git-fetch-with-cli = true
