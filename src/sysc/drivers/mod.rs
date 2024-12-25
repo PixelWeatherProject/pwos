@@ -4,7 +4,7 @@ mod htu;
 use super::OsResult;
 pub use envsensor_trait::EnvironmentSensor;
 pub use htu::Htu;
-use pwmp_client::pwmp_types::aliases::{AirPressure, Humidity, Temperature};
+use pwmp_client::pwmp_msg::aliases::{AirPressure, Humidity, Temperature};
 
 pub enum AnySensor<'s> {
     HtuCompatible(Htu<'s>),

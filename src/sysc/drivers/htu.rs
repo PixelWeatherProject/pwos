@@ -4,7 +4,7 @@ use crate::{
     sysc::{OsError, OsResult},
 };
 use esp_idf_svc::hal::i2c::I2cDriver;
-use pwmp_client::pwmp_types::{
+use pwmp_client::pwmp_msg::{
     aliases::{AirPressure, Humidity, Temperature},
     Decimal,
 };

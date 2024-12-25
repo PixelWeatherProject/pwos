@@ -1,5 +1,5 @@
 use crate::sysc::OsResult;
-use pwmp_client::pwmp_types::aliases::{AirPressure, Humidity, Temperature};
+use pwmp_client::pwmp_msg::aliases::{AirPressure, Humidity, Temperature};
 
 /// Contains functionality that an environment sensor must be able to do.
 pub trait EnvironmentSensor {

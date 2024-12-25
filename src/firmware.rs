@@ -31,7 +31,7 @@ pub fn fw_main(
     cfg: &mut AppConfig,
 ) -> OsResult<()> {
     let (wifi, ap) = setup_wifi(modem, sys_loop, nvs)?;
-    let mut pws = PwmpClient::new(PWMP_SERVER, wifi.get_mac()?)?;
+    let mut pws = PwmpClient::new(PWMP_SERVER, wifi.get_mac()?, None, None, None)?;
 
     read_appcfg(&mut pws, cfg)?;
 
@@ -139,8 +139,8 @@ fn setup_wifi(
 fn read_appcfg(pws: &mut PwmpClient, appcfg: &mut AppConfig) -> OsResult<()> {
     os_debug!("Reading settings");
 
-    let values = pws.get_settings(AppConfig::ALL_SETTINGS)?;
-    appcfg.update_settings(values);
+    let values = pws.get_settings()?;
+    **appcfg = values;
 
     os_debug!("Settings updated");
     Ok(())

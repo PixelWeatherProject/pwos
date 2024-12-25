@@ -13,7 +13,7 @@ use esp_idf_svc::{
         esp_adc_cal_raw_to_voltage,
     },
 };
-use pwmp_client::pwmp_types::{aliases::BatteryVoltage, dec, Decimal};
+use pwmp_client::pwmp_msg::{aliases::BatteryVoltage, dec, Decimal};
 use std::{thread::sleep, time::Duration};
 
 const ATTEN: adc_atten_t = DB_11;

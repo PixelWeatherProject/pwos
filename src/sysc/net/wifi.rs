@@ -15,7 +15,7 @@ use esp_idf_svc::{
         WifiEvent,
     },
 };
-use pwmp_client::pwmp_types::mac::Mac;
+use pwmp_client::pwmp_msg::mac::Mac;
 use std::{thread::sleep, time::Duration};
 
 pub struct WiFi {
