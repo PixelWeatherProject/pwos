@@ -3,17 +3,18 @@ This is a universal firmware for all PixelWeather nodes. It was created using th
 
 PixelWeather is a weather station network that collects environment data using "nodes" (a collection of microcontrollers and sensors). This repository contains the firware for said nodes _(PWOS)_.
 
+**⚠️WARNING⚠️: You are currently viewing the v2 branch, which is an overhaul of v1, containing many significant changes - including updated hardware support!**
+
 **⚠️ Note that this project is under development. While it is decently stable, is not complete! There are missing and incomplete implementations of features. Production use is highly discouraged!**
 
 ### Hardware requirements:
-- Espressif ESP32 microcontroller
-    - Generic ESP32 series with Xtensa CPU.
-    - S3 series and RISC-V (C3) series should work too, but haven't been tested.
-    - 4MB Flash minimum
+- Espressif ESP32-S3 microcontroller
+    - Classic ESP32 and ESP32-C3 series are **no longer supported**!
+    - 4MB Flash **minimum**, 8MB **recommended**, 16MB **best**
+        - Future versions may drop support for 4MB models. It's advised to use 8MB models for future-proofing.
         - Read section [Build variants](#build-variants) for details
     - 512KB SRAM (models with less may be sufficient)
     - PSRAM **not** required, it's not used (yet)
-    - Dual core model recommended, but not required
 - 2x resistors for measuring battery voltage. Exact values are defined in [`battery.rs`](src/sysc/battery.rs) - `DIVIDER_R1` and `DIVIDER_R2`.
 - Battery - any generic 18650 will do
     - Additional protection circuit recommended
@@ -24,18 +25,14 @@ PixelWeather is a weather station network that collects environment data using "
         - Air pressure reading support
     - I2C interface
 
-> **⚠️ Note**: OTA support is planned, which **will** increase the minimum hardware requirements, especially flash size to **at least 8MB**. Additionally, **at least 2MB** of PSRAM *may* be required to temporarily store downloaded firmware upgrades in RAM. You may want to check out the newer S3 series, which usually come with much larger flash sizes.
-
 ### Software requirements (for building):
 - [Rust](https://rustlang.org/)
 - [ESP32 Rust toolchain](https://esp-rs.github.io/book/)
 
 ## Recommended ESP32 boards
 As of now, this firmware has been tested with:
-- [x] Generic ESP32 Dev board with 4MB PSRAM
-    - [x] [LYLYGO T7 V1.3 MINI 32 ESP32](https://lilygo.cc/products/t7-v1-3-mini-32-esp32)
-- [ ] ESP32-S3 (untested)
-- [ ] ESP32-C3 (untested)
+- [x] [LILYGO T7 S3](https://lilygo.cc/products/t7-s3)
+- [x] [Arduino Nano ESP32](https://store.arduino.cc/en-sk/products/nano-esp32)
 
 ## Recommended sensor hardware
 As of now, this firmware has been tested with:
@@ -66,15 +63,14 @@ The project currently only supports the ESP32. There are no plans to support any
 
 ## Power
 Consumption measurements:
-| **Board**                    | **Sensor**      | **Test voltage** | **Running** | **Sleeping** | **Peak** | **Notes**                     |
-|------------------------------|-----------------|------------------|-------------|--------------|----------|-------------------------------|
-| LYLYGO T7 V1.3 MINI 32 ESP32 | Adafruit Si7012 | 4.2V             | 150mA       | 400µA        | >2A      | 6612C power supply, peaks >2? |
+| **Board** | **Sensor** | **Test voltage** | **Running** | **Sleeping** | **Peak** | **Notes** |
+| --------- | ---------- | ---------------- | ----------- | ------------ | -------- | --------- |
+| N/A       | N/A        | N/A              | N/A         | N/A          | N/A      | N/A       |
 
 Battery life measurements:
-| **Board**                    | **Sensor**      | **Battery model** | **Capacity** | **Environment**      | **Sleep time** | **Time**        |
-|------------------------------|-----------------|-------------------|--------------|----------------------|:--------------:|:---------------:|
-| LYLYGO T7 V1.3 MINI 32 ESP32 | Adafruit Si7012 | Generic 18650     | 2.2Ah        | Outdoor (12-37°C)    | 10m            | 41d/7h/58m      |
-| LYLYGO T7 V1.3 MINI 32 ESP32 | Adafruit Si7012 | Generic 18650     | ~2Ah         | Indoor (26-32°C)     | 10m            | 27d/4h/55m      |
+| **Board** | **Sensor** | **Battery model** | **Capacity** | **Environment** | **Sleep time** | **Time** |
+| --------- | ---------- | ----------------- | ------------ | --------------- | :------------: | :------: |
+| N/A       | N/A        | N/A               | N/A          | N/A             |      N/A       |   N/A    |
 
 **Note that the battery voltage measurement is currently unreliable.**
 
@@ -84,29 +80,35 @@ Battery life measurements:
 3. Use `cargo build` to compile the firmware.
 4. Use the commands below to build an image or flash the firmware.
 
-If you just want to build the image, use the following command:
+If you just want to build the image, use the following command (for example):
 ```sh
-cargo espflash save-image -T partitions.csv --frozen --locked --release --chip esp32 -s 4mb --merge image.bin
+cargo espflash save-image -T partitions.csv --frozen --locked --release --chip esp32s3 --merge image.bin 
 ```
 
 To directly flash the firmware, use the command below. **Remember to change the serial port for your machine.**
 ```sh
-cargo espflash flash -T partitions.csv --frozen --locked --release --baud 921600 --port /dev/cu.usbserial-XXXXXXXX
+cargo espflash flash -T partitions.csv --frozen --locked --release --chip esp32s3 --noverify --erase-data-parts otadata --baud 921600 --port /dev/cu.usbserial-XXXXXXXX
 ```
+
+### Additional arguments
+Depending on which ESP32S3 development board you're using, you may need to add additional arguments to the two example commands above (especially `flash`).
+- `--chip esp32s3`
+- `-s 16m` / `-s 8b` - For 16MB and 8MB of flash respectively.
+- `-m qio` - QIO flash mode
 
 To build a debug image (or flash it) remove the `--release` flag from the above commands.
 
 ## Build variants
-Firmware size (as of commit 2b34673):
-- Release build: `1,131,776/3,145,728 bytes, 35.98%`
-- Debug build: `1,209,696/3,145,728 bytes, 38.46%`
+Firmware size (as of commit N/A):
+- Release build: `N/A`
+- Debug build: `N/A`
 
 Debug builds may be slower and contain a lot of debug messages. As such they are ~2% larger.
 
-You will likely need an ESP32 chip with at least 4MB of Flash memory. About ~25% of this memory is reserved for [PHY init data](https://en.m.wikipedia.org/w/index.php?title=Physical_layer&diffonly=true#PHY) and [NVS](https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-reference/storage/nvs_flash.html?highlight=nvs) (read more [here](https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-guides/partition-tables.html#built-in-partition-tables)).
+Some parts of the flash memory are reserved for other data then PWOS itself. 8KB are reserved for [NVS](https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-reference/storage/nvs_flash.html?highlight=nvs) storage. Read more [here](https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-guides/partition-tables.html#built-in-partition-tables).
 
 ## Stability
-__Latest verified stable version: 1.1.5__
+__Latest verified stable version: N/A__
 
 A version is deemed "stable" if it runs without interruptions/buggy behaviour for at least 1 month.
 
@@ -114,11 +116,14 @@ A version is deemed "stable" if it runs without interruptions/buggy behaviour fo
 - If you're planning to flash the firmware and use it "in production", you should always use release builds. Just pass `--release` to `cargo build` **and** `cargo espflash`.
 - For troubleshooting, you should use debug builds, as they have more verbose logging.
 - Make sure to use the given partition layout ([`partitions.csv`](partitions.csv)) by passing `--partition-table partitions.csv` to `cargo espflash`. The default partition layout has a way too small `app` partition.
-- Some lower-quality ESP32 clones and USB cables may require a lower baud rate. Use `115200` if `921600` does not work for you.
+- Some lower-quality USB cables may require a lower baud rate. Use `115200` if `921600` does not work for you.
 
 ## WIP Features
-- [ ] OTA firmware updates
-    - Experiemental support is being worked on in the `experimental-ota` branch.
+- [ ] OTA Updates
+  - Work-in-progress, coming in `2.0.0` release
+- [ ] Storing secrects in NVS instead of in the code
+- [ ] NVS encryption
+- [ ] Flash encryption
 
 ## Emulation
 You can download prebuilt binaries of Espressif's QEMU fork from [here](https://github.com/espressif/qemu/releases). However as of now, PWOS cannot be emulated. You will get a panic on boot. This is likely due to the emulator not being able to emulate the WiFi hardware.
