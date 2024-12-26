@@ -1,7 +1,7 @@
 pub mod battery;
 pub mod brownout;
-pub mod drivers;
 mod error;
+pub mod ext_drivers;
 pub mod ledctl;
 pub mod logging;
 pub mod net;

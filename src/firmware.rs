@@ -3,7 +3,7 @@ use crate::{
     os_debug, os_error, os_info, os_warn,
     sysc::{
         battery::{Battery, CRITICAL_VOLTAGE},
-        drivers::{AnySensor, EnvironmentSensor, Htu, MeasurementResults},
+        ext_drivers::{AnySensor, EnvironmentSensor, Htu, MeasurementResults},
         ledctl::BoardLed,
         net::{PowerSavingMode, WiFi},
         sleep::deep_sleep,
