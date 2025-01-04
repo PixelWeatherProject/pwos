@@ -1,6 +1,6 @@
-use esp_idf_svc::hal::gpio::{Gpio19, Output, PinDriver};
+use esp_idf_svc::hal::gpio::{Gpio17, Output, PinDriver};
 
-type LedGpio = Gpio19;
+type LedGpio = Gpio17;
 type LedDriver = PinDriver<'static, LedGpio, Output>;
 
 pub struct BoardLed(LedDriver);

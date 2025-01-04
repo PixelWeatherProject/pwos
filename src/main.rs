@@ -58,7 +58,7 @@ fn main() {
     let nvs = EspDefaultNvsPartition::take().expect("NVS init error");
 
     os_debug!("Initializing system LED");
-    let led = BoardLed::new(peripherals.pins.gpio19);
+    let led = BoardLed::new(peripherals.pins.gpio17);
 
     os_debug!("Initializing system Battery");
     let battery = Battery::new(peripherals.adc1, peripherals.pins.gpio35)
@@ -67,8 +67,8 @@ fn main() {
     os_debug!("Initializing I2C bus");
     let i2c = I2cDriver::new(
         peripherals.i2c1,
-        peripherals.pins.gpio21,
-        peripherals.pins.gpio22,
+        peripherals.pins.gpio5,
+        peripherals.pins.gpio8,
         &Config::default().baudrate(400u32.kHz().into()),
     )
     .expect("Failed to initialize I2C");
