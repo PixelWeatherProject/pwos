@@ -20,7 +20,12 @@ use esp_idf_svc::{
 use log::LevelFilter;
 use simple_logger::SimpleLogger;
 use std::time::Instant;
-use sysc::{battery::Battery, ledctl::BoardLed, sleep::deep_sleep, usbctl};
+use sysc::{
+    battery::Battery,
+    ledctl::BoardLed,
+    sleep::{deep_sleep, light_sleep},
+    usbctl, ReportableError,
+};
 
 mod config;
 mod firmware;
@@ -109,5 +114,12 @@ fn main() {
     os_info!("Tasks completed in {runtime:.02?}");
 
     os_debug!("Sleeping for {:?}", appcfg.sleep_time);
-    deep_sleep(Some(appcfg.sleep_time()));
+
+    if usbctl::is_connected() {
+        // Use light-sleep instead, to keep the serial connection alive
+        os_debug!("Using light sleep instead of deep sleep");
+        light_sleep(Some(appcfg.sleep_time())).report("Failed to set up light sleep");
+    } else {
+        deep_sleep(Some(appcfg.sleep_time()));
+    }
 }
