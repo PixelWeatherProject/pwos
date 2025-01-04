@@ -66,7 +66,7 @@ fn main() {
     let led = BoardLed::new(peripherals.pins.gpio17);
 
     os_debug!("Initializing system Battery");
-    let battery = Battery::new(peripherals.adc1, peripherals.pins.gpio7)
+    let battery = Battery::new(peripherals.adc1, peripherals.pins.gpio2)
         .expect("Failed to initialize battery ADC");
 
     os_debug!("Initializing I2C bus");
