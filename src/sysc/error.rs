@@ -19,6 +19,8 @@ pub enum OsError {
     SsidTooLong,
     #[error("PSK too long")]
     PskTooLong,
+    #[error("Unexpected version format")]
+    IllegalFirmwareVersion,
 }
 
 pub trait ReportableError {

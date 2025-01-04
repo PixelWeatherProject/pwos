@@ -14,9 +14,10 @@ use esp_idf_svc::{
     eventloop::EspSystemEventLoop,
     hal::{i2c::I2cDriver, modem::Modem},
     nvs::EspDefaultNvsPartition,
+    ota::EspOta,
     wifi::{AccessPointInfo, AuthMethod},
 };
-use pwmp_client::PwmpClient;
+use pwmp_client::{ota::UpdateStatus, pwmp_msg::version::Version, PwmpClient};
 use std::time::Duration;
 #[cfg(debug_assertions)]
 use std::time::Instant;
@@ -56,6 +57,11 @@ pub fn fw_main(
 
     os_debug!("Posting stats");
     pws.post_stats(bat_voltage, &ap.ssid, ap.signal_strength)?;
+
+    os_debug!("Checking for updates");
+    if check_ota(&mut pws)? {
+        begin_update(&mut pws)?;
+    }
 
     // Peacefully disconnect
     drop(pws);
@@ -178,4 +184,37 @@ fn read_environment(mut env: AnySensor) -> OsResult<MeasurementResults> {
         humidity: env.read_humidity()?,
         air_pressure: env.read_air_pressure()?,
     })
+}
+
+fn check_ota(pws: &mut PwmpClient) -> OsResult<bool> {
+    let current_version =
+        Version::parse(env!("CARGO_PKG_VERSION")).ok_or(OsError::IllegalFirmwareVersion)?;
+
+    match pws.check_os_update(current_version)? {
+        UpdateStatus::UpToDate => {
+            os_info!("No update available");
+            Ok(false)
+        }
+        UpdateStatus::Available(new_version) => {
+            os_info!("Update v{new_version} available");
+            Ok(true)
+        }
+    }
+}
+
+fn begin_update(pws: &mut PwmpClient) -> OsResult<()> {
+    let mut ota = EspOta::new()?;
+    let mut handle = ota.initiate_update()?;
+    let mut maybe_chunk = pws.next_update_chunk(None)?;
+
+    while let Some(chunk) = maybe_chunk {
+        handle.write(&chunk)?;
+        maybe_chunk = pws.next_update_chunk(None)?;
+    }
+
+    handle.flush()?;
+    handle.complete()?;
+    os_info!("Update installed successfully");
+
+    Ok(())
 }
