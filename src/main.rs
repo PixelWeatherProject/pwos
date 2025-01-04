@@ -20,7 +20,7 @@ use esp_idf_svc::{
 use log::LevelFilter;
 use simple_logger::SimpleLogger;
 use std::time::Instant;
-use sysc::{battery::Battery, ledctl::BoardLed, sleep::deep_sleep};
+use sysc::{battery::Battery, ledctl::BoardLed, sleep::deep_sleep, usbctl};
 
 mod config;
 mod firmware;
@@ -29,10 +29,15 @@ mod sysc;
 fn main() {
     esp_idf_svc::sys::link_patches();
 
-    let logger = SimpleLogger::new().with_module_level("esp_idf_svc", LevelFilter::Off);
+    let mut logger = SimpleLogger::new().with_module_level("esp_idf_svc", LevelFilter::Off);
 
     #[cfg(not(debug_assertions))]
     let logger = logger.with_level(LevelFilter::Info);
+
+    // Turn off logging when USB is not connected
+    if !usbctl::is_connected() {
+        logger = logger.with_level(LevelFilter::Off);
+    }
 
     logger.init().unwrap();
 
