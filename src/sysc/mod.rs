@@ -6,7 +6,6 @@ pub mod ledctl;
 pub mod logging;
 pub mod net;
 pub mod sleep;
-pub mod uart;
 pub mod usbctl;
 
 pub use error::{OsError, ReportableError};
