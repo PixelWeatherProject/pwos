@@ -113,7 +113,7 @@ fn main() {
     }
     os_info!("Tasks completed in {runtime:.02?}");
 
-    os_debug!("Sleeping for {}s", appcfg.sleep_time);
+    os_debug!("Sleeping for {:?}s", appcfg.sleep_time());
 
     if usbctl::is_connected() {
         // Use light-sleep instead, to keep the serial connection alive
