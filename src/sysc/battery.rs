@@ -6,7 +6,7 @@ use esp_idf_svc::{
             oneshot::{config::AdcChannelConfig, AdcChannelDriver, AdcDriver},
             Adc, Resolution, ADC1,
         },
-        gpio::Gpio35,
+        gpio::Gpio7,
     },
     sys::{
         adc_atten_t, esp_adc_cal_characteristics_t, esp_adc_cal_characterize,
@@ -19,7 +19,7 @@ use std::{thread::sleep, time::Duration};
 const ATTEN: adc_atten_t = DB_11;
 const DIVIDER_R1: f32 = 20_000.0; // 20kOhm
 const DIVIDER_R2: f32 = 6800.0; // 6.8kOhm
-type BatteryGpio = Gpio35;
+type BatteryGpio = Gpio7;
 type BatteryAdc = ADC1;
 type BatteryDriver = AdcDriver<'static, BatteryAdc>;
 type BatteryChDriver = AdcChannelDriver<'static, BatteryGpio, BatteryDriver>;
