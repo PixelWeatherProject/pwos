@@ -23,8 +23,8 @@ use std::time::Instant;
 use sysc::{
     battery::Battery,
     ledctl::BoardLed,
-    sleep::{deep_sleep, light_sleep},
-    usbctl, ReportableError,
+    sleep::{deep_sleep, fake_sleep},
+    usbctl,
 };
 
 mod config;
@@ -116,9 +116,9 @@ fn main() {
     os_debug!("Sleeping for {:?}", appcfg.sleep_time());
 
     if usbctl::is_connected() {
-        // Use light-sleep instead, to keep the serial connection alive
-        os_debug!("Using light sleep instead of deep sleep");
-        light_sleep(Some(appcfg.sleep_time())).report("Failed to set up light sleep");
+        // Simulate sleep instead, to keep the serial connection alive
+        os_debug!("Using fake sleep instead of deep sleep");
+        fake_sleep(Some(appcfg.sleep_time()));
     } else {
         deep_sleep(Some(appcfg.sleep_time()));
     }
