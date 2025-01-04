@@ -2,21 +2,19 @@ use super::OsResult;
 use esp_idf_svc::{
     hal::{
         adc::{
-            attenuation::DB_11,
+            attenuation::DB_2_5,
             oneshot::{config::AdcChannelConfig, AdcChannelDriver, AdcDriver},
-            Adc, Resolution, ADC1,
+            Resolution, ADC1,
         },
         gpio::Gpio2,
     },
-    sys::{
-        adc_atten_t, esp_adc_cal_characteristics_t, esp_adc_cal_characterize,
-        esp_adc_cal_raw_to_voltage,
-    },
+    sys::adc_atten_t,
 };
 use pwmp_client::pwmp_msg::{aliases::BatteryVoltage, dec, Decimal};
 use std::{thread::sleep, time::Duration};
 
-const ATTEN: adc_atten_t = DB_11;
+const ATTEN: adc_atten_t = DB_2_5;
+const VMAX: f32 = 1250.0; // For attenuation 2.5dB
 const DIVIDER_R1: f32 = 20_000.0; // 20kOhm
 const DIVIDER_R2: f32 = 6800.0; // 6.8kOhm
 type BatteryGpio = Gpio2;
@@ -25,7 +23,6 @@ type BatteryDriver = AdcDriver<'static, BatteryAdc>;
 type BatteryChDriver = AdcChannelDriver<'static, BatteryGpio, BatteryDriver>;
 
 pub const CRITICAL_VOLTAGE: Decimal = dec!(2.70);
-pub const RESOLUTION: Resolution = Resolution::Resolution12Bit;
 pub const ADC_CONFIG: AdcChannelConfig = AdcChannelConfig {
     attenuation: ATTEN,
     calibration: true,
@@ -59,21 +56,7 @@ impl Battery {
     }
 
     fn raw_to_voltage(raw: u16) -> f32 {
-        let mut characteristics = esp_adc_cal_characteristics_t::default();
-
-        unsafe {
-            esp_adc_cal_characterize(
-                ADC1::unit(),
-                ATTEN,
-                RESOLUTION.into(),
-                1100,
-                &mut characteristics,
-            );
-        }
-
-        let millivolts = unsafe { esp_adc_cal_raw_to_voltage(raw as u32, &characteristics) };
-
-        millivolts as f32 / 1000.0
+        (VMAX / 4096.0) * (raw as f32)
     }
 
     fn read_raw(&mut self, samples: u16) -> OsResult<u16> {
