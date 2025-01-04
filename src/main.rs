@@ -24,7 +24,7 @@ use sysc::{
     battery::Battery,
     ledctl::BoardLed,
     sleep::{deep_sleep, light_sleep},
-    usbctl, ReportableError,
+    uart, usbctl, ReportableError,
 };
 
 mod config;
@@ -114,6 +114,8 @@ fn main() {
     os_info!("Tasks completed in {runtime:.02?}");
 
     os_debug!("Sleeping for {:?}s", appcfg.sleep_time());
+
+    uart::flush().report("Failed to flush UART buffer");
 
     if usbctl::is_connected() {
         // Use light-sleep instead, to keep the serial connection alive
