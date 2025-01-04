@@ -1,5 +1,5 @@
 # Name, Type, SubType, Offset, Size, Flags
-nvs,    data, nvs,     ,       8192,
+nvs,    data, nvs,     ,       12288,
 otadata,data, ota,     ,       8192,
 app0,   app,  ota_0,   ,       2031616,
 app1,   app,  ota_1,   ,       2031616,
