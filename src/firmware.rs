@@ -48,7 +48,7 @@ pub fn fw_main(
         deep_sleep(None);
     }
 
-    let env_sensor = setup_envsensor(i2c)?;
+    /*let env_sensor = setup_envsensor(i2c)?;
 
     let results = read_environment(env_sensor)?;
     os_info!("{}*C / {}%", results.temperature, results.humidity);
@@ -56,7 +56,7 @@ pub fn fw_main(
     pws.post_measurements(results.temperature, results.humidity, results.air_pressure)?;
 
     os_debug!("Posting stats");
-    pws.post_stats(bat_voltage, &ap.ssid, ap.signal_strength)?;
+    pws.post_stats(bat_voltage, &ap.ssid, ap.signal_strength)?;*/
 
     os_debug!("Checking for updates");
     if check_ota(&mut pws)? {
@@ -205,11 +205,17 @@ fn check_ota(pws: &mut PwmpClient) -> OsResult<bool> {
 fn begin_update(pws: &mut PwmpClient) -> OsResult<()> {
     let mut ota = EspOta::new()?;
     let mut handle = ota.initiate_update()?;
-    let mut maybe_chunk = pws.next_update_chunk(None)?;
+    let mut maybe_chunk = pws.next_update_chunk(Some(1024))?;
+    let mut i = 1;
 
     while let Some(chunk) = maybe_chunk {
+        if i % 128 == 0 {
+            os_debug!("Writing OTA update chunk #{i}");
+        }
+
         handle.write(&chunk)?;
-        maybe_chunk = pws.next_update_chunk(None)?;
+        maybe_chunk = pws.next_update_chunk(Some(1024))?;
+        i += 1;
     }
 
     handle.flush()?;
