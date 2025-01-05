@@ -119,8 +119,7 @@ A version is deemed "stable" if it runs without interruptions/buggy behaviour fo
 - Some lower-quality USB cables may require a lower baud rate. Use `115200` if `921600` does not work for you.
 
 ## WIP Features
-- [ ] OTA Updates
-  - Work-in-progress, coming in `2.0.0` release
+- [x] OTA Updates
 - [ ] Storing secrects in NVS instead of in the code
   - [ ] NVS encryption
 - [ ] Flash encryption
