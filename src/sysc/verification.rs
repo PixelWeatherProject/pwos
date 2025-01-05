@@ -27,6 +27,10 @@ pub fn check_for_rollback() -> OsResult<()> {
     Ok(())
 }
 
+pub fn rollback_detected() -> OsResult<bool> {
+    Ok(EspOta::new()?.get_last_invalid_slot()?.is_some())
+}
+
 pub fn increment_failiures_if_needed() -> OsResult<()> {
     if needs_verification()? {
         increment_failiures();

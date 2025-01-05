@@ -58,14 +58,17 @@ pub fn fw_main(
     os_debug!("Posting stats");
     pws.post_stats(bat_voltage, &ap.ssid, ap.signal_strength)?;*/
 
+    if verification::rollback_detected()? {
+        os_info!("Reporting unsuccessfull firmware update");
+        pws.report_firmware(false)?;
+    } else if verification::mark_verified_if_needed()? {
+        os_info!("Reporting successfull firmware update");
+        pws.report_firmware(true)?;
+    }
+
     os_debug!("Checking for updates");
     if check_ota(&mut pws)? {
         begin_update(&mut pws)?;
-    }
-
-    if verification::mark_verified_if_needed()? {
-        os_info!("Reporting successfull firmware update");
-        pws.report_firmware(true)?;
     }
 
     // Peacefully disconnect
