@@ -1172,7 +1172,7 @@ dependencies = [
 [[package]]
 name = "pwmp-client"
 version = "2.0.0"
-source = "git+https://github.com/PixelWeatherProject/pwmp-client?rev=eef22cb#eef22cb22185937900789bd4ac63064b633f7ac1"
+source = "git+ssh://git@github.com/PixelWeatherProject/pwmp-client.git?rev=eef22cb#eef22cb22185937900789bd4ac63064b633f7ac1"
 dependencies = [
  "pwmp-msg",
  "thiserror 2.0.9",
