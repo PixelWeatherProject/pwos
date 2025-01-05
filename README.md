@@ -75,10 +75,12 @@ Battery life measurements:
 **Note that the battery voltage measurement is currently unreliable.**
 
 ## Building
-1. Follow the toolchain setup in [Espressifs Rust Book](https://esp-rs.github.io/book/)
-2. Create a custom `sys.rs` config using the [example](src/config/sys.rs.example).
-3. Use `cargo build` to compile the firmware.
-4. Use the commands below to build an image or flash the firmware.
+1. Make sure that `sdkconfig.debug` and `sdkconfig.release` are correct for your specific board.
+2. Check if the firmware uses the correct GPIO pins for I2C and on-board LED.
+3. Follow the toolchain setup in [Espressifs Rust Book](https://esp-rs.github.io/book/)
+4. Create a custom `sys.rs` config using the [example](src/config/sys.rs.example).
+5. Use `cargo build` to compile the firmware.
+6. Use the commands below to build an image or flash the firmware.
 
 If you just want to build the image, use the following command (for example):
 ```sh
