@@ -122,7 +122,7 @@ A version is deemed "stable" if it runs without interruptions/buggy behaviour fo
 - [ ] OTA Updates
   - Work-in-progress, coming in `2.0.0` release
 - [ ] Storing secrects in NVS instead of in the code
-- [ ] NVS encryption
+  - [ ] NVS encryption
 - [ ] Flash encryption
 - [x] USB connection detection
   - Serial port detection can't be implemented yet due to API limitations of ESP IDF v5.2.2
