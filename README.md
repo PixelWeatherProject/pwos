@@ -117,9 +117,9 @@ To build a debug image (or flash it) remove the `--release` flag from the above 
   
   ### `espflash` commands
   - For saving as image:
-    - `cargo espflash save-image --frozen --locked -T partitions.csv -s 16mb --chip esp32s3 image.bin`
+    - `cargo espflash save-image --frozen --locked --release -T partitions.csv -s 16mb --chip esp32s3 image.bin`
   - For flashing:
-    - `cargo espflash flash --frozen --locked -T partitions.csv -s 16mb --chip esp32s3  --baud 921600 --port /dev/ttyACM0 --monitor --no-verify --erase-data-parts ota`
+    - `cargo espflash flash --frozen --locked --release -T partitions.csv -s 16mb --chip esp32s3  --baud 921600 --port /dev/ttyACM0 --monitor --no-verify --erase-data-parts ota`
 </details>
 
 <details>
@@ -140,15 +140,15 @@ To build a debug image (or flash it) remove the `--release` flag from the above 
   
   ### `espflash` commands
   - For saving as image:
-    - `cargo espflash save-image --frozen --locked -T partitions.csv -s 16mb --chip esp32s3 image.bin`
+    - `cargo espflash save-image --frozen --locked --release -T partitions.csv -s 16mb --chip esp32s3 image.bin`
   - For flashing:
-    - `cargo espflash flash --frozen --locked -T partitions.csv -s 16mb --chip esp32s3  --baud 921600 --port /dev/ttyACM0 --monitor --no-verify --erase-data-parts ota`
+    - `cargo espflash flash --frozen --locked --release -T partitions.csv -s 16mb --chip esp32s3  --baud 921600 --port /dev/ttyACM0 --monitor --no-verify --erase-data-parts ota`
 </details>
 
 ## Build variants
-Firmware size (as of commit N/A):
-- Release build: `N/A`
-- Debug build: `N/A`
+Firmware size (as of commit `930041d`):
+- Release build: `1,122,464/2,031,616 bytes, 55.25%`
+- Debug build: `1,191,936/2,031,616 bytes, 58.67%`
 
 Debug builds may be slower and contain a lot of debug messages. As such they are ~2% larger.
 
