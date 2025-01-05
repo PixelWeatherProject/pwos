@@ -31,7 +31,7 @@ PixelWeather is a weather station network that collects environment data using "
 
 ## Recommended ESP32 boards
 As of now, this firmware has been tested with:
-- [x] [LILYGO T7 S3](https://lilygo.cc/products/t7-s3)
+- [x] [LILYGO T7 S3 v1.2](https://lilygo.cc/products/t7-s3)
 - [x] [Arduino Nano ESP32](https://store.arduino.cc/en-sk/products/nano-esp32)
 
 ## Recommended sensor hardware
