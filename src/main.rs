@@ -38,7 +38,7 @@ fn main() {
     let mut logger = SimpleLogger::new().with_module_level("esp_idf_svc", LevelFilter::Off);
 
     if cfg!(debug_assertions) {
-        logger = logger.with_level(LevelFilter::Info);
+        logger = logger.with_level(LevelFilter::Debug);
     }
 
     // Turn off logging when USB is not connected
