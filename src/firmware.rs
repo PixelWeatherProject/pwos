@@ -101,11 +101,11 @@ fn setup_wifi(
     wifi.set_power_saving(PowerSavingMode::Minimum)?;
     wifi.set_power(84)?;
 
-    #[cfg(debug_assertions)]
-    let scan_start = Instant::now();
     let mut networks = wifi.scan::<MAX_NET_SCAN>(Duration::from_secs(2))?;
+
     #[cfg(debug_assertions)]
     {
+        let scan_start = Instant::now();
         let network_names = networks
             .iter()
             .map(|net| net.ssid.as_str())
