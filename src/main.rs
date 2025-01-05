@@ -19,7 +19,7 @@ use esp_idf_svc::{
 };
 use log::LevelFilter;
 use simple_logger::SimpleLogger;
-use std::time::{Duration, Instant};
+use std::time::Instant;
 use sysc::{
     battery::Battery,
     ledctl::BoardLed,
@@ -130,7 +130,7 @@ fn main() {
     if usbctl::is_connected() {
         // Simulate sleep instead, to keep the serial connection alive
         os_debug!("Using fake sleep instead of deep sleep");
-        fake_sleep(Some(Duration::from_secs(10)));
+        fake_sleep(Some(appcfg.sleep_time()));
     } else {
         deep_sleep(Some(appcfg.sleep_time()));
     }
