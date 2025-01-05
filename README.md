@@ -126,7 +126,7 @@ To build a debug image (or flash it) remove the `--release` flag from the above 
   
   ### `espflash` commands
   - For saving as image:
-    - `cargo espflash save-image --frozen --locked --release -T partitions.csv -s 16mb -c esp32s3 image.bin`
+    - `cargo espflash save-image --frozen --locked --release -T partitions.csv -s 16mb --chip esp32s3 image.bin`
   - For flashing:
     - `cargo espflash flash --frozen --locked --release -T partitions.csv -s 16mb -c esp32s3 -B 921600 -p /dev/ttyACM0 -M --no-verify --erase-data-parts ota`
 </details>
@@ -149,7 +149,7 @@ To build a debug image (or flash it) remove the `--release` flag from the above 
   
   ### `espflash` commands
   - For saving as image:
-    - `cargo espflash save-image --frozen --locked --release -T partitions.csv -s 16mb -c esp32s3 image.bin`
+    - `cargo espflash save-image --frozen --locked --release -T partitions.csv -s 16mb --chip esp32s3 image.bin`
   - For flashing:
     - `cargo espflash flash --frozen --locked --release -T partitions.csv -s 16mb -c esp32s3 -B 921600 -p /dev/ttyACM0 -M --no-verify --erase-data-parts ota`
 </details>
