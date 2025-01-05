@@ -54,7 +54,7 @@ pub fn fw_main(
         deep_sleep(None);
     }
 
-    /*let env_sensor = setup_envsensor(i2c)?;
+    let env_sensor = setup_envsensor(i2c)?;
 
     let results = read_environment(env_sensor)?;
     os_info!("{}*C / {}%", results.temperature, results.humidity);
@@ -62,7 +62,7 @@ pub fn fw_main(
     pws.post_measurements(results.temperature, results.humidity, results.air_pressure)?;
 
     os_debug!("Posting stats");
-    pws.post_stats(bat_voltage, &ap.ssid, ap.signal_strength)?;*/
+    pws.post_stats(bat_voltage, &ap.ssid, ap.signal_strength)?;
 
     if ota.report_needed()? {
         let success = !ota.rollback_detected()?;
