@@ -114,6 +114,12 @@ To build a debug image (or flash it) remove the `--release` flag from the above 
   - On-board LED: `GPIO_17`
   - I2C SDA: `GPIO_5`
   - I2C SCL: `GPIO_8`
+  
+  ### `espflash` commands
+  - For saving as image:
+    - `cargo espflash save-image --frozen --locked -T partitions.csv -s 16mb --chip esp32s3 image.bin`
+  - For flashing:
+    - `cargo espflash flash --frozen --locked -T partitions.csv -s 16mb --chip esp32s3  --baud 921600 --port /dev/ttyACM0 --monitor --no-verify --erase-data-parts ota`
 </details>
 
 <details>
@@ -131,6 +137,12 @@ To build a debug image (or flash it) remove the `--release` flag from the above 
   - On-board LED: `GPIO_48`
   - I2C SDA: `GPIO_5`
   - I2C SCL: `GPIO_8`
+  
+  ### `espflash` commands
+  - For saving as image:
+    - `cargo espflash save-image --frozen --locked -T partitions.csv -s 16mb --chip esp32s3 image.bin`
+  - For flashing:
+    - `cargo espflash flash --frozen --locked -T partitions.csv -s 16mb --chip esp32s3  --baud 921600 --port /dev/ttyACM0 --monitor --no-verify --erase-data-parts ota`
 </details>
 
 ## Build variants
