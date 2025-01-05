@@ -3,7 +3,10 @@ use esp_idf_svc::{
     hal::{
         adc::{
             attenuation::DB_2_5,
-            oneshot::{config::AdcChannelConfig, AdcChannelDriver, AdcDriver},
+            oneshot::{
+                config::{AdcChannelConfig, Calibration},
+                AdcChannelDriver, AdcDriver,
+            },
             Resolution, ADC1,
         },
         gpio::Gpio2,
@@ -25,7 +28,7 @@ type BatteryChDriver = AdcChannelDriver<'static, BatteryGpio, BatteryDriver>;
 pub const CRITICAL_VOLTAGE: Decimal = dec!(2.70);
 pub const ADC_CONFIG: AdcChannelConfig = AdcChannelConfig {
     attenuation: ATTEN,
-    calibration: true,
+    calibration: Calibration::Curve,
     resolution: Resolution::Resolution12Bit,
 };
 
