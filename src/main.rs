@@ -113,12 +113,12 @@ fn main() {
         Err(why) => {
             os_error!("OS Error: {why}");
 
-            if !why.recoverable() {
-                os_error!("System will now halt");
-                deep_sleep(None);
-            } else {
+            if why.recoverable() {
                 ota.inc_failiures()
                     .expect("Failed to increment failiure count");
+            } else {
+                os_error!("System will now halt");
+                deep_sleep(None);
             }
         }
     }

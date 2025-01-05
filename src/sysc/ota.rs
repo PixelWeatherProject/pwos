@@ -31,12 +31,13 @@ impl Ota {
         Ok(self.0.get_running_slot()?.state == SlotState::Valid)
     }
 
-    pub fn mark_reported(&mut self) {
+    #[allow(clippy::unused_self)]
+    pub fn mark_reported(&self) {
         // SAFETY: This method is only called after an update has been performed. So `REPORTED` is initialized to `false`.
         unsafe { REPORTED.write(true) };
     }
 
-    pub fn report_needed(&mut self) -> OsResult<bool> {
+    pub fn report_needed(&self) -> OsResult<bool> {
         // The current firmware might be verified, but it could be a previous version.
         if self.current_verified()? && !self.rollback_detected()? {
             os_debug!("Skipping report check on verified firmware");
@@ -47,7 +48,7 @@ impl Ota {
         Ok(unsafe { !REPORTED.assume_init() })
     }
 
-    pub fn rollback_detected(&mut self) -> OsResult<bool> {
+    pub fn rollback_detected(&self) -> OsResult<bool> {
         Ok(self.0.get_last_invalid_slot()?.is_some())
     }
 
