@@ -84,17 +84,17 @@ Battery life measurements:
 
 If you just want to build the image, use the following command (for example):
 ```sh
-cargo espflash save-image -T partitions.csv --frozen --locked --release --chip esp32s3 --merge image.bin 
+cargo espflash save-image -T partitions.csv --frozen --locked --release -c esp32s3 --merge image.bin 
 ```
 
 To directly flash the firmware, use the command below. **Remember to change the serial port for your machine.**
 ```sh
-cargo espflash flash -T partitions.csv --frozen --locked --release --chip esp32s3 --noverify --erase-data-parts otadata --baud 921600 --port /dev/cu.usbserial-XXXXXXXX
+cargo espflash flash -T partitions.csv --frozen --locked --release -c esp32s3 --noverify --erase-data-parts otadata -B 921600 -p /dev/cu.usbserial-XXXXXXXX
 ```
 
 If you notice weird/buggy bevaiour, you can erase the entire flash like so:
 ```sh
-cargo espflash erase-flash -c esp32s3 --baud 921600 --port /dev/ttyACM0
+cargo espflash erase-flash -c esp32s3 -B 921600 -p /dev/ttyACM0
 ```
 <details>
   <summary>⚠️ Note for Arduino Nano ESP32</summary>
@@ -104,7 +104,7 @@ cargo espflash erase-flash -c esp32s3 --baud 921600 --port /dev/ttyACM0
 
 ### Additional arguments
 Depending on which ESP32S3 development board you're using, you may need to add additional arguments to the two example commands above (especially `flash`).
-- `--chip esp32s3`
+- `-c esp32s3`
 - `-s 16m` / `-s 8m` - For 16MB and 8MB of flash respectively.
 
 To build a debug image (or flash it) remove the `--release` flag from the above commands.
@@ -126,9 +126,9 @@ To build a debug image (or flash it) remove the `--release` flag from the above 
   
   ### `espflash` commands
   - For saving as image:
-    - `cargo espflash save-image --frozen --locked --release -T partitions.csv -s 16mb --chip esp32s3 image.bin`
+    - `cargo espflash save-image --frozen --locked --release -T partitions.csv -s 16mb -c esp32s3 image.bin`
   - For flashing:
-    - `cargo espflash flash --frozen --locked --release -T partitions.csv -s 16mb --chip esp32s3 --baud 921600 --port /dev/ttyACM0 --monitor --no-verify --erase-data-parts ota`
+    - `cargo espflash flash --frozen --locked --release -T partitions.csv -s 16mb -c esp32s3 -B 921600 -p /dev/ttyACM0 -M --no-verify --erase-data-parts ota`
 </details>
 
 <details>
@@ -149,9 +149,9 @@ To build a debug image (or flash it) remove the `--release` flag from the above 
   
   ### `espflash` commands
   - For saving as image:
-    - `cargo espflash save-image --frozen --locked --release -T partitions.csv -s 16mb --chip esp32s3 image.bin`
+    - `cargo espflash save-image --frozen --locked --release -T partitions.csv -s 16mb -c esp32s3 image.bin`
   - For flashing:
-    - `cargo espflash flash --frozen --locked --release -T partitions.csv -s 16mb --chip esp32s3 --baud 921600 --port /dev/ttyACM0 --monitor --no-verify --erase-data-parts ota`
+    - `cargo espflash flash --frozen --locked --release -T partitions.csv -s 16mb -c esp32s3 -B 921600 -p /dev/ttyACM0 -M --no-verify --erase-data-parts ota`
 </details>
 
 ## Build variants
@@ -171,7 +171,7 @@ A version is deemed "stable" if it runs without interruptions/buggy behaviour fo
 ## Caveats
 - If you're planning to flash the firmware and use it "in production", you should always use release builds. Just pass `--release` to `cargo build` **and** `cargo espflash`.
 - For troubleshooting, you should use debug builds, as they have more verbose logging.
-- Make sure to use the given partition layout ([`partitions.csv`](partitions.csv)) by passing `--partition-table partitions.csv` to `cargo espflash`. The default partition layout has a way too small `app` partition.
+- Make sure to use the given partition layout ([`partitions.csv`](partitions.csv)) by passing `-T partitions.csv` to `cargo espflash`. The default partition layout has a way too small `app` partition.
 - Some lower-quality USB cables may require a lower baud rate. Use `115200` if `921600` does not work for you.
 
 ## WIP Features
