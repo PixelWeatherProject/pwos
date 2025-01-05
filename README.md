@@ -96,7 +96,6 @@ cargo espflash flash -T partitions.csv --frozen --locked --release --chip esp32s
 Depending on which ESP32S3 development board you're using, you may need to add additional arguments to the two example commands above (especially `flash`).
 - `--chip esp32s3`
 - `-s 16m` / `-s 8m` - For 16MB and 8MB of flash respectively.
-- `-m qio` - QIO flash mode
 
 To build a debug image (or flash it) remove the `--release` flag from the above commands.
 
@@ -119,7 +118,7 @@ To build a debug image (or flash it) remove the `--release` flag from the above 
   - For saving as image:
     - `cargo espflash save-image --frozen --locked --release -T partitions.csv -s 16mb --chip esp32s3 image.bin`
   - For flashing:
-    - `cargo espflash flash --frozen --locked --release -T partitions.csv -s 16mb --chip esp32s3  --baud 921600 --port /dev/ttyACM0 --monitor --no-verify --erase-data-parts ota`
+    - `cargo espflash flash --frozen --locked --release -T partitions.csv -s 16mb --chip esp32s3 --baud 921600 --port /dev/ttyACM0 --monitor --no-verify --erase-data-parts ota`
 </details>
 
 <details>
@@ -142,7 +141,7 @@ To build a debug image (or flash it) remove the `--release` flag from the above 
   - For saving as image:
     - `cargo espflash save-image --frozen --locked --release -T partitions.csv -s 16mb --chip esp32s3 image.bin`
   - For flashing:
-    - `cargo espflash flash --frozen --locked --release -T partitions.csv -s 16mb --chip esp32s3  --baud 921600 --port /dev/ttyACM0 --monitor --no-verify --erase-data-parts ota`
+    - `cargo espflash flash --frozen --locked --release -T partitions.csv -s 16mb --chip esp32s3 --baud 921600 --port /dev/ttyACM0 --monitor --no-verify --erase-data-parts ota`
 </details>
 
 ## Build variants
