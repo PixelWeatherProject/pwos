@@ -19,8 +19,6 @@ use esp_idf_svc::{
 };
 use pwmp_client::{ota::UpdateStatus, pwmp_msg::version::Version, PwmpClient};
 use std::time::Duration;
-#[cfg(debug_assertions)]
-use std::time::Instant;
 
 #[allow(clippy::too_many_arguments)]
 pub fn fw_main(
@@ -105,7 +103,7 @@ fn setup_wifi(
 
     #[cfg(debug_assertions)]
     {
-        let scan_start = Instant::now();
+        let scan_start = std::time::Instant::now();
         let network_names = networks
             .iter()
             .map(|net| net.ssid.as_str())
@@ -148,7 +146,7 @@ fn setup_wifi(
         };
 
         #[cfg(debug_assertions)]
-        let start = Instant::now();
+        let start = std::time::Instant::now();
         match wifi.connect(&ap.ssid, psk, auth_method, WIFI_TIMEOUT) {
             Ok(()) => {
                 os_debug!("Connected in {:?}", start.elapsed());
