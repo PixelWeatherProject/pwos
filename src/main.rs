@@ -16,7 +16,6 @@ use esp_idf_svc::{
         units::FromValueType,
     },
     nvs::EspDefaultNvsPartition,
-    ota::{EspOta, SlotState},
 };
 use log::LevelFilter;
 use simple_logger::SimpleLogger;
