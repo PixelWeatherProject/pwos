@@ -16,15 +16,17 @@ use esp_idf_svc::{
         units::FromValueType,
     },
     nvs::EspDefaultNvsPartition,
+    ota::{EspOta, SlotState},
 };
 use log::LevelFilter;
 use simple_logger::SimpleLogger;
-use std::time::Instant;
+use std::time::{Duration, Instant};
 use sysc::{
     battery::Battery,
     ledctl::BoardLed,
+    ota::Ota,
     sleep::{deep_sleep, fake_sleep},
-    usbctl, verification, ReportableError,
+    usbctl,
 };
 
 mod config;
@@ -58,8 +60,6 @@ fn main() {
     os_debug!("Disabling brownout detector");
     sysc::brownout::disable_brownout_detector();
 
-    verification::check_for_rollback().report("Failed to check firmware validation status");
-
     os_debug!("Initializing peripherals");
     let peripherals = Peripherals::take().expect("Failed to initialize peripherals");
 
@@ -71,6 +71,12 @@ fn main() {
 
     os_debug!("Initializing system LED");
     let led = BoardLed::new(peripherals.pins.gpio17);
+
+    os_debug!("Initializing OTA system");
+    let mut ota = Ota::new().expect("Failed to initialize OTA");
+
+    ota.rollback_if_needed()
+        .expect("Failed to check/perform rollback");
 
     os_debug!("Initializing system Battery");
     let battery = Battery::new(peripherals.adc1, peripherals.pins.gpio2)
@@ -98,6 +104,7 @@ fn main() {
         sys_loop,
         nvs,
         led,
+        &mut ota,
         &mut appcfg,
     );
     let runtime = start.elapsed();
@@ -111,8 +118,8 @@ fn main() {
                 os_error!("System will now halt");
                 deep_sleep(None);
             } else {
-                verification::increment_failiures_if_needed()
-                    .report("Unable to increment failiure count");
+                ota.inc_failiures()
+                    .expect("Failed to increment failiure count");
             }
         }
     }
@@ -123,7 +130,7 @@ fn main() {
     if usbctl::is_connected() {
         // Simulate sleep instead, to keep the serial connection alive
         os_debug!("Using fake sleep instead of deep sleep");
-        fake_sleep(Some(appcfg.sleep_time()));
+        fake_sleep(Some(Duration::from_secs(10)));
     } else {
         deep_sleep(Some(appcfg.sleep_time()));
     }

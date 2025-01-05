@@ -6,15 +6,15 @@ use crate::{
         ext_drivers::{AnySensor, EnvironmentSensor, Htu, MeasurementResults},
         ledctl::BoardLed,
         net::{PowerSavingMode, WiFi},
+        ota::Ota,
         sleep::deep_sleep,
-        verification, OsError, OsResult, ReportableError,
+        OsError, OsResult, ReportableError,
     },
 };
 use esp_idf_svc::{
     eventloop::EspSystemEventLoop,
     hal::{i2c::I2cDriver, modem::Modem},
     nvs::EspDefaultNvsPartition,
-    ota::EspOta,
     wifi::{AccessPointInfo, AuthMethod},
 };
 use pwmp_client::{ota::UpdateStatus, pwmp_msg::version::Version, PwmpClient};
@@ -22,6 +22,7 @@ use std::time::Duration;
 #[cfg(debug_assertions)]
 use std::time::Instant;
 
+#[allow(clippy::too_many_arguments)]
 pub fn fw_main(
     mut battery: Battery,
     i2c: I2cDriver,
@@ -29,8 +30,13 @@ pub fn fw_main(
     sys_loop: EspSystemEventLoop,
     nvs: EspDefaultNvsPartition,
     mut led: BoardLed,
+    ota: &mut Ota,
     cfg: &mut AppConfig,
 ) -> OsResult<()> {
+    if !ota.current_verified()? {
+        os_warn!("Running unverified firmware");
+    }
+
     let (wifi, ap) = setup_wifi(modem, sys_loop, nvs)?;
     let mut pws = PwmpClient::new(PWMP_SERVER, wifi.get_mac()?, None, None, None)?;
 
@@ -58,17 +64,23 @@ pub fn fw_main(
     os_debug!("Posting stats");
     pws.post_stats(bat_voltage, &ap.ssid, ap.signal_strength)?;*/
 
-    if verification::rollback_detected()? {
-        os_info!("Reporting unsuccessfull firmware update");
-        pws.report_firmware(false)?;
-    } else if verification::mark_verified_if_needed()? {
-        os_info!("Reporting successfull firmware update");
-        pws.report_firmware(true)?;
+    if ota.report_needed()? {
+        let success = !ota.rollback_detected()?;
+
+        os_info!(
+            "Reporting {}successfull firmware update",
+            if success { "" } else { "un" }
+        );
+
+        pws.report_firmware(success)?;
+        ota.mark_reported();
+    } else {
+        os_debug!("No update report needed");
     }
 
     os_debug!("Checking for updates");
     if check_ota(&mut pws)? {
-        begin_update(&mut pws)?;
+        begin_update(&mut pws, ota)?;
     }
 
     // Peacefully disconnect
@@ -210,9 +222,8 @@ fn check_ota(pws: &mut PwmpClient) -> OsResult<bool> {
     }
 }
 
-fn begin_update(pws: &mut PwmpClient) -> OsResult<()> {
-    let mut ota = EspOta::new()?;
-    let mut handle = ota.initiate_update()?;
+fn begin_update(pws: &mut PwmpClient, ota: &mut Ota) -> OsResult<()> {
+    let mut handle = ota.begin_update()?;
     let mut maybe_chunk = pws.next_update_chunk(Some(1024))?;
     let mut i = 1;
 
@@ -226,10 +237,8 @@ fn begin_update(pws: &mut PwmpClient) -> OsResult<()> {
         i += 1;
     }
 
-    handle.flush()?;
-    handle.complete()?;
+    drop(handle); // This will internally finalize the update
     os_info!("Update installed successfully");
-    verification::reset_failiures();
 
     Ok(())
 }
