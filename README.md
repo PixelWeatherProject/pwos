@@ -89,12 +89,12 @@ cargo espflash save-image -T partitions.csv --frozen --locked --release -c esp32
 
 To directly flash the firmware, use the command below. **Remember to change the serial port for your machine.**
 ```sh
-cargo espflash flash -T partitions.csv --frozen --locked --release -c esp32s3 --noverify --erase-data-parts otadata -B 921600 -p /dev/cu.usbserial-XXXXXXXX
+cargo espflash flash -T partitions.csv --frozen --locked --release -c esp32s3 --noverify --erase-data-parts otadata -B 921600 -p /dev/ttyXXXX
 ```
 
 If you notice weird/buggy bevaiour, you can erase the entire flash like so:
 ```sh
-cargo espflash erase-flash -c esp32s3 -B 921600 -p /dev/ttyACM0
+cargo espflash erase-flash -c esp32s3 -B 921600 -p /dev/ttyXXXX
 ```
 <details>
   <summary>⚠️ Note for Arduino Nano ESP32</summary>
@@ -128,7 +128,7 @@ To build a debug image (or flash it) remove the `--release` flag from the above 
   - For saving as image:
     - `cargo espflash save-image --frozen --locked --release -T partitions.csv -s 16mb --chip esp32s3 image.bin`
   - For flashing:
-    - `cargo espflash flash --frozen --locked --release -T partitions.csv -s 16mb -c esp32s3 -B 921600 -p /dev/ttyACM0 -M --no-verify --erase-data-parts ota`
+    - `cargo espflash flash --frozen --locked --release -T partitions.csv -s 16mb -c esp32s3 -B 921600 -p /dev/ttyXXXX -M --no-verify --erase-data-parts ota`
 </details>
 
 <details>
@@ -151,7 +151,7 @@ To build a debug image (or flash it) remove the `--release` flag from the above 
   - For saving as image:
     - `cargo espflash save-image --frozen --locked --release -T partitions.csv -s 16mb --chip esp32s3 image.bin`
   - For flashing:
-    - `cargo espflash flash --frozen --locked --release -T partitions.csv -s 16mb -c esp32s3 -B 921600 -p /dev/ttyACM0 -M --no-verify --erase-data-parts ota`
+    - `cargo espflash flash --frozen --locked --release -T partitions.csv -s 16mb -c esp32s3 -B 921600 -p /dev/ttyXXXX -M --no-verify --erase-data-parts ota`
 </details>
 
 ## Build variants
