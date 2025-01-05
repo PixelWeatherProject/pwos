@@ -95,7 +95,7 @@ cargo espflash flash -T partitions.csv --frozen --locked --release --chip esp32s
 ### Additional arguments
 Depending on which ESP32S3 development board you're using, you may need to add additional arguments to the two example commands above (especially `flash`).
 - `--chip esp32s3`
-- `-s 16m` / `-s 8b` - For 16MB and 8MB of flash respectively.
+- `-s 16m` / `-s 8m` - For 16MB and 8MB of flash respectively.
 - `-m qio` - QIO flash mode
 
 To build a debug image (or flash it) remove the `--release` flag from the above commands.
