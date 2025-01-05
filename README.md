@@ -100,6 +100,39 @@ Depending on which ESP32S3 development board you're using, you may need to add a
 
 To build a debug image (or flash it) remove the `--release` flag from the above commands.
 
+### Board-specific configuration
+<details>
+  <summary>LILYGO T7 S3 v1.2</summary>
+  
+  ### ESP SDK configuration 
+  The provided `sdkconfig.debug` and `sdkconfig.release` configurations are designed for this board by default.
+  No changes are needed.
+
+  ### GPIO Pins
+  The default pin configuration of PWOS is designed for this board. No changes are needed.
+  
+  - On-board LED: `GPIO_17`
+  - I2C SDA: `GPIO_5`
+  - I2C SCL: `GPIO_8`
+</details>
+
+<details>
+  <summary>Arduino Nano ESP32</summary>
+  
+  ### ESP SDK configuration 
+  In both `sdkconfig.debug` and `sdkconfig.release` uncomment/add the following entries:
+  ```
+  CONFIG_RTC_CLK_SRC_EXT_CRYS=y
+  ```
+
+  ### GPIO Pins
+  The default pin configuration of PWOS is designed for this board. No changes are needed.
+  
+  - On-board LED: `GPIO_48`
+  - I2C SDA: `GPIO_5`
+  - I2C SCL: `GPIO_8`
+</details>
+
 ## Build variants
 Firmware size (as of commit N/A):
 - Release build: `N/A`
