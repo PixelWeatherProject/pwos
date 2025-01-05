@@ -8,14 +8,18 @@ use std::{
 
 const MAX_FAILIURES: u8 = 3;
 
+/// Number of times the current firmware has failed.
 #[link_section = ".rtc_noinit"]
 static mut FAILIURES: MaybeUninit<u8> = MaybeUninit::uninit();
 
+/// Whether the last update has been reported back to the PWMP server.
 #[link_section = ".rtc_noinit"]
 static mut REPORTED: MaybeUninit<bool> = MaybeUninit::uninit();
 
+/// Over-the-Air updates handler.
 pub struct Ota(EspOta);
 
+/// A handle for a pending update.
 pub struct OtaHandle<'h>(Option<EspOtaUpdate<'h>>);
 
 impl Ota {
@@ -28,15 +32,18 @@ impl Ota {
     }
 
     pub fn mark_reported(&mut self) {
+        // SAFETY: This method is only called after an update has been performed. So `REPORTED` is initialized to `false`.
         unsafe { REPORTED.write(true) };
     }
 
     pub fn report_needed(&mut self) -> OsResult<bool> {
+        // The current firmware might be verified, but it could be a previous version.
         if self.current_verified()? && !self.rollback_detected()? {
             os_debug!("Skipping report check on verified firmware");
             return Ok(false);
         }
 
+        // SAFETY: This method is only called after an update has been performed. So `REPORTED` is initialized.
         Ok(unsafe { !REPORTED.assume_init() })
     }
 
@@ -54,6 +61,7 @@ impl Ota {
             return Ok(());
         }
 
+        // SAFETY: This part can only be reached after an update has been performed. So `REPORTED` is initialized.
         let fails = unsafe { FAILIURES.assume_init() };
 
         if fails >= MAX_FAILIURES {
@@ -69,6 +77,7 @@ impl Ota {
             return Ok(());
         }
 
+        // SAFETY: This part can only be reached after an update has been performed. So `REPORTED` is initialized.
         let fail_count = unsafe { FAILIURES.assume_init_mut() };
         fail_count.add_assign(1);
 
@@ -107,5 +116,9 @@ impl<'h> Drop for OtaHandle<'h> {
             FAILIURES.write(0);
             REPORTED.write(false);
         }
+
+        // Null-safety of `self.0`:
+        // The handle can never be used after this drop.
+        // Therefore, no calls to `unwrap_unchecked()` can be made in the Deref implementations, and no UB can occur.
     }
 }
