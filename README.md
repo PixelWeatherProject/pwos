@@ -92,6 +92,16 @@ To directly flash the firmware, use the command below. **Remember to change the 
 cargo espflash flash -T partitions.csv --frozen --locked --release --chip esp32s3 --noverify --erase-data-parts otadata --baud 921600 --port /dev/cu.usbserial-XXXXXXXX
 ```
 
+If you notice weird/buggy bevaiour, you can erase the entire flash like so:
+```sh
+cargo espflash erase-flash -c esp32s3 --baud 921600 --port /dev/ttyACM0
+```
+<details>
+  <summary>⚠️ Note for Arduino Nano ESP32</summary>
+  
+  After erasing the flash you may not be able to flash the board with Arduino IDE. You'll need to re-burn the bootloader.
+</details>
+
 ### Additional arguments
 Depending on which ESP32S3 development board you're using, you may need to add additional arguments to the two example commands above (especially `flash`).
 - `--chip esp32s3`
