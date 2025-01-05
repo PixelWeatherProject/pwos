@@ -24,7 +24,7 @@ use sysc::{
     battery::Battery,
     ledctl::BoardLed,
     sleep::{deep_sleep, fake_sleep},
-    usbctl,
+    usbctl, verification, ReportableError,
 };
 
 mod config;
@@ -57,6 +57,8 @@ fn main() {
 
     os_debug!("Disabling brownout detector");
     sysc::brownout::disable_brownout_detector();
+
+    verification::check_for_rollback().report("Failed to check firmware validation status");
 
     os_debug!("Initializing peripherals");
     let peripherals = Peripherals::take().expect("Failed to initialize peripherals");
@@ -101,13 +103,19 @@ fn main() {
     let runtime = start.elapsed();
 
     match fw_exit {
-        Ok(()) => os_info!("Tasks completed successfully"),
+        Ok(()) => {
+            os_info!("Tasks completed successfully");
+            verification::mark_verified_if_needed().report("Failed to verify firmware");
+        }
         Err(why) => {
             os_error!("OS Error: {why}");
 
             if !why.recoverable() {
                 os_error!("System will now halt");
                 deep_sleep(None);
+            } else {
+                verification::increment_failiures_if_needed()
+                    .report("Unable to increment failiure count");
             }
         }
     }

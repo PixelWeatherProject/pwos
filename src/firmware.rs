@@ -7,7 +7,7 @@ use crate::{
         ledctl::BoardLed,
         net::{PowerSavingMode, WiFi},
         sleep::deep_sleep,
-        OsError, OsResult, ReportableError,
+        verification, OsError, OsResult, ReportableError,
     },
 };
 use esp_idf_svc::{
@@ -221,6 +221,7 @@ fn begin_update(pws: &mut PwmpClient) -> OsResult<()> {
     handle.flush()?;
     handle.complete()?;
     os_info!("Update installed successfully");
+    verification::reset_failiures();
 
     Ok(())
 }
