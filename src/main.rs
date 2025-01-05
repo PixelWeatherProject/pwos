@@ -103,10 +103,7 @@ fn main() {
     let runtime = start.elapsed();
 
     match fw_exit {
-        Ok(()) => {
-            os_info!("Tasks completed successfully");
-            verification::mark_verified_if_needed().report("Failed to verify firmware");
-        }
+        Ok(()) => os_info!("Tasks completed successfully"),
         Err(why) => {
             os_error!("OS Error: {why}");
 

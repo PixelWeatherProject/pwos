@@ -63,6 +63,11 @@ pub fn fw_main(
         begin_update(&mut pws)?;
     }
 
+    if verification::mark_verified_if_needed()? {
+        os_info!("Reporting successfull firmware update");
+        pws.report_firmware(true)?;
+    }
+
     // Peacefully disconnect
     drop(pws);
 

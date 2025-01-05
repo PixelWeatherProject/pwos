@@ -35,12 +35,13 @@ pub fn increment_failiures_if_needed() -> OsResult<()> {
     Ok(())
 }
 
-pub fn mark_verified_if_needed() -> OsResult<()> {
+pub fn mark_verified_if_needed() -> OsResult<bool> {
     if needs_verification()? {
         mark_verified()?;
+        return Ok(true);
     }
 
-    Ok(())
+    Ok(false)
 }
 
 pub fn reset_failiures() {
