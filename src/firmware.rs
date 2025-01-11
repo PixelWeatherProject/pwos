@@ -70,6 +70,16 @@ pub fn fw_main(
             if success { "" } else { "un" }
         );
 
+        pws.send_notification(format!(
+            "Update to PWOS {} has {}",
+            if success {
+                env!("CARGO_PKG_VERSION").to_string()
+            } else {
+                ota.previous_version()?.unwrap().to_string()
+            },
+            if success { "succeeded" } else { "failed" }
+        ))?;
+
         pws.report_firmware(success)?;
         ota.mark_reported();
     } else {

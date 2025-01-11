@@ -1,6 +1,7 @@
 use super::OsResult;
 use crate::{os_debug, os_info, os_warn};
 use esp_idf_svc::ota::{EspOta, EspOtaUpdate, SlotState};
+use pwmp_client::pwmp_msg::version::Version;
 use std::{
     mem::MaybeUninit,
     ops::{AddAssign, Deref, DerefMut},
@@ -84,6 +85,23 @@ impl Ota {
 
         os_warn!("Firmware has failed {}/{} times", fail_count, MAX_FAILIURES);
         Ok(())
+    }
+
+    pub fn previous_version(&self) -> OsResult<Option<Version>> {
+        let Some(slot) = self.0.get_last_invalid_slot()? else {
+            return Ok(None);
+        };
+
+        let Some(info) = slot.firmware else {
+            return Ok(None);
+        };
+
+        let Some(version) = Version::parse(info.version) else {
+            os_warn!("Previous firmware has an invalid version string");
+            return Ok(None);
+        };
+
+        Ok(Some(version))
     }
 }
 
