@@ -84,7 +84,7 @@ Battery life measurements:
 
 If you just want to build the image, use the following command (for example):
 ```sh
-cargo espflash save-image -T partitions.csv --frozen --locked --release -c esp32s3 --merge image.bin 
+cargo espflash save-image -T partitions.csv --frozen --locked --release --chip esp32s3 --merge image.bin 
 ```
 
 To directly flash the firmware, use the command below. **Remember to change the serial port for your machine.**
