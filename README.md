@@ -94,7 +94,7 @@ cargo espflash flash -T partitions.csv --frozen --locked --release -c esp32s3 --
 
 If you notice weird/buggy bevaiour, you can erase the entire flash like so:
 ```sh
-cargo espflash erase-flash -c esp32s3 -B 921600 -p /dev/ttyXXXX
+cargo espflash erase-flash -c esp32s3 -p /dev/ttyACM0 -B 921600
 ```
 <details>
   <summary>⚠️ Note for Arduino Nano ESP32</summary>
