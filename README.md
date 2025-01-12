@@ -105,7 +105,7 @@ cargo espflash erase-flash -c esp32s3 -p /dev/ttyACM0 -B 921600
 ### Additional arguments
 Depending on which ESP32S3 development board you're using, you may need to add additional arguments to the two example commands above (especially `flash`).
 - `-c esp32s3`
-- `-s 16m` / `-s 8m` - For 16MB and 8MB of flash respectively.
+- `-s 16mb` / `-s 8mb` - For 16MB and 8MB of flash respectively.
 
 To build a debug image (or flash it) remove the `--release` flag from the above commands.
 
