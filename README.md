@@ -141,7 +141,7 @@ To build a debug image (or flash it) remove the `--release` flag from the above 
   ```
 
   ### GPIO Pins
-  The default pin configuration of PWOS is designed for this board. No changes are needed.
+  The on-board LED is on a different pin. You'll need to edit [src/sysc/ledctl.rs](src/sysc/ledctl.rs) as well as [src/main.rs](src/main.rs).
   
   - On-board LED: `GPIO_48`
   - I2C SDA: `GPIO_5`
