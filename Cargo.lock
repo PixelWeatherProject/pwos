@@ -545,8 +545,7 @@ dependencies = [
 [[package]]
 name = "embedded-svc"
 version = "0.28.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a7770e30ab55cfbf954c00019522490d6ce26a3334bede05a732ba61010e98e0"
+source = "git+ssh://git@github.com/PixelWeatherProject/embedded-svc.git?rev=29afd95#29afd9591ebc3efe0fe4c193709a396214d45374"
 dependencies = [
  "defmt",
  "embedded-io 0.6.1",

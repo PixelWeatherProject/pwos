@@ -40,3 +40,6 @@ heapless = "0.8.0"
 
 [build-dependencies]
 embuild = "0.33.0"
+
+[patch.crates-io]
+embedded-svc = { git = "ssh://git@github.com/PixelWeatherProject/embedded-svc.git", rev = "29afd95" }
