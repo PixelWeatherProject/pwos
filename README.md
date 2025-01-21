@@ -123,6 +123,7 @@ To build a debug image (or flash it) remove the `--release` flag from the above 
   - On-board LED: `GPIO_17`
   - I2C SDA: `GPIO_5`
   - I2C SCL: `GPIO_8`
+  - Battery measurement: `GPIO_2`
   
   ### `espflash` commands
   - For saving as image:
@@ -146,6 +147,7 @@ To build a debug image (or flash it) remove the `--release` flag from the above 
   - On-board LED: `GPIO_48`
   - I2C SDA: `GPIO_5`
   - I2C SCL: `GPIO_8`
+  - Battery measurement: `GPIO_2`
   
   ### `espflash` commands
   - For saving as image:
