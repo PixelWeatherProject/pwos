@@ -198,6 +198,13 @@ A version is deemed "stable" if it runs without interruptions/buggy behaviour fo
 - Make sure to use the given partition layout ([`partitions.csv`](partitions.csv)) by passing `-T partitions.csv` to `cargo espflash`. The default partition layout has a way too small `app` partition.
 - Some lower-quality USB cables may require a lower baud rate. Use `115200` if `921600` does not work for you.
 
+## Terms
+- *node* - A station that consists of PWOS-compatible hardware and runs PWOS. It collects weather information and sends it over PWMP to a remote server.
+- *sysconfig*/*system configuration* - Board-specific configuration with pin definitions. Should be in `src/config.sys.rs`. For an example configuration, check [`src/config/sys.rs.example`](src/config/sys.rs.example)
+- *appconfig*/*application configuration* - Defines how PWOS behaves, e.g. whether it should check battery voltages, how long should the node sleep, etc. This configuration is defined in the PWMP database.
+- *sBOP*/*software-based battery overdischarge protection* - Permanently shuts down the node if the battery voltage drops below a critical value.
+- *OTA*/*Over-the-Air (updates)* - Firmware updates that are delivered wirelessly to the nodes.
+
 ## WIP Features
 - [x] OTA Updates
 - [ ] Storing secrects in NVS instead of in the code
