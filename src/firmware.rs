@@ -174,8 +174,11 @@ fn setup_wifi(
 fn read_appcfg(pws: &mut PwmpClient, appcfg: &mut AppConfig) -> OsResult<()> {
     os_debug!("Reading settings");
 
-    let values = pws.get_settings()?;
-    **appcfg = values;
+    if let Some(settings) = pws.get_settings()? {
+        **appcfg = settings;
+    } else {
+        os_warn!("Got empty node settings, using defaults");
+    }
 
     os_debug!("Settings updated");
     Ok(())
