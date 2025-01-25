@@ -8,6 +8,7 @@
 
 use crate::config::AppConfig;
 use build_time::build_time_local;
+use config::LED_BUILTIN;
 use esp_idf_svc::{
     eventloop::EspSystemEventLoop,
     hal::{
@@ -22,6 +23,7 @@ use simple_logger::SimpleLogger;
 use std::time::Instant;
 use sysc::{
     battery::Battery,
+    gpio,
     ledctl::BoardLed,
     ota::Ota,
     sleep::{deep_sleep, fake_sleep},
@@ -61,7 +63,7 @@ fn main() {
     sysc::brownout::disable_brownout_detector();
 
     os_debug!("Initializing peripherals");
-    let peripherals = Peripherals::take().expect("Failed to initialize peripherals");
+    let mut peripherals = Peripherals::take().expect("Failed to initialize peripherals");
 
     os_debug!("Initializing System Event Loop");
     let sys_loop = EspSystemEventLoop::take().expect("SEL init error");
@@ -70,7 +72,9 @@ fn main() {
     let nvs = EspDefaultNvsPartition::take().expect("NVS init error");
 
     os_debug!("Initializing system LED");
-    let led = BoardLed::new(peripherals.pins.gpio17);
+    let led = BoardLed::new(
+        gpio::number_to_io_pin(LED_BUILTIN, &mut peripherals).expect("Invalid LED pin"),
+    );
 
     os_debug!("Initializing OTA system");
     let mut ota = Ota::new().expect("Failed to initialize OTA");

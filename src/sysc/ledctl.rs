@@ -1,12 +1,11 @@
-use esp_idf_svc::hal::gpio::{Gpio17, Output, PinDriver};
+use esp_idf_svc::hal::gpio::{AnyIOPin, Output, PinDriver};
 
-type LedGpio = Gpio17;
-type LedDriver = PinDriver<'static, LedGpio, Output>;
+type LedDriver = PinDriver<'static, AnyIOPin, Output>;
 
 pub struct BoardLed(LedDriver);
 
 impl BoardLed {
-    pub fn new(pin: LedGpio) -> Self {
+    pub fn new(pin: AnyIOPin) -> Self {
         let mut i = Self(unsafe { PinDriver::output(pin).unwrap_unchecked() });
         i.on();
 
