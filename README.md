@@ -33,6 +33,7 @@ PixelWeather is a weather station network that collects environment data using "
 As of now, this firmware has been tested with:
 - [x] [LILYGO T7 S3 v1.2](https://lilygo.cc/products/t7-s3)
 - [x] [Arduino Nano ESP32](https://store.arduino.cc/en-sk/products/nano-esp32)
+- [x] [Seeed Studio XIAO ESP32S3](https://wiki.seeedstudio.com/xiao_esp32s3_getting_started/)
 
 ## Recommended sensor hardware
 As of now, this firmware has been tested with:
@@ -142,8 +143,7 @@ To build a debug image (or flash it) remove the `--release` flag from the above 
   ```
 
   ### GPIO Pins
-  The on-board LED is on a different pin. You'll need to edit [src/sysc/ledctl.rs](src/sysc/ledctl.rs) as well as [src/main.rs](src/main.rs).
-  
+  The on-board LED is on a different pin. You'll need to set `LED_BUILTIN` in your sysconfig ([src/config/sys.rs](src/config/sys.rs)).
   - On-board LED: `GPIO_48`
   - I2C SDA: `GPIO_5`
   - I2C SCL: `GPIO_8`
@@ -154,6 +154,28 @@ To build a debug image (or flash it) remove the `--release` flag from the above 
     - `cargo espflash save-image --frozen --locked --release -T partitions.csv -s 16mb --chip esp32s3 image.bin`
   - For flashing:
     - `cargo espflash flash --frozen --locked --release -T partitions.csv -s 16mb -c esp32s3 -B 921600 -p /dev/ttyXXXX -M --no-verify --erase-data-parts ota`
+</details>
+
+<details>
+  <summary>Seeed Studio XIAO ESP32S3</summary>
+  
+  ### ESP SDK configuration 
+  The provided `sdkconfig.debug` and `sdkconfig.release` configurations are designed for this board by default.
+  No changes are needed.
+
+  ### GPIO Pins
+  The on-board LED is on a different pin. You'll need to set `LED_BUILTIN` in your sysconfig ([src/config/sys.rs](src/config/sys.rs)). Additionally, you'll also need to set `LED_BUILTIN_INVERT` to `true`, because the LED's negative terminal is connected to the GPIO pin.
+  
+  - On-board LED: `GPIO_21`
+  - I2C SDA: `GPIO_5`
+  - I2C SCL: `GPIO_8`
+  - Battery measurement: `GPIO_2`
+  
+  ### `espflash` commands
+  - For saving as image:
+    - `cargo espflash save-image --frozen --locked --release -T partitions.csv -s 8mb --chip esp32s3 image.bin`
+  - For flashing:
+    - `cargo espflash flash --frozen --locked --release -T partitions.csv -s 8mb -c esp32s3 -B 921600 -p /dev/ttyXXXX -M --no-verify --erase-data-parts ota`
 </details>
 
 ## Build variants
