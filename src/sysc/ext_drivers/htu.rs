@@ -61,7 +61,7 @@ impl<'s> Htu<'s> {
     }
 }
 
-impl<'s> EnvironmentSensor for Htu<'s> {
+impl EnvironmentSensor for Htu<'_> {
     fn connected(&mut self) -> OsResult<bool> {
         self.command(Command::Reset)?;
         Ok(true)

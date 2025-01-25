@@ -17,7 +17,7 @@ pub struct MeasurementResults {
     pub air_pressure: Option<AirPressure>,
 }
 
-impl<'s> EnvironmentSensor for AnySensor<'s> {
+impl EnvironmentSensor for AnySensor<'_> {
     fn connected(&mut self) -> OsResult<bool> {
         match self {
             Self::HtuCompatible(dev) => dev.connected(),

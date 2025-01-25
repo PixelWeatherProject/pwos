@@ -23,6 +23,7 @@ pub struct Ota(EspOta);
 /// A handle for a pending update.
 pub struct OtaHandle<'h>(Option<EspOtaUpdate<'h>>);
 
+#[allow(static_mut_refs)]
 impl Ota {
     pub fn new() -> OsResult<Self> {
         Ok(Self(EspOta::new()?))
@@ -114,14 +115,15 @@ impl<'h> Deref for OtaHandle<'h> {
     }
 }
 
-impl<'h> DerefMut for OtaHandle<'h> {
+impl DerefMut for OtaHandle<'_> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         // SAFETY: Handle is always Some() at this point
         unsafe { self.0.as_mut().unwrap_unchecked() }
     }
 }
 
-impl<'h> Drop for OtaHandle<'h> {
+#[allow(static_mut_refs)]
+impl Drop for OtaHandle<'_> {
     fn drop(&mut self) {
         os_debug!("Finalizing update");
 
