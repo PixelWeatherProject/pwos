@@ -48,8 +48,11 @@ impl Battery {
     pub fn read(&mut self, samples: u8) -> OsResult<Decimal> {
         let raw = self.read_raw(samples)?;
         let volts = Decimal::from(self.adc.raw_to_mv(&self.ch, raw)?) / dec!(1000);
+        let mut result = (volts * (R1 + R2)) / (R2);
 
-        Ok((volts * (R1 + R2)) / (R2))
+        result = result.trunc_with_scale(2);
+
+        Ok(result)
     }
 
     fn read_raw(&mut self, samples: u8) -> OsResult<u16> {
