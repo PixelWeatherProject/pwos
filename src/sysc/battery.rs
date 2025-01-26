@@ -53,7 +53,7 @@ impl Battery {
     }
 
     fn read_raw(&mut self, samples: u8) -> OsResult<u16> {
-        let mut avg = Decimal::new(0, 4);
+        let mut avg = dec!(0);
 
         for _ in 0..samples {
             avg += Decimal::from(self.adc.read_raw(&mut self.ch)?);
