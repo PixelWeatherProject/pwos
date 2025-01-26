@@ -40,7 +40,7 @@ pub fn fw_main(
 
     read_appcfg(&mut pws, cfg)?;
 
-    let bat_voltage = battery.read(8)?;
+    let bat_voltage = battery.read(16)?;
     os_info!("Battery: {bat_voltage}V");
 
     if (bat_voltage <= CRITICAL_VOLTAGE) && cfg.sbop {
