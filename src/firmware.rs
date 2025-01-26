@@ -15,7 +15,7 @@ use esp_idf_svc::{
     eventloop::EspSystemEventLoop,
     hal::{i2c::I2cDriver, modem::Modem},
     nvs::EspDefaultNvsPartition,
-    wifi::{AccessPointInfo, AuthMethod},
+    wifi::AccessPointInfo,
 };
 use pwmp_client::{ota::UpdateStatus, pwmp_msg::version::Version, PwmpClient};
 use std::time::Duration;
@@ -150,15 +150,9 @@ fn setup_wifi(
                 .1
         };
 
-        let auth_method = match ap.auth_method.unwrap_or(AuthMethod::None) {
-            AuthMethod::WPA2WPA3Personal => AuthMethod::WPA2Personal,
-            // add other overrides if needed
-            other => other,
-        };
-
         #[cfg(debug_assertions)]
         let start = std::time::Instant::now();
-        match wifi.connect(&ap.ssid, psk, auth_method, WIFI_TIMEOUT) {
+        match wifi.connect(&ap.ssid, psk, ap.auth_method.unwrap(), WIFI_TIMEOUT) {
             Ok(()) => {
                 os_debug!("Connected in {:?}", start.elapsed());
                 os_debug!("IP: {}", wifi.get_ip_info().unwrap().ip);
