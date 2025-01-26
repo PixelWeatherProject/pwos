@@ -21,6 +21,8 @@ pub enum OsError {
     PskTooLong,
     #[error("Unexpected version format")]
     IllegalFirmwareVersion,
+    #[error("Conversion beteen int and Decimal failed")]
+    DecimalConversion,
 }
 
 pub trait ReportableError {

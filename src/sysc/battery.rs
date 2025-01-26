@@ -1,8 +1,8 @@
-use super::OsResult;
+use super::{OsError, OsResult};
 use esp_idf_svc::{
     hal::{
         adc::{
-            attenuation::DB_2_5,
+            attenuation::DB_11,
             oneshot::{
                 config::{AdcChannelConfig, Calibration},
                 AdcChannelDriver, AdcDriver,
@@ -13,64 +13,54 @@ use esp_idf_svc::{
     },
     sys::adc_atten_t,
 };
-use pwmp_client::pwmp_msg::{aliases::BatteryVoltage, dec, Decimal};
-use std::{thread::sleep, time::Duration};
+use pwmp_client::pwmp_msg::{dec, Decimal};
+use std::{rc::Rc, thread::sleep, time::Duration};
 
-const ATTEN: adc_atten_t = DB_2_5;
-const VMAX: f32 = 1250.0; // For attenuation 2.5dB
-const DIVIDER_R1: f32 = 20_000.0; // 20kOhm
-const DIVIDER_R2: f32 = 6800.0; // 6.8kOhm
 type BatteryGpio = Gpio2;
 type BatteryAdc = ADC1;
-type BatteryDriver = AdcDriver<'static, BatteryAdc>;
-type BatteryChDriver = AdcChannelDriver<'static, BatteryGpio, BatteryDriver>;
+type BatteryAdcDriver = AdcDriver<'static, BatteryAdc>;
+type BatteryAdcChannelDriver = AdcChannelDriver<'static, BatteryGpio, Rc<BatteryAdcDriver>>;
 
-pub const CRITICAL_VOLTAGE: Decimal = dec!(2.70);
-pub const ADC_CONFIG: AdcChannelConfig = AdcChannelConfig {
+const ATTEN: adc_atten_t = DB_11;
+const R1: Decimal = dec!(20_000); // 20kOhm
+const R2: Decimal = dec!(6_800); // 6.8kOhm
+const CONFIG: AdcChannelConfig = AdcChannelConfig {
     attenuation: ATTEN,
     calibration: Calibration::Curve,
     resolution: Resolution::Resolution12Bit,
 };
 
-pub struct Battery(BatteryChDriver);
+pub const CRITICAL_VOLTAGE: Decimal = dec!(2.70);
+
+pub struct Battery {
+    adc: Rc<BatteryAdcDriver>,
+    ch: BatteryAdcChannelDriver,
+}
 
 impl Battery {
     pub fn new(adc: BatteryAdc, gpio: BatteryGpio) -> OsResult<Self> {
-        let driver = BatteryDriver::new(adc)?;
-        let ch_driver = BatteryChDriver::new(driver, gpio, &ADC_CONFIG)?;
+        let adc = Rc::new(BatteryAdcDriver::new(adc)?);
+        let ch = BatteryAdcChannelDriver::new(Rc::clone(&adc), gpio, &CONFIG).unwrap();
 
-        Ok(Self(ch_driver))
+        Ok(Self { adc, ch })
     }
 
-    pub fn read_voltage(&mut self, samples: u16) -> OsResult<BatteryVoltage> {
-        let div_out = self.read_raw_voltage(samples)?;
-        // Vout = Vin * (R2 / (R1 + R2)) => Vin = Vout * (R1 + R2) / R2
-        let vin = div_out * (DIVIDER_R1 + DIVIDER_R2) / DIVIDER_R2;
-        let voltage = vin.clamp(0.0, 4.2);
+    pub fn read(&mut self, samples: u8) -> OsResult<Decimal> {
+        let raw = self.read_raw(samples)?;
+        let volts = Decimal::from(self.adc.raw_to_mv(&self.ch, raw)?) / dec!(1000);
 
-        let mut decimal = Decimal::from_f32_retain(voltage).unwrap();
-        decimal.rescale(2);
-
-        Ok(decimal)
+        Ok((volts * (R1 + R2)) / (R2))
     }
 
-    pub fn read_raw_voltage(&mut self, samples: u16) -> OsResult<f32> {
-        Ok(Self::raw_to_voltage(self.read_raw(samples)?))
-    }
-
-    fn raw_to_voltage(raw: u16) -> f32 {
-        (VMAX / 4096.0) * (raw as f32)
-    }
-
-    fn read_raw(&mut self, samples: u16) -> OsResult<u16> {
-        let mut avg = 0.0f32;
+    fn read_raw(&mut self, samples: u8) -> OsResult<u16> {
+        let mut avg = Decimal::new(0, 4);
 
         for _ in 0..samples {
-            avg += self.0.read()? as f32;
+            avg += Decimal::from(self.adc.read_raw(&mut self.ch)?);
             sleep(Duration::from_millis(20));
         }
 
-        avg /= samples as f32;
-        Ok(avg as u16)
+        avg /= Decimal::from(samples);
+        u16::try_from(avg).map_err(|_| OsError::DecimalConversion)
     }
 }
