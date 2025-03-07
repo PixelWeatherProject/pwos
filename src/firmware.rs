@@ -8,7 +8,7 @@ use crate::{
         net::{PowerSavingMode, WiFi},
         ota::Ota,
         sleep::deep_sleep,
-        OsError, OsResult, ReportableError,
+        usbctl, OsError, OsResult, ReportableError,
     },
 };
 use esp_idf_svc::{
@@ -17,7 +17,11 @@ use esp_idf_svc::{
     nvs::EspDefaultNvsPartition,
     wifi::AccessPointInfo,
 };
-use pwmp_client::{ota::UpdateStatus, pwmp_msg::version::Version, PwmpClient};
+use pwmp_client::{
+    ota::UpdateStatus,
+    pwmp_msg::{dec, version::Version, Decimal},
+    PwmpClient,
+};
 use std::time::Duration;
 
 #[allow(clippy::too_many_arguments)]
@@ -40,7 +44,12 @@ pub fn fw_main(
 
     read_appcfg(&mut pws, cfg)?;
 
-    let bat_voltage = battery.read(16)?;
+    let bat_voltage = if usbctl::is_connected() {
+        os_debug!("Skipping battery voltage measurement due to USB power");
+        dec!(5.00)
+    } else {
+        battery.read(16)?
+    };
     os_info!("Battery: {bat_voltage}V");
 
     if (bat_voltage <= CRITICAL_VOLTAGE) && cfg.sbop {
