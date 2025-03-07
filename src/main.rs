@@ -57,7 +57,7 @@ fn main() {
         env!("PWOS_REL_OR_DEV"),
         build_time_local!("%d.%m.%Y %H:%M:%S")
     );
-    os_info!("(C) Fábián Varga 2024");
+    os_info!("(C) Fábián Varga 2025");
 
     #[cfg(debug_assertions)]
     {
