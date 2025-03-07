@@ -197,6 +197,8 @@ A version is deemed "stable" if it runs without interruptions/buggy behaviour fo
 - For troubleshooting, you should use debug builds, as they have more verbose logging.
 - Make sure to use the given partition layout ([`partitions.csv`](partitions.csv)) by passing `-T partitions.csv` to `cargo espflash`. The default partition layout has a way too small `app` partition.
 - Some lower-quality USB cables may require a lower baud rate. Use `115200` if `921600` does not work for you.
+- The firmware does **not** support unencrypted WiFi networks (at least not without modifying [`src/firmware.rs`](src/firmware.rs) and [`src/sysc/net/wifi.rs`](src/sysc/net/wifi.rs)).
+- By default, the firmware sets the WiFi [power saving mode](https://docs.espressif.com/projects/esp-idf/en/v5.3.2/esp32s3/api-guides/wifi.html?highlight=power%20saving#station-sleep) to minimum. **This may change in future versions**, as the goal is to make it work with *maximum* power savings.
 
 ## Terms
 - *node* - A station that consists of PWOS-compatible hardware and runs PWOS. It collects weather information and sends it over PWMP to a remote server.
