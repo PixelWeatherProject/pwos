@@ -103,8 +103,10 @@ impl WiFi {
                 auth_method: auth,
                 ..Default::default()
             }))?;
+        os_debug!("Starting connection to AP");
         self.driver.connect().map_err(OsError::WifiConnect)?;
 
+        os_debug!("Waiting for connection result");
         // wait until connected
         self.await_event::<WifiEvent, _, _>(
             || self.driver.is_connected(),
@@ -112,6 +114,7 @@ impl WiFi {
             timeout,
         )?;
 
+        os_debug!("Waiting for IP address");
         // wait until we get an IP
         self.await_event::<IpEvent, _, _>(|| self.driver.is_up(), OsError::WifiConnect, timeout)?;
 
