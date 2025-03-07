@@ -10,6 +10,7 @@ use crate::{
         sleep::deep_sleep,
         usbctl, OsError, OsResult, ReportableError,
     },
+    LAST_ERROR,
 };
 use esp_idf_svc::{
     eventloop::EspSystemEventLoop,
@@ -70,6 +71,17 @@ pub fn fw_main(
 
     os_debug!("Posting stats");
     pws.post_stats(bat_voltage, &ap.ssid, ap.signal_strength)?;
+
+    // SAFETY: Since this program is not multithreaded, this will always be safe.
+    #[allow(static_mut_refs)]
+    if let Some(error) = unsafe { LAST_ERROR.as_ref() } {
+        os_info!("Reporting error from previous run");
+
+        pws.send_notification(format!(
+            "An error has been detected during a previous run: {error}"
+        ))
+        .report("Failed to report previous error");
+    }
 
     if ota.report_needed()? {
         let success = !ota.rollback_detected()?;

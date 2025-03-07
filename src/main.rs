@@ -27,12 +27,19 @@ use sysc::{
     ledctl::BoardLed,
     ota::Ota,
     sleep::{deep_sleep, fake_sleep},
-    usbctl,
+    usbctl, OsError,
 };
 
 mod config;
 mod firmware;
 mod sysc;
+
+/// Storage for a recoverable error that may have occurred during a previous run.
+///
+/// ## Note
+/// This variable is not preserved when the node is connected to a PC for an unknown reason.
+#[link_section = ".rtc.data"]
+static mut LAST_ERROR: Option<OsError> = Option::None;
 
 fn main() {
     esp_idf_svc::sys::link_patches();
@@ -125,13 +132,19 @@ fn main() {
         Err(why) => {
             os_error!("OS Error: {why}");
 
-            if why.recoverable() {
-                ota.inc_failiures()
-                    .expect("Failed to increment failiure count");
-            } else {
+            if !why.recoverable() {
                 os_error!("System will now halt");
                 deep_sleep(None);
             }
+
+            // SAFETY: Since this program is not multithreaded, this will always be safe.
+            #[allow(static_mut_refs)]
+            unsafe {
+                LAST_ERROR.replace(why)
+            };
+
+            ota.inc_failiures()
+                .expect("Failed to increment failiure count");
         }
     }
     os_info!("Tasks completed in {runtime:.02?}");
