@@ -17,7 +17,6 @@ use esp_idf_svc::{
         units::FromValueType,
     },
     nvs::EspDefaultNvsPartition,
-    sys::esp_get_idf_version,
 };
 use log::LevelFilter;
 use simple_logger::SimpleLogger;
