@@ -17,6 +17,7 @@ use esp_idf_svc::{
         units::FromValueType,
     },
     nvs::EspDefaultNvsPartition,
+    sys::esp_get_idf_version,
 };
 use log::LevelFilter;
 use simple_logger::SimpleLogger;
@@ -58,6 +59,13 @@ fn main() {
         build_time_local!("%d.%m.%Y %H:%M:%S")
     );
     os_info!("(C) Fábián Varga 2024");
+
+    #[cfg(debug_assertions)]
+    {
+        let raw_version = unsafe { esp_idf_svc::sys::esp_get_idf_version() };
+        let version = unsafe { std::ffi::CStr::from_ptr(raw_version.cast()) };
+        os_debug!("Using ESP-IDF {}", version.to_string_lossy());
+    }
 
     os_debug!("Disabling brownout detector");
     sysc::brownout::disable_brownout_detector();
