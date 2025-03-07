@@ -74,7 +74,9 @@ pub fn fw_main(
 
     // SAFETY: Since this program is not multithreaded, this will always be safe.
     #[allow(static_mut_refs)]
-    if let Some(error) = unsafe { LAST_ERROR.as_ref() } {
+    if let Some(error) = unsafe {
+        LAST_ERROR.take() /* also clears the Option */
+    } {
         os_info!("Reporting error from previous run");
 
         pws.send_notification(format!(
