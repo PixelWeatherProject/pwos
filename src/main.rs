@@ -18,13 +18,12 @@ use esp_idf_svc::{
     },
     nvs::EspDefaultNvsPartition,
 };
-use log::LevelFilter;
-use simple_logger::SimpleLogger;
 use std::time::Instant;
 use sysc::{
     battery::Battery,
     gpio,
     ledctl::BoardLed,
+    logger::OsLogger,
     ota::Ota,
     sleep::{deep_sleep, fake_sleep},
     usbctl, OsError,
@@ -44,18 +43,14 @@ static mut LAST_ERROR: Option<OsError> = Option::None;
 fn main() {
     esp_idf_svc::sys::link_patches();
 
-    let mut logger = SimpleLogger::new().with_module_level("esp_idf_svc", LevelFilter::Off);
-
-    if cfg!(debug_assertions) {
-        logger = logger.with_level(LevelFilter::Debug);
-    }
+    let mut logger = OsLogger::new();
 
     // Turn off logging when USB is not connected
     if !usbctl::is_connected() {
-        logger = logger.with_level(LevelFilter::Off);
+        logger.disable();
     }
 
-    logger.init().unwrap();
+    logger.init();
 
     os_info!(
         "PixelWeatherOS v{}-{}{} ({})",

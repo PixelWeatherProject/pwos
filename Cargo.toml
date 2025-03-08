@@ -28,15 +28,12 @@ esp-idf-svc = { version = "0.51.0", default-features = false, features = [
     "alloc",
     "binstart",
 ] }
-simple_logger = { version = "5.0.0", default-features = false, features = [
-    "colors",
-    "colored",
-] }
 pwmp-client = { git = "ssh://git@github.com/PixelWeatherProject/pwmp-client.git", tag = "v2.0.1" }
 log = { version = "0.4", default-features = false }
 build-time = "0.1.3"
 thiserror = "2.0.11"
 heapless = "0.8.0"
+colored = { version = "3.0.0", default-features = false }
 
 [build-dependencies]
 embuild = "0.33.0"
