@@ -23,6 +23,8 @@ pub enum OsError {
     IllegalFirmwareVersion,
     #[error("Conversion beteen int and Decimal failed")]
     DecimalConversion,
+    #[error("Peripheral is already taken")]
+    PeriphUnavailable,
 }
 
 pub trait ReportableError {

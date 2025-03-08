@@ -25,6 +25,7 @@ use sysc::{
     ledctl::BoardLed,
     logger::OsLogger,
     ota::Ota,
+    periphctl::PeripheralManager,
     sleep::{deep_sleep, fake_sleep},
     usbctl, OsError,
 };
@@ -72,7 +73,9 @@ fn main() {
     sysc::brownout::disable_brownout_detector();
 
     os_debug!("Initializing peripherals");
-    let mut peripherals = Peripherals::take().expect("Failed to initialize peripherals");
+    let mut peripherals: PeripheralManager = Peripherals::take()
+        .expect("Failed to initialize peripherals")
+        .into();
 
     os_debug!("Initializing System Event Loop");
     let sys_loop = EspSystemEventLoop::take().expect("SEL init error");
@@ -82,7 +85,7 @@ fn main() {
 
     os_debug!("Initializing system LED");
     let led = BoardLed::new(
-        gpio::number_to_io_pin(LED_BUILTIN, &mut peripherals).expect("Invalid LED pin"),
+        gpio::number_to_io_pin(LED_BUILTIN, &mut peripherals.pins).expect("Invalid LED pin"),
     );
 
     os_debug!("Initializing OTA system");
@@ -92,14 +95,17 @@ fn main() {
         .expect("Failed to check/perform rollback");
 
     os_debug!("Initializing system Battery");
-    let battery = Battery::new(peripherals.adc1, peripherals.pins.gpio2)
-        .expect("Failed to initialize battery ADC");
+    let battery = Battery::new(
+        peripherals.take_adc1().unwrap(),
+        peripherals.pins.take_gpio2().unwrap(),
+    )
+    .expect("Failed to initialize battery ADC");
 
     os_debug!("Initializing I2C bus");
     let i2c = I2cDriver::new(
-        peripherals.i2c1,
-        peripherals.pins.gpio5,
-        peripherals.pins.gpio8,
+        peripherals.take_i2c1().unwrap(),
+        peripherals.pins.take_gpio5().unwrap(),
+        peripherals.pins.take_gpio8().unwrap(),
         &Config::default().baudrate(400u32.kHz().into()),
     )
     .expect("Failed to initialize I2C");
@@ -113,7 +119,7 @@ fn main() {
     let fw_exit = firmware::fw_main(
         battery,
         i2c,
-        peripherals.modem,
+        peripherals.take_modem().unwrap(),
         sys_loop,
         nvs,
         led,

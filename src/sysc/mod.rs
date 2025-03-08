@@ -8,6 +8,7 @@ pub mod logger;
 pub mod logging;
 pub mod net;
 pub mod ota;
+pub mod periphctl;
 pub mod sleep;
 pub mod usbctl;
 
