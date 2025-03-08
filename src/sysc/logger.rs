@@ -1,11 +1,20 @@
 use colored::Color;
+use esp_idf_svc::hal::{
+    gpio::AnyIOPin,
+    uart::{config::Config as UartConfig, UartDriver, UART1},
+    units::Hertz,
+};
 use log::{Level, LevelFilter, Log};
 use std::io::{self, Write};
 
+type UART_PORT = UART1;
+
+const HW_SERIAL_SPEED: u32 = 115200;
 const BLACKLISTED_MODULES: [&str; 1] = ["esp_idf_svc"];
 
 pub struct OsLogger {
     level: LevelFilter,
+    hw_serial: Option<UartDriver<'static>>,
 }
 
 impl OsLogger {
@@ -16,6 +25,7 @@ impl OsLogger {
             } else {
                 LevelFilter::Error
             },
+            hw_serial: None,
         }
     }
 
@@ -26,6 +36,21 @@ impl OsLogger {
 
     pub fn disable(&mut self) {
         self.level = LevelFilter::Off;
+    }
+
+    pub fn setup_hardware_serial(&mut self, tx: AnyIOPin, rx: AnyIOPin, uart: UART_PORT) {
+        let config = UartConfig::new().baudrate(Hertz(HW_SERIAL_SPEED));
+        let uart = UartDriver::new(
+            uart,
+            tx,
+            rx,
+            Option::<AnyIOPin>::None,
+            Option::<AnyIOPin>::None,
+            &config,
+        )
+        .expect("Failed to initialize HW serial port");
+
+        self.hw_serial = Some(uart);
     }
 
     fn check_blacklist(&self, module: Option<&str>) -> bool {
