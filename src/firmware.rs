@@ -36,6 +36,8 @@ pub fn fw_main(
     ota: &mut Ota,
     cfg: &mut AppConfig,
 ) -> OsResult<()> {
+    crate::shell::shell_start();
+
     if !ota.current_verified()? {
         os_warn!("Running unverified firmware");
     }

@@ -8,6 +8,7 @@ pub mod logging;
 pub mod net;
 pub mod ota;
 pub mod sleep;
+pub mod stdin;
 pub mod usbctl;
 
 pub use error::{OsError, ReportableError};

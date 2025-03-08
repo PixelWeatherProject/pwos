@@ -8,7 +8,7 @@
 
 use crate::config::AppConfig;
 use build_time::build_time_local;
-use config::LED_BUILTIN;
+use config::{ENABLE_SHELL, LED_BUILTIN};
 use esp_idf_svc::{
     eventloop::EspSystemEventLoop,
     hal::{
@@ -32,6 +32,7 @@ use sysc::{
 
 mod config;
 mod firmware;
+mod shell;
 mod sysc;
 
 /// Storage for a recoverable error that may have occurred during a previous run.
@@ -142,6 +143,10 @@ fn main() {
             unsafe {
                 LAST_ERROR.replace(why)
             };
+
+            if ENABLE_SHELL {
+                shell::shell_start();
+            }
 
             ota.inc_failiures()
                 .expect("Failed to increment failiure count");
