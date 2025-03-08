@@ -26,7 +26,7 @@ use sysc::{
     gpio,
     ledctl::BoardLed,
     ota::Ota,
-    sleep::{deep_sleep, fake_sleep},
+    power::{deep_sleep, fake_sleep},
     usbctl, OsError,
 };
 

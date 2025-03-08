@@ -7,7 +7,7 @@ use crate::{
         ledctl::BoardLed,
         net::{PowerSavingMode, WiFi},
         ota::Ota,
-        sleep::deep_sleep,
+        power::deep_sleep,
         usbctl, OsError, OsResult, ReportableError,
     },
     LAST_ERROR,
@@ -16,6 +16,7 @@ use esp_idf_svc::{
     eventloop::EspSystemEventLoop,
     hal::{i2c::I2cDriver, modem::Modem},
     nvs::EspDefaultNvsPartition,
+    sys::esp_rom_get_reset_reason,
     wifi::AccessPointInfo,
 };
 use pwmp_client::{
