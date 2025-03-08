@@ -7,7 +7,7 @@ use crate::{
         ledctl::BoardLed,
         net::{PowerSavingMode, WiFi},
         ota::Ota,
-        power::deep_sleep,
+        power::{deep_sleep, get_reset_reason},
         usbctl, OsError, OsResult, ReportableError,
     },
     LAST_ERROR,
@@ -16,7 +16,6 @@ use esp_idf_svc::{
     eventloop::EspSystemEventLoop,
     hal::{i2c::I2cDriver, modem::Modem},
     nvs::EspDefaultNvsPartition,
-    sys::esp_rom_get_reset_reason,
     wifi::AccessPointInfo,
 };
 use pwmp_client::{
@@ -72,6 +71,19 @@ pub fn fw_main(
 
     os_debug!("Posting stats");
     pws.post_stats(bat_voltage, &ap.ssid, ap.signal_strength)?;
+
+    let reset_reason = get_reset_reason();
+    if reset_reason.is_abnormal() {
+        os_warn!("Detected abnormal reset reason: {reset_reason:?}");
+
+        pws.send_notification(format!(
+            "Detected abnormal reset reason: {:?}",
+            get_reset_reason()
+        ))
+        .report("Failed to report abnormal reset reason");
+    } else {
+        os_debug!("Reset reason ({reset_reason:?}) is normal");
+    }
 
     // SAFETY: Since this program is not multithreaded, this will always be safe.
     #[allow(static_mut_refs)]
