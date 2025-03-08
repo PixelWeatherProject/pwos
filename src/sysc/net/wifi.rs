@@ -1,18 +1,23 @@
 use super::PowerSavingMode;
 use crate::{
+    config::STATIC_IP_CONFIG,
     os_debug,
     sysc::{OsError, OsResult, ReportableError},
 };
 use esp_idf_svc::{
     eventloop::{EspEventLoop, EspEventSource, EspSystemEventLoop, System, Wait},
     hal::modem::Modem,
-    netif::IpEvent,
+    ipv4::{
+        ClientConfiguration as IpClientConfiguration, Configuration as IpConfiguration,
+        DHCPClientSettings,
+    },
+    netif::{EspNetif, IpEvent, NetifConfiguration, NetifStack},
     nvs::EspDefaultNvsPartition,
     sys::{esp_wifi_set_max_tx_power, esp_wifi_set_ps, EspError},
     wifi::{
         config::{ScanConfig, ScanType},
         AccessPointInfo, AuthMethod, ClientConfiguration, Configuration, EspWifi, WifiDeviceId,
-        WifiEvent,
+        WifiDriver, WifiEvent,
     },
 };
 use pwmp_client::pwmp_msg::mac::Mac;
@@ -31,9 +36,22 @@ impl WiFi {
         sys_loop: EspSystemEventLoop,
         nvs: EspDefaultNvsPartition,
     ) -> OsResult<Self> {
-        let mut wifi = EspWifi::new(modem, sys_loop.clone(), Some(nvs))?;
+        let wifi = WifiDriver::new(modem, sys_loop.clone(), Some(nvs))?;
+        let ip_config = if STATIC_IP_CONFIG.is_some() {
+            Self::generate_static_ip_config()
+        } else {
+            Self::generate_dhcp_config(&wifi)
+        };
 
+        os_debug!("Configuring WiFi interface");
+        let mut wifi = EspWifi::wrap_all(
+            wifi,
+            EspNetif::new_with_conf(&ip_config)?,
+            EspNetif::new(NetifStack::Ap)?,
+        )?;
         wifi.set_configuration(&Configuration::Client(ClientConfiguration::default()))?;
+
+        os_debug!("Starting WiFi interface");
         wifi.start()?;
 
         Ok(Self {
@@ -114,6 +132,11 @@ impl WiFi {
             timeout,
         )?;
 
+        if STATIC_IP_CONFIG.is_some() {
+            os_debug!("Static IP configuration detected, skipping wait for IP address");
+            return Ok(());
+        }
+
         os_debug!("Waiting for IP address");
         // wait until we get an IP
         self.await_event::<IpEvent, _, _>(|| self.driver.is_up(), OsError::WifiConnect, timeout)?;
@@ -145,6 +168,42 @@ impl WiFi {
 
     fn connected(&self) -> bool {
         self.driver.is_connected().unwrap_or(false)
+    }
+
+    fn generate_dhcp_config(wifi_driver: &WifiDriver) -> NetifConfiguration {
+        NetifConfiguration {
+            ip_configuration: Some(IpConfiguration::Client(IpClientConfiguration::DHCP(
+                DHCPClientSettings {
+                    hostname: Some(Self::generate_hostname(wifi_driver)),
+                },
+            ))),
+            ..NetifConfiguration::wifi_default_client()
+        }
+    }
+
+    fn generate_static_ip_config() -> NetifConfiguration {
+        NetifConfiguration {
+            ip_configuration: Some(IpConfiguration::Client(IpClientConfiguration::Fixed(
+                unsafe { STATIC_IP_CONFIG.unwrap_unchecked() },
+            ))),
+
+            ..NetifConfiguration::wifi_default_client()
+        }
+    }
+
+    fn generate_hostname(wifi_driver: &WifiDriver) -> heapless::String<30> {
+        let mut buffer = heapless::String::new();
+        let last_two_bytes = &wifi_driver.get_mac(WifiDeviceId::Sta).unwrap_or_default()[4..6];
+
+        // SAFETY: This is less than 30 characters, so it will always fit.
+        unsafe {
+            buffer.push_str("pixelweather-node-").unwrap_unchecked(); // 18 chars
+            buffer
+                .push_str(&format!("{last_two_bytes:02X?}"))
+                .unwrap_unchecked(); // max 4 characters
+        }
+
+        buffer
     }
 }
 
