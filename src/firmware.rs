@@ -84,7 +84,7 @@ pub fn fw_main(
         ))
         .report("Failed to report previous error");
     } else {
-        os_debug!("No error detected from previous run")
+        os_debug!("No error detected from previous run");
     }
 
     if ota.report_needed()? {
