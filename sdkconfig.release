@@ -53,3 +53,14 @@ CONFIG_APP_COMPILE_TIME_DATE=n
 # Disable brownout detection
 CONFIG_ESP_BROWNOUT_DET=n
 CONFIG_BROWNOUT_DET_LVL_SEL_0=y
+
+# This may improve loading times from flash
+# https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-guides/performance/speed.html
+CONFIG_ESPTOOLPY_FLASHFREQ=80
+CONFIG_ESPTOOLPY_FLASHFREQ_80M=y
+
+# Enable performance optimizations
+CONFIG_COMPILER_OPTIMIZATION_PERF=y
+
+# Disable assertions
+CONFIG_COMPILER_OPTIMIZATION_ASSERTIONS_DISABLE=y
