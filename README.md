@@ -200,6 +200,7 @@ A version is deemed "stable" if it runs without interruptions/buggy behaviour fo
 - The firmware does **not** support unencrypted WiFi networks (at least not without modifying [`src/firmware.rs`](src/firmware.rs) and [`src/sysc/net/wifi.rs`](src/sysc/net/wifi.rs)).
 - By default, the firmware sets the WiFi [power saving mode](https://docs.espressif.com/projects/esp-idf/en/v5.2.2/esp32s3/api-guides/wifi.html#station-sleep) to maximum. **This may change in future versions**, as the goal is to make it work with *maximum* power savings.
 - Hidden WiFi networks are not supported.
+- It's recommended to ensure that the RSSI (signal strength) is no less than *-70dBm*. Some boards can handle worse scenarios, but others may experience connectivity issues.
 
 ## Terms
 - *node* - A station that consists of PWOS-compatible hardware and runs PWOS. It collects weather information and sends it over PWMP to a remote server.
