@@ -144,9 +144,8 @@ fn setup_wifi(
     os_debug!("Initializing WiFi");
     let mut wifi = WiFi::new(modem, sys_loop, nvs)?;
 
-    os_debug!("Setting WiFi power parameters");
-    wifi.set_power_saving(PowerSavingMode::Maximum)?;
-    wifi.set_power(84)?;
+    os_debug!("Disabling WiFi power saving");
+    wifi.set_power_saving(PowerSavingMode::Off)?;
 
     os_debug!("Starting WiFi scan");
     #[cfg(debug_assertions)]

@@ -13,7 +13,7 @@ use esp_idf_svc::{
     },
     netif::{EspNetif, IpEvent, NetifConfiguration, NetifStack},
     nvs::EspDefaultNvsPartition,
-    sys::{esp_wifi_set_max_tx_power, esp_wifi_set_ps, EspError},
+    sys::{esp_wifi_set_ps, EspError},
     wifi::{
         config::{ScanConfig, ScanType},
         AccessPointInfo, AuthMethod, ClientConfiguration, Configuration, EspWifi, WifiDeviceId,
@@ -62,19 +62,6 @@ impl WiFi {
 
     pub fn set_power_saving(&self, mode: PowerSavingMode) -> OsResult<()> {
         EspError::convert(unsafe { esp_wifi_set_ps(mode as u32) })?;
-        Ok(())
-    }
-
-    pub fn set_power(&self, pow: u8) -> OsResult<()> {
-        assert!(
-            (8..=84).contains(&pow),
-            "Power outside allowed range <8;84>"
-        );
-
-        EspError::convert(unsafe {
-            esp_wifi_set_max_tx_power(i8::try_from(pow).unwrap_unchecked())
-        })?;
-
         Ok(())
     }
 
