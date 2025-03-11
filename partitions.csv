@@ -1,5 +1,8 @@
-# Name, Type, SubType, Offset, Size, Flags
-nvs,    data, nvs,     ,       12288,
-otadata,data, ota,     ,       8192,
-app0,   app,  ota_0,   ,       2031616,
-app1,   app,  ota_1,   ,       2031616,
+# ESP-IDF Partition Table
+# Source: https://docs.espressif.com/projects/esp-idf/en/v5.3.2/esp32s3/api-guides/partition-tables.html
+# Name,   Type, SubType, Offset,  Size, Flags
+nvs,      data, nvs,     0x9000,  0x4000,
+otadata,  data, ota,     0xd000,  0x2000,
+phy_init, data, phy,     0xf000,  0x1000,
+app_0,    app,  ota_0,   ,        4096000,
+app_1,    app,  ota_1,   ,        4096000,

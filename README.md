@@ -10,8 +10,8 @@ PixelWeather is a weather station network that collects environment data using "
 ### Hardware requirements:
 - Espressif ESP32-S3 microcontroller
     - Classic ESP32 and ESP32-C3 series are **no longer supported**!
-    - 4MB Flash **minimum**, 8MB **recommended**, 16MB **best**
-        - Future versions may drop support for 4MB models. It's advised to use 8MB models for future-proofing.
+    - 8MB Flash **minimum**
+        - 4MB models are **not** supported.
         - Read section [Build variants](#build-variants) for details
     - 512KB SRAM (models with less may be sufficient)
     - PSRAM **not** required, it's not used (yet)
