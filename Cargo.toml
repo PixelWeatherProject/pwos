@@ -35,7 +35,7 @@ simple_logger = { version = "5.0.0", default-features = false, features = [
     "colored",
 ] }
 pwmp-client = { git = "ssh://git@github.com/PixelWeatherProject/pwmp-client.git", tag = "v2.0.2" }
-log = { version = "0.4", default-features = false }
+log = { version = "0.4", default-features = false, features = ["release_max_level_info", "max_level_debug"] }
 thiserror = "2.0.11"
 heapless = "0.8.0"
 
