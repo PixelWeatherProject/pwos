@@ -183,7 +183,7 @@ Firmware size (as of commit `a273a72`):
 - Release build: `855,952/2,031,616 bytes, 42.13%`
 - Debug build: `1,198,240/2,031,616 bytes, 58.98%`
 
-Debug builds may be slower and contain a lot of debug messages. As such they are ~2% larger.
+Debug builds may be slower and contain a lot of debug messages. As such they are slightly larger.
 
 Some parts of the flash memory are reserved for other data then PWOS itself. 12KB are reserved for [NVS](https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-reference/storage/nvs_flash.html?highlight=nvs) storage. Read more [here](https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-guides/partition-tables.html#built-in-partition-tables).
 
