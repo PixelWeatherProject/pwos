@@ -26,4 +26,19 @@ fn main() {
         if git_is_tagged { "release" } else { "devel" }
     );
     println!("cargo:rustc-env=PWOS_COMMIT={git_hash}");
+    println!(
+        "cargo:rustc-env=BUILD_DATE_TIME={}",
+        get_current_date_time()
+    );
+}
+
+fn get_current_date_time() -> String {
+    String::from_utf8(
+        Command::new("date")
+            .arg("+%d.%m.%Y %H:%M:%S")
+            .output()
+            .unwrap()
+            .stdout,
+    )
+    .unwrap()
 }

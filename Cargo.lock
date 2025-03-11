@@ -1225,7 +1225,6 @@ dependencies = [
 name = "pwos"
 version = "2.0.0"
 dependencies = [
- "build-time",
  "embuild",
  "esp-idf-svc",
  "heapless",

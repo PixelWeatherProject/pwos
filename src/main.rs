@@ -7,7 +7,6 @@
 )]
 
 use crate::config::AppConfig;
-use build_time::build_time_local;
 use config::LED_BUILTIN;
 use esp_idf_svc::{
     eventloop::EspSystemEventLoop,
@@ -62,7 +61,7 @@ fn main() {
         env!("CARGO_PKG_VERSION"),
         env!("PWOS_COMMIT"),
         env!("PWOS_REL_OR_DEV"),
-        build_time_local!("%d.%m.%Y %H:%M:%S")
+        env!("BUILD_DATE_TIME")
     );
     os_info!("(C) Fábián Varga 2025");
 
