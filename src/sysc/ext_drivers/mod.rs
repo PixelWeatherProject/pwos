@@ -1,7 +1,12 @@
 mod envsensor_trait;
 mod htu;
 
+#[cfg(feature = "fake")]
+mod fake;
+
 pub use envsensor_trait::EnvironmentSensor;
+#[cfg(feature = "fake")]
+pub use fake::MockSensor;
 pub use htu::Htu;
 use pwmp_client::pwmp_msg::aliases::{AirPressure, Humidity, Temperature};
 

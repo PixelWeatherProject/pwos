@@ -238,6 +238,14 @@ fn setup_envsensor(mut i2c_driver: I2cDriver<'_>) -> OsResult<AnySensor<'_>> {
         Some(other) => {
             os_warn!("Unrecognised device @ I2C/0x{other:X}");
         }
+        #[cfg(feature = "fake")]
+        None => {
+            os_warn!("Using fake/mock environment sensor");
+            return Ok(AnySensor::from(
+                crate::sysc::ext_drivers::MockSensor::new_with_driver(i2c_driver)?,
+            ));
+        }
+        #[cfg(not(feature = "fake"))]
         None => (),
     }
 
