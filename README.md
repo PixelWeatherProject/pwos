@@ -216,8 +216,6 @@ A version is deemed "stable" if it runs without interruptions/buggy behaviour fo
 
 ## WIP Features
 - [x] OTA Updates
-- [ ] Storing secrects in NVS instead of in the code
-  - [ ] NVS encryption
 - [x] USB connection detection
   - Serial port detection can't be implemented yet due to API limitations of ESP IDF v5.2.2
 
