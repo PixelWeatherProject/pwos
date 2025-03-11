@@ -13,7 +13,7 @@ use esp_idf_svc::{
     },
     netif::{EspNetif, IpEvent, NetifConfiguration, NetifStack},
     nvs::EspDefaultNvsPartition,
-    sys::{esp_wifi_set_ps, EspError},
+    sys::{esp, esp_wifi_set_ps, esp_wifi_set_storage, wifi_storage_t_WIFI_STORAGE_RAM, EspError},
     wifi::{
         config::{ScanConfig, ScanType},
         AccessPointInfo, AuthMethod, ClientConfiguration, Configuration, EspWifi, WifiDeviceId,
@@ -50,6 +50,8 @@ impl WiFi {
             EspNetif::new(NetifStack::Ap)?,
         )?;
         wifi.set_configuration(&Configuration::Client(ClientConfiguration::default()))?;
+
+        esp!(unsafe { esp_wifi_set_storage(wifi_storage_t_WIFI_STORAGE_RAM) })?;
 
         os_debug!("Starting WiFi interface");
         wifi.start()?;
