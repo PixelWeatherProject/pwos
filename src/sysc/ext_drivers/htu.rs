@@ -86,3 +86,9 @@ impl EnvironmentSensor for Htu<'_> {
         Ok(None)
     }
 }
+
+impl<'s> From<Htu<'s>> for super::AnySensor<'s> {
+    fn from(value: Htu<'s>) -> Self {
+        Self(Box::new(value))
+    }
+}

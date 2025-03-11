@@ -233,7 +233,7 @@ fn setup_envsensor(mut i2c_driver: I2cDriver<'_>) -> OsResult<AnySensor<'_>> {
     match working {
         Some(Htu::DEV_ADDR) => {
             os_debug!("Detected HTU-compatible sensor");
-            return Ok(AnySensor::HtuCompatible(Htu::new_with_driver(i2c_driver)?));
+            return Ok(AnySensor::from(Htu::new_with_driver(i2c_driver)?));
         }
         Some(other) => {
             os_warn!("Unrecognised device @ I2C/0x{other:X}");
