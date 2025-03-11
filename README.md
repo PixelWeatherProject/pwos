@@ -201,6 +201,11 @@ A version is deemed "stable" if it runs without interruptions/buggy behaviour fo
 - By default, the firmware sets the WiFi [power saving mode](https://docs.espressif.com/projects/esp-idf/en/v5.2.2/esp32s3/api-guides/wifi.html#station-sleep) to maximum. **This may change in future versions**, as the goal is to make it work with *maximum* power savings.
 - Hidden WiFi networks are not supported.
 - It's recommended to ensure that the RSSI (signal strength) is no less than *-70dBm*. Some boards can handle worse scenarios, but others may experience connectivity issues.
+- WiFi credentials are stored in code, instead of NVS because:
+  - If they were stored on the NVS, PWOS would need special functionality to update them using OTA updates and rollbacks. This would have a major impact on PWOS's complexity.
+  - Since they are stored in code, every build of PWOS contains has its own credentials, meaning you can easily update them with OTA updates, and rollbacks will also restore the old values as a side effect.
+  - The NVS has a very simple data structure, which limits how these credentials can be stored, since we need to store SSIDs, password and per-network IP configuration *(WIP)*.
+    - It would be almost impossible to implement this without storing all this data in a specific format and deserializing them with some `serde_*` crate. However, this would also introduce a performance penalty and unnecessary extra complexity.
 
 ## Terms
 - *node* - A station that consists of PWOS-compatible hardware and runs PWOS. It collects weather information and sends it over PWMP to a remote server.
