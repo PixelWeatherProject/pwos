@@ -1,4 +1,5 @@
 use super::{OsError, OsResult};
+use crate::{os_debug, os_error};
 use esp_idf_svc::{
     hal::{
         adc::{
@@ -29,6 +30,7 @@ const CONFIG: AdcChannelConfig = AdcChannelConfig {
     calibration: Calibration::Curve,
     resolution: Resolution::Resolution12Bit,
 };
+const MAX_VOLTAGE: Decimal = dec!(5.00);
 
 pub const CRITICAL_VOLTAGE: Decimal = dec!(2.70);
 
@@ -50,9 +52,21 @@ impl Battery {
         let volts = Decimal::from(self.adc.raw_to_mv(&self.ch, raw)?) / dec!(1000);
         let mut result = (volts * (R1 + R2)) / (R2);
 
-        result = result.trunc_with_scale(2);
+        if result > MAX_VOLTAGE {
+            os_debug!("Abnormal battery voltage result, attempting fix");
 
-        Ok(result)
+            // swap R1 and R2
+            result = (volts * (R2 + R1)) / (R1);
+
+            if result > MAX_VOLTAGE {
+                os_error!("Abnormal battery voltage");
+                return Err(OsError::IllegalBatteryVoltage);
+            } else {
+                os_debug!("Detected swapped R1/R2 values, fix successful");
+            }
+        }
+
+        Ok(result.trunc_with_scale(2))
     }
 
     fn read_raw(&mut self, samples: u8) -> OsResult<u16> {

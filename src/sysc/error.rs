@@ -23,6 +23,8 @@ pub enum OsError {
     IllegalFirmwareVersion,
     #[error("Conversion beteen int and Decimal failed")]
     DecimalConversion,
+    #[error("Invalid battery voltage")]
+    IllegalBatteryVoltage,
 }
 
 pub trait ReportableError {
