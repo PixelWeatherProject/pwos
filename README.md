@@ -207,6 +207,7 @@ A version is deemed "stable" if it runs without interruptions/buggy behaviour fo
   - The NVS has a very simple data structure, which limits how these credentials can be stored, since we need to store SSIDs, password and per-network IP configuration *(WIP)*.
     - It would be almost impossible to implement this without storing all this data in a specific format and deserializing them with some `serde_*` crate. However, this would also introduce a performance penalty and unnecessary extra complexity.
 - The maximum battery voltage (with the default resistor values in [`src/sysc/battery.rs`](src/sysc/battery.rs)) should be `4.335V`.
+- While the order in which you connect the `R1` and `R2` resistors (for measuring battery voltage) **matters**, PWOS will detect this and auto-correct the measurement. **It is however recommended that you fix this to prevent potential damage to your MCU.**
 
 ## Terms
 - *node* - A station that consists of PWOS-compatible hardware and runs PWOS. It collects weather information and sends it over PWMP to a remote server.
