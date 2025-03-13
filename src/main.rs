@@ -48,6 +48,7 @@ static mut LAST_ERROR: Option<OsError> = Option::None;
 #[link_section = ".rtc_noinit"]
 static mut LAST_PANIC: Option<heapless::String<128>> = Option::None;
 
+#[allow(clippy::cognitive_complexity, clippy::too_many_lines)]
 fn main() {
     esp_idf_svc::sys::link_patches();
 
