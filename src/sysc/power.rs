@@ -3,7 +3,7 @@ use std::time::Duration;
 
 const INFINITE_SLEEP_TIME: Duration = Duration::from_micros(2_629_746_000_000); /* 1 month */
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ResetReason {
     ///Reset reason can not be determined
     Unknown,
