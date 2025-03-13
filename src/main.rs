@@ -5,6 +5,7 @@
     clippy::cast_possible_truncation,
     clippy::cast_sign_loss
 )]
+#![warn(clippy::unwrap_used)]
 #![feature(panic_payload_as_str)]
 
 use crate::config::AppConfig;
