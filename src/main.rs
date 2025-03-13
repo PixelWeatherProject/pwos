@@ -110,16 +110,16 @@ fn main() {
     os_debug!(
         "Reported current version: {}",
         ota.current_version()
-            .map(|maybe_version| maybe_version
-                .map_or_else(|| "None".to_string(), |version| version.to_string()))
-            .unwrap_or_else(|_| "?".to_string())
+            .ok()
+            .flatten()
+            .map_or_else(|| "?".to_string(), |v| v.to_string())
     );
     os_debug!(
         "Previous installed version: {}",
         ota.previous_version()
-            .map(|maybe_version| maybe_version
-                .map_or_else(|| "None".to_string(), |version| version.to_string()))
-            .unwrap_or_else(|_| "?".to_string())
+            .ok()
+            .flatten()
+            .map_or_else(|| "?".to_string(), |v| v.to_string())
     );
 
     os_debug!("Initializing system Battery");
