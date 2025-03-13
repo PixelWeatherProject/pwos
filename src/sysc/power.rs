@@ -11,7 +11,7 @@ pub enum ResetReason {
     PowerOn,
     ///Reset by external pin (not applicable for ESP32)
     External,
-    ///Software reset via esp_restart
+    ///Software reset via `esp_restart()`
     Software,
     ///Software reset due to exception/panic
     Panic,
