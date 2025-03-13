@@ -18,7 +18,11 @@ use esp_idf_svc::{
     },
     nvs::EspDefaultNvsPartition,
 };
-use std::{panic::PanicHookInfo, str::FromStr, time::Instant};
+use std::{
+    panic::PanicHookInfo,
+    str::FromStr,
+    time::{Duration, Instant},
+};
 use sysc::{
     battery::Battery,
     gpio,
@@ -175,13 +179,7 @@ fn main() {
 
     os_debug!("Sleeping for {:?}", appcfg.sleep_time());
 
-    if usbctl::is_connected() {
-        // Simulate sleep instead, to keep the serial connection alive
-        os_debug!("Using fake sleep instead of deep sleep");
-        fake_sleep(Some(appcfg.sleep_time()));
-    } else {
-        deep_sleep(Some(appcfg.sleep_time()));
-    }
+    deep_sleep(Some(Duration::from_secs(1)));
 }
 
 fn handle_panic(info: &PanicHookInfo) {

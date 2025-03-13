@@ -18,7 +18,11 @@ use esp_idf_svc::{
     nvs::EspDefaultNvsPartition,
     wifi::AccessPointInfo,
 };
-use pwmp_client::{ota::UpdateStatus, pwmp_msg::version::Version, PwmpClient};
+use pwmp_client::{
+    ota::UpdateStatus,
+    pwmp_msg::{dec, version::Version, Decimal},
+    PwmpClient,
+};
 use std::time::Duration;
 
 #[allow(clippy::too_many_arguments)]
@@ -55,7 +59,7 @@ pub fn fw_main(
         pws.send_notification("Battery voltage too low, activating sBOP")
             .report("Failed to send sBOP notification");
 
-        deep_sleep(None);
+        //deep_sleep(None);
     }
 
     let env_sensor = setup_envsensor(i2c)?;
@@ -66,7 +70,7 @@ pub fn fw_main(
     pws.post_measurements(results.temperature, results.humidity, results.air_pressure)?;
 
     os_debug!("Posting stats");
-    pws.post_stats(bat_voltage, &ap.ssid, ap.signal_strength)?;
+    pws.post_stats(dec!(3.33), &ap.ssid, ap.signal_strength)?;
 
     let reset_reason = get_reset_reason();
     if reset_reason.is_abnormal() {
