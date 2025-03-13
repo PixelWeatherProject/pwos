@@ -205,19 +205,10 @@ fn handle_panic(info: &PanicHookInfo) {
     os_error!("Message: {}", info.payload_as_str().unwrap_or("N/A"));
     os_error!(
         "Location: {}",
-        match info.location() {
-            Some(location) => {
-                format!(
-                    "{}, line: {}, col: {}",
-                    location.file(),
-                    location.line(),
-                    location.column()
-                )
-            }
-            None => {
-                "unknown".to_string()
-            }
-        }
+        info.location().map_or_else(
+            || "Unknown".to_string(),
+            |l| format!("{}, line: {}, col: {}", l.file(), l.line(), l.column())
+        )
     );
     os_error!("====================[PANIC]====================");
 }
