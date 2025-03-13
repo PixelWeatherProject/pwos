@@ -3,6 +3,7 @@ use esp_idf_svc::sys::EspError;
 use std::fmt::Display;
 use thiserror::Error;
 
+#[allow(clippy::doc_markdown)]
 #[derive(Debug, Error)]
 pub enum OsError {
     /// Failed to connect to WiFi AP.
