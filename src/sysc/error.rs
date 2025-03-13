@@ -25,6 +25,8 @@ pub enum OsError {
     DecimalConversion,
     #[error("Invalid battery voltage")]
     IllegalBatteryVoltage,
+    #[error("Invalid/unexpected partition metadata")]
+    IllegalPartitionMeta,
 }
 
 pub trait ReportableError {

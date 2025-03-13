@@ -124,7 +124,9 @@ pub fn fw_main(
             if success {
                 env!("CARGO_PKG_VERSION").to_string()
             } else {
-                ota.previous_version()?.unwrap().to_string()
+                ota.previous_version()?
+                    .ok_or(OsError::IllegalPartitionMeta)?
+                    .to_string()
             },
             if success { "succeeded" } else { "failed" }
         ))?;
