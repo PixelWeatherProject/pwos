@@ -185,14 +185,18 @@ fn main() {
 }
 
 fn handle_panic(info: &PanicHookInfo) {
-    let string = match heapless::String::from_str(&info.to_string()) {
-        Ok(s) => s,
+    let heapless_str = heapless::String::from_str(&info.to_string())
+        .or_else(|_| heapless::String::from_str("unknown"));
+
+    match heapless_str {
+        Ok(s) => {
+            // This program is not multithreaded, so this will always be safe.
+            unsafe { LAST_PANIC = Some(s) };
+        }
         Err(()) => {
             os_warn!("Cannot cache last panic");
-            heapless::String::from_str("unknown").unwrap()
         }
     };
-    unsafe { LAST_PANIC = Some(string) };
 
     os_error!("====================[PANIC]====================");
     os_error!("Firmware paniced!");
