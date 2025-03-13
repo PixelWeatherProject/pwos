@@ -209,7 +209,12 @@ fn setup_wifi(
 
         #[cfg(debug_assertions)]
         let start = std::time::Instant::now();
-        match wifi.connect(&ap.ssid, psk, ap.auth_method.unwrap(), WIFI_TIMEOUT) {
+        match wifi.connect(
+            &ap.ssid,
+            psk,
+            ap.auth_method.unwrap_or_default(),
+            WIFI_TIMEOUT,
+        ) {
             Ok(()) => {
                 os_debug!("Connected in {:?}", start.elapsed());
                 os_debug!("IP: {}", wifi.get_ip_info().unwrap().ip);
