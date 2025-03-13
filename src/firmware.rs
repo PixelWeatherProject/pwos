@@ -36,7 +36,9 @@ pub fn fw_main(
         os_warn!("Running unverified firmware");
     }
 
+    os_debug!("Starting WiFi setup");
     let (wifi, ap) = setup_wifi(modem, sys_loop, nvs)?;
+    os_debug!("Connecting to PWMP");
     let mut pws = PwmpClient::new(PWMP_SERVER, wifi.get_mac()?, None, None, None)?;
 
     read_appcfg(&mut pws, cfg)?;
