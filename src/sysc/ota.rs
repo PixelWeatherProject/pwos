@@ -139,6 +139,15 @@ impl Ota {
     }
 }
 
+impl OtaHandle<'_> {
+    pub fn cancel(mut self) -> OsResult<()> {
+        let inner = self.0.take().expect("Handle was NULL");
+        inner.abort()?;
+
+        Ok(())
+    }
+}
+
 impl<'h> Deref for OtaHandle<'h> {
     type Target = EspOtaUpdate<'h>;
 
@@ -158,6 +167,10 @@ impl DerefMut for OtaHandle<'_> {
 #[allow(static_mut_refs)]
 impl Drop for OtaHandle<'_> {
     fn drop(&mut self) {
+        if self.0.is_none() {
+            return;
+        }
+
         os_debug!("Finalizing update");
 
         // SAFETY: Handle is always Some() at this point

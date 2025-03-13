@@ -6,7 +6,7 @@ use crate::{
         ext_drivers::{AnySensor, EnvironmentSensor, Htu, MeasurementResults},
         ledctl::BoardLed,
         net::{PowerSavingMode, WiFi},
-        ota::Ota,
+        ota::{Ota, OtaHandle},
         power::{deep_sleep, get_reset_reason},
         usbctl, OsError, OsResult, ReportableError,
     },
@@ -120,8 +120,15 @@ pub fn fw_main(
 
     os_debug!("Checking for updates");
     if check_ota(&mut pws)? {
-        begin_update(&mut pws, ota)?;
-    }
+        let mut handle = ota.begin_update()?;
+
+        if let Err(why) = begin_update(&mut pws, &mut handle) {
+            os_error!("OTA failed: {why}, aborting");
+            handle.cancel()?;
+        }
+
+        os_info!("Update installed successfully");
+    } // Handle will be dropped and the update should finalize
 
     // Peacefully disconnect
     drop(pws);
@@ -262,8 +269,7 @@ fn check_ota(pws: &mut PwmpClient) -> OsResult<bool> {
     }
 }
 
-fn begin_update(pws: &mut PwmpClient, ota: &mut Ota) -> OsResult<()> {
-    let mut handle = ota.begin_update()?;
+fn begin_update(pws: &mut PwmpClient, handle: &mut OtaHandle) -> OsResult<()> {
     let mut maybe_chunk = pws.next_update_chunk(Some(1024))?;
     let mut i = 1;
 
@@ -276,9 +282,6 @@ fn begin_update(pws: &mut PwmpClient, ota: &mut Ota) -> OsResult<()> {
         maybe_chunk = pws.next_update_chunk(Some(1024))?;
         i += 1;
     }
-
-    drop(handle); // This will internally finalize the update
-    os_info!("Update installed successfully");
 
     Ok(())
 }
