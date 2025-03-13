@@ -44,7 +44,7 @@ static mut LAST_ERROR: Option<OsError> = Option::None;
 ///
 /// ## Note
 /// This variable is not preserved when the node is connected to a PC for an unknown reason.
-#[link_section = ".rtc.data"]
+#[link_section = ".rtc_noinit"]
 static mut LAST_PANIC: Option<heapless::String<128>> = Option::None;
 
 fn main() {
