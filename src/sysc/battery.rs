@@ -61,9 +61,9 @@ impl Battery {
             if result > MAX_VOLTAGE {
                 os_error!("Abnormal battery voltage");
                 return Err(OsError::IllegalBatteryVoltage);
-            } else {
-                os_debug!("Detected swapped R1/R2 values, fix successful");
             }
+
+            os_debug!("Detected swapped R1/R2 values, fix successful");
         }
 
         Ok(result.trunc_with_scale(2))
