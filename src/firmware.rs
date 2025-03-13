@@ -10,7 +10,7 @@ use crate::{
         power::{deep_sleep, get_reset_reason},
         usbctl, OsError, OsResult, ReportableError,
     },
-    LAST_ERROR,
+    LAST_ERROR, LAST_PANIC,
 };
 use esp_idf_svc::{
     eventloop::EspSystemEventLoop,
@@ -79,6 +79,21 @@ pub fn fw_main(
         .report("Failed to report abnormal reset reason");
     } else {
         os_debug!("Reset reason ({reset_reason:?}) is normal");
+    }
+
+    // SAFETY: Since this program is not multithreaded, this will always be safe.
+    #[allow(static_mut_refs)]
+    if let Some(info) = unsafe {
+        LAST_PANIC.take() /* also clears the Option */
+    } {
+        os_info!("Reporting panic from previous run");
+
+        pws.send_notification(format!(
+            "An panic has been detected during a previous run: {info}"
+        ))
+        .report("Failed to report previous panic");
+    } else {
+        os_debug!("No panic detected from previous run");
     }
 
     // SAFETY: Since this program is not multithreaded, this will always be safe.

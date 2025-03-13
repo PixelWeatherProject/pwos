@@ -5,6 +5,7 @@
     clippy::cast_possible_truncation,
     clippy::cast_sign_loss
 )]
+#![feature(panic_payload_as_str)]
 
 use crate::config::AppConfig;
 use config::LED_BUILTIN;
@@ -17,14 +18,14 @@ use esp_idf_svc::{
     },
     nvs::EspDefaultNvsPartition,
 };
-use std::time::Instant;
+use std::{panic::PanicHookInfo, str::FromStr, time::Instant};
 use sysc::{
     battery::Battery,
     gpio,
     ledctl::BoardLed,
     logging::OsLogger,
     ota::Ota,
-    power::{deep_sleep, fake_sleep},
+    power::{self, deep_sleep, fake_sleep, ResetReason},
     usbctl, OsError,
 };
 
@@ -38,6 +39,13 @@ mod sysc;
 /// This variable is not preserved when the node is connected to a PC for an unknown reason.
 #[link_section = ".rtc.data"]
 static mut LAST_ERROR: Option<OsError> = Option::None;
+
+/// Storage for a panic message that may have occurred during a previous run.
+///
+/// ## Note
+/// This variable is not preserved when the node is connected to a PC for an unknown reason.
+#[link_section = ".rtc.data"]
+static mut LAST_PANIC: Option<heapless::String<128>> = Option::None;
 
 fn main() {
     esp_idf_svc::sys::link_patches();
@@ -83,6 +91,13 @@ fn main() {
     let led = BoardLed::new(
         gpio::number_to_io_pin(LED_BUILTIN, &mut peripherals).expect("Invalid LED pin"),
     );
+
+    if power::get_reset_reason() == ResetReason::PowerOn {
+        unsafe { LAST_PANIC = None };
+    }
+
+    os_debug!("Setting panic handle");
+    std::panic::set_hook(Box::new(handle_panic));
 
     os_debug!("Initializing OTA system");
     let mut ota = Ota::new().expect("Failed to initialize OTA");
@@ -167,4 +182,36 @@ fn main() {
     } else {
         deep_sleep(Some(appcfg.sleep_time()));
     }
+}
+
+fn handle_panic(info: &PanicHookInfo) {
+    let string = match heapless::String::from_str(&info.to_string()) {
+        Ok(s) => s,
+        Err(()) => {
+            os_warn!("Cannot cache last panic");
+            heapless::String::from_str("unknown").unwrap()
+        }
+    };
+    unsafe { LAST_PANIC = Some(string) };
+
+    os_error!("====================[PANIC]====================");
+    os_error!("Firmware paniced!");
+    os_error!("Message: {}", info.payload_as_str().unwrap_or("N/A"));
+    os_error!(
+        "Location: {}",
+        match info.location() {
+            Some(location) => {
+                format!(
+                    "{}, line: {}, col: {}",
+                    location.file(),
+                    location.line(),
+                    location.column()
+                )
+            }
+            None => {
+                "unknown".to_string()
+            }
+        }
+    );
+    os_error!("====================[PANIC]====================");
 }
