@@ -21,7 +21,7 @@ use esp_idf_svc::{
 use pwmp_client::{ota::UpdateStatus, pwmp_msg::version::Version, PwmpClient};
 use std::time::Duration;
 
-#[allow(clippy::too_many_arguments)]
+#[allow(clippy::too_many_arguments, clippy::cognitive_complexity)]
 pub fn fw_main(
     mut battery: Battery,
     i2c: I2cDriver,
