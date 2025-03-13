@@ -50,14 +50,14 @@ impl<'s> Htu<'s> {
         Ok(((buffer[0] as u16) << 8) | (buffer[1] as u16))
     }
 
-    fn calc_temperature(raw: u16) -> Temperature {
+    fn calc_temperature(raw: u16) -> OsResult<Temperature> {
         // ((175.72 * raw) / 65536.0) - 46.85
         let temp = ((175.72 * (raw as f32)) / 65536.0) - 46.85;
-        let mut decimal = Decimal::from_f32_retain(temp).unwrap();
+        let mut decimal = Decimal::from_f32_retain(temp).ok_or(OsError::DecimalConversion)?;
 
         decimal.rescale(2);
 
-        decimal
+        Ok(decimal)
     }
 }
 
@@ -70,7 +70,7 @@ impl EnvironmentSensor for Htu<'_> {
     fn read_temperature(&mut self) -> OsResult<Temperature> {
         let raw = self.command(Command::ReadTemperature)?;
 
-        Ok(Self::calc_temperature(raw))
+        Self::calc_temperature(raw)
     }
 
     fn read_humidity(&mut self) -> OsResult<Humidity> {

@@ -21,7 +21,7 @@ pub enum OsError {
     PskTooLong,
     #[error("Unexpected version format")]
     IllegalFirmwareVersion,
-    #[error("Conversion beteen int and Decimal failed")]
+    #[error("Conversion beteen float/int and Decimal failed")]
     DecimalConversion,
     #[error("Invalid battery voltage")]
     IllegalBatteryVoltage,
