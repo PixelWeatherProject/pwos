@@ -125,8 +125,7 @@ pub fn fw_main(
                 env!("CARGO_PKG_VERSION").to_string()
             } else {
                 ota.previous_version()?
-                    .ok_or(OsError::IllegalFirmwareVersion)?
-                    .to_string()
+                    .map_or_else(|| "unknown".to_string(), |v| v.to_string())
             },
             if success { "succeeded" } else { "failed" }
         ))?;
