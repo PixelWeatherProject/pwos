@@ -57,7 +57,7 @@ pub fn get_reset_reason() -> ResetReason {
 }
 
 impl ResetReason {
-    pub const fn is_abnormal(&self) -> bool {
+    pub const fn is_abnormal(self) -> bool {
         !matches!(
             self,
             ResetReason::PowerOn
