@@ -188,7 +188,7 @@ fn main() {
 
 fn handle_panic(info: &PanicHookInfo) {
     let heapless_str = heapless::String::from_str(&info.to_string())
-        .or_else(|_| heapless::String::from_str("unknown"));
+        .or_else(|()| heapless::String::from_str("unknown"));
 
     match heapless_str {
         Ok(s) => {
