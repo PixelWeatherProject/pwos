@@ -88,6 +88,22 @@ impl Ota {
         Ok(())
     }
 
+    #[cfg(debug_assertions)]
+    pub fn current_version(&self) -> OsResult<Option<Version>> {
+        let slot = self.0.get_running_slot()?;
+
+        let Some(info) = slot.firmware else {
+            return Ok(None);
+        };
+
+        let Some(version) = Self::parse_info_version(&info) else {
+            os_warn!("Current firmware has an invalid version string");
+            return Ok(None);
+        };
+
+        Ok(Some(version))
+    }
+
     pub fn previous_version(&self) -> OsResult<Option<Version>> {
         let Some(slot) = self.0.get_last_invalid_slot()? else {
             return Ok(None);

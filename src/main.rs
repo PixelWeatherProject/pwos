@@ -90,6 +90,21 @@ fn main() {
     ota.rollback_if_needed()
         .expect("Failed to check/perform rollback");
 
+    os_debug!(
+        "Reported current version: {}",
+        ota.current_version()
+            .map(|maybe_version| maybe_version
+                .map_or_else(|| "None".to_string(), |version| version.to_string()))
+            .unwrap_or_else(|_| "?".to_string())
+    );
+    os_debug!(
+        "Previous installed version: {}",
+        ota.previous_version()
+            .map(|maybe_version| maybe_version
+                .map_or_else(|| "None".to_string(), |version| version.to_string()))
+            .unwrap_or_else(|_| "?".to_string())
+    );
+
     os_debug!("Initializing system Battery");
     let battery = Battery::new(peripherals.adc1, peripherals.pins.gpio2)
         .expect("Failed to initialize battery ADC");
