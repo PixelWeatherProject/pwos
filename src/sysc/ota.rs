@@ -110,7 +110,7 @@ impl Ota {
         };
 
         let Some(info) = slot.firmware else {
-            return Ok(None);
+            return Err(OsError::MissingPartitionMetadata);
         };
 
         let Some(version) = Self::parse_info_version(&info) else {

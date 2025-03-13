@@ -37,6 +37,10 @@ pub enum OsError {
     #[error("Unexpected version format")]
     IllegalFirmwareVersion,
 
+    /// Partition metadata is missing.
+    #[error("Unexpected version format")]
+    MissingPartitionMetadata,
+
     /// Failiure during conversions to/from [`Decimal`](pwmp_client::pwmp_msg::Decimal).
     #[error("Conversion beteen float/int and Decimal failed")]
     DecimalConversion,
