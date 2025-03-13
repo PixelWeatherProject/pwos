@@ -93,12 +93,12 @@ impl Ota {
         let slot = self.0.get_running_slot()?;
 
         let Some(info) = slot.firmware else {
-            return Ok(None);
+            return Err(OsError::MissingPartitionMetadata);
         };
 
         let Some(version) = Self::parse_info_version(&info) else {
-            os_warn!("Current firmware has an invalid version string");
-            return Ok(None);
+            os_error!("Current firmware has an invalid version string");
+            return Err(OsError::IllegalFirmwareVersion);
         };
 
         Ok(Some(version))
