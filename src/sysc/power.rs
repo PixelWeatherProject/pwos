@@ -60,11 +60,7 @@ impl ResetReason {
     pub const fn is_abnormal(self) -> bool {
         !matches!(
             self,
-            ResetReason::PowerOn
-                | ResetReason::Software
-                | ResetReason::DeepsleepWakeup
-                | ResetReason::Usb
-                | ResetReason::Jtag
+            Self::PowerOn | Self::Software | Self::DeepsleepWakeup | Self::Usb | Self::Jtag
         )
     }
 }
@@ -72,22 +68,22 @@ impl ResetReason {
 impl From<esp_reset_reason_t> for ResetReason {
     fn from(value: esp_reset_reason_t) -> Self {
         match value {
-            0 => ResetReason::Unknown,
-            1 => ResetReason::PowerOn,
-            2 => ResetReason::External,
-            3 => ResetReason::Software,
-            4 => ResetReason::Panic,
-            5 => ResetReason::WatchdogInterrupt,
-            6 => ResetReason::WatchdogTask,
-            7 => ResetReason::WatchdogOther,
-            8 => ResetReason::DeepsleepWakeup,
-            9 => ResetReason::Brownout,
-            10 => ResetReason::Sdio,
-            11 => ResetReason::Usb,
-            12 => ResetReason::Jtag,
-            13 => ResetReason::Efuse,
-            14 => ResetReason::PowerGlitch,
-            15 => ResetReason::CpuLockup,
+            0 => Self::Unknown,
+            1 => Self::PowerOn,
+            2 => Self::External,
+            3 => Self::Software,
+            4 => Self::Panic,
+            5 => Self::WatchdogInterrupt,
+            6 => Self::WatchdogTask,
+            7 => Self::WatchdogOther,
+            8 => Self::DeepsleepWakeup,
+            9 => Self::Brownout,
+            10 => Self::Sdio,
+            11 => Self::Usb,
+            12 => Self::Jtag,
+            13 => Self::Efuse,
+            14 => Self::PowerGlitch,
+            15 => Self::CpuLockup,
             _ => unreachable!(),
         }
     }
