@@ -217,7 +217,7 @@ fn setup_wifi(
         ) {
             Ok(()) => {
                 os_debug!("Connected in {:?}", start.elapsed());
-                os_debug!("IP: {}", wifi.get_ip_info().unwrap().ip);
+                os_debug!("IP: {}", wifi.get_ip_info()?.ip);
                 return Ok((wifi, ap));
             }
             Err(why) => os_error!("Failed to connect: {why}"),
