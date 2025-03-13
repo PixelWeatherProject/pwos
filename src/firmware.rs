@@ -28,7 +28,7 @@ pub fn fw_main(
     modem: Modem,
     sys_loop: EspSystemEventLoop,
     nvs: EspDefaultNvsPartition,
-    mut led: BoardLed,
+    _: BoardLed,
     ota: &mut Ota,
     cfg: &mut AppConfig,
 ) -> OsResult<()> {
@@ -38,120 +38,117 @@ pub fn fw_main(
 
     os_debug!("Starting WiFi setup");
     let (wifi, ap) = setup_wifi(modem, sys_loop, nvs)?;
-    os_debug!("Connecting to PWMP");
-    let mut pws = PwmpClient::new(PWMP_SERVER, wifi.get_mac()?, None, None, None)?;
+    let mut env_sensor = setup_envsensor(i2c)?;
 
-    read_appcfg(&mut pws, cfg)?;
+    loop {
+        let mut pws = PwmpClient::new(PWMP_SERVER, wifi.get_mac()?, None, None, None)?;
 
-    let bat_voltage = battery.read(16)?;
-    if usbctl::is_connected() {
-        os_warn!("Battery voltage measurement may be affected by USB power");
-    }
-    os_info!("Battery: {bat_voltage}V");
+        read_appcfg(&mut pws, cfg)?;
 
-    if (bat_voltage <= CRITICAL_VOLTAGE) && cfg.sbop {
-        os_warn!("Battery voltage too low, activating sBOP");
+        let bat_voltage = battery.read(16)?;
+        if usbctl::is_connected() {
+            os_warn!("Battery voltage measurement may be affected by USB power");
+        }
+        os_info!("Battery: {bat_voltage}V");
 
-        pws.send_notification("Battery voltage too low, activating sBOP")
-            .report("Failed to send sBOP notification");
+        if (bat_voltage <= CRITICAL_VOLTAGE) && cfg.sbop {
+            os_warn!("Battery voltage too low, activating sBOP");
 
-        deep_sleep(None);
-    }
+            pws.send_notification("Battery voltage too low, activating sBOP")
+                .report("Failed to send sBOP notification");
 
-    let env_sensor = setup_envsensor(i2c)?;
-
-    let results = read_environment(env_sensor)?;
-    os_info!("{}*C / {}%", results.temperature, results.humidity);
-    os_debug!("Posting measurements");
-    pws.post_measurements(results.temperature, results.humidity, results.air_pressure)?;
-
-    os_debug!("Posting stats");
-    pws.post_stats(bat_voltage, &ap.ssid, ap.signal_strength)?;
-
-    let reset_reason = get_reset_reason();
-    if reset_reason.is_abnormal() {
-        os_warn!("Detected abnormal reset reason: {reset_reason:?}");
-
-        pws.send_notification(format!(
-            "Detected abnormal reset reason: {:?}",
-            get_reset_reason()
-        ))
-        .report("Failed to report abnormal reset reason");
-    } else {
-        os_debug!("Reset reason ({reset_reason:?}) is normal");
-    }
-
-    // SAFETY: Since this program is not multithreaded, this will always be safe.
-    #[allow(static_mut_refs)]
-    if let Some(info) = unsafe {
-        LAST_PANIC.take() /* also clears the Option */
-    } {
-        os_info!("Reporting panic from previous run");
-
-        pws.send_notification(format!(
-            "An panic has been detected during a previous run: {info}"
-        ))
-        .report("Failed to report previous panic");
-    } else {
-        os_debug!("No panic detected from previous run");
-    }
-
-    // SAFETY: Since this program is not multithreaded, this will always be safe.
-    #[allow(static_mut_refs)]
-    if let Some(error) = unsafe {
-        LAST_ERROR.take() /* also clears the Option */
-    } {
-        os_info!("Reporting error from previous run");
-
-        pws.send_notification(format!(
-            "An error has been detected during a previous run: {error}"
-        ))
-        .report("Failed to report previous error");
-    } else {
-        os_debug!("No error detected from previous run");
-    }
-
-    if ota.report_needed()? {
-        let success = !ota.rollback_detected()?;
-
-        os_info!(
-            "Reporting {}successfull firmware update",
-            if success { "" } else { "un" }
-        );
-
-        pws.send_notification(format!(
-            "Update to PWOS {} has {}",
-            if success {
-                env!("CARGO_PKG_VERSION").to_string()
-            } else {
-                ota.previous_version()?.unwrap().to_string()
-            },
-            if success { "succeeded" } else { "failed" }
-        ))?;
-
-        pws.report_firmware(success)?;
-        ota.mark_reported();
-    } else {
-        os_debug!("No update report needed");
-    }
-
-    os_debug!("Checking for updates");
-    if check_ota(&mut pws)? {
-        let mut handle = ota.begin_update()?;
-
-        if let Err(why) = begin_update(&mut pws, &mut handle) {
-            os_error!("OTA failed: {why}, aborting");
-            handle.cancel()?;
+            deep_sleep(None);
         }
 
-        os_info!("Update installed successfully");
-    } // Handle will be dropped and the update should finalize
+        let results = read_environment(&mut env_sensor)?;
+        os_info!("{}*C / {}%", results.temperature, results.humidity);
+        os_debug!("Posting measurements");
+        pws.post_measurements(results.temperature, results.humidity, results.air_pressure)?;
 
-    // Peacefully disconnect
-    drop(pws);
+        os_debug!("Posting stats");
+        pws.post_stats(bat_voltage, &ap.ssid, ap.signal_strength)?;
 
-    led.off();
-    Ok(())
+        let reset_reason = get_reset_reason();
+        if reset_reason.is_abnormal() {
+            os_warn!("Detected abnormal reset reason: {reset_reason:?}");
+
+            pws.send_notification(format!(
+                "Detected abnormal reset reason: {:?}",
+                get_reset_reason()
+            ))
+            .report("Failed to report abnormal reset reason");
+        } else {
+            os_debug!("Reset reason ({reset_reason:?}) is normal");
+        }
+
+        // SAFETY: Since this program is not multithreaded, this will always be safe.
+        #[allow(static_mut_refs)]
+        if let Some(info) = unsafe {
+            LAST_PANIC.take() /* also clears the Option */
+        } {
+            os_warn!("Detected panic from previous run: {info}");
+            os_info!("Reporting panic from previous run");
+
+            pws.send_notification(format!(
+                "An panic has been detected during a previous run: {info}"
+            ))
+            .report("Failed to report previous panic");
+        } else {
+            os_debug!("No panic detected from previous run");
+        }
+
+        // SAFETY: Since this program is not multithreaded, this will always be safe.
+        #[allow(static_mut_refs)]
+        if let Some(error) = unsafe {
+            LAST_ERROR.take() /* also clears the Option */
+        } {
+            os_warn!("Detected error from previous run: {error}");
+            os_info!("Reporting error from previous run");
+
+            pws.send_notification(format!(
+                "An error has been detected during a previous run: {error}"
+            ))
+            .report("Failed to report previous error");
+        } else {
+            os_debug!("No error detected from previous run");
+        }
+
+        if ota.report_needed()? {
+            let success = !ota.rollback_detected()?;
+
+            os_info!(
+                "Reporting {}successfull firmware update",
+                if success { "" } else { "un" }
+            );
+
+            pws.send_notification(format!(
+                "Update to PWOS {} has {}",
+                if success {
+                    env!("CARGO_PKG_VERSION").to_string()
+                } else {
+                    ota.previous_version()?.unwrap().to_string()
+                },
+                if success { "succeeded" } else { "failed" }
+            ))?;
+
+            pws.report_firmware(success)?;
+            ota.mark_reported();
+        } else {
+            os_debug!("No update report needed");
+        }
+
+        os_debug!("Checking for updates");
+        if check_ota(&mut pws)? {
+            let mut handle = ota.begin_update()?;
+
+            if let Err(why) = begin_update(&mut pws, &mut handle) {
+                os_error!("OTA failed: {why}, aborting");
+                handle.cancel()?;
+            }
+
+            os_info!("Update installed successfully");
+        } // Handle will be dropped and the update should finalize
+    }
 }
 
 fn setup_wifi(
@@ -262,7 +259,7 @@ fn setup_envsensor(mut i2c_driver: I2cDriver<'_>) -> OsResult<AnySensor<'_>> {
     Err(OsError::NoEnvSensor)
 }
 
-fn read_environment(mut env: AnySensor) -> OsResult<MeasurementResults> {
+fn read_environment(env: &mut AnySensor) -> OsResult<MeasurementResults> {
     Ok(MeasurementResults {
         temperature: env.read_temperature()?,
         humidity: env.read_humidity()?,

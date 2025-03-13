@@ -21,7 +21,7 @@ enum Command {
 pub struct Htu<'s>(I2cDriver<'s>);
 
 impl<'s> Htu<'s> {
-    pub const DEV_ADDR: u8 = 0x40;
+    pub const DEV_ADDR: u8 = 0x77;
 
     const BUS_TIMEOUT: u32 = 1000;
     const CMD_WAIT_TIME: u64 = 50;
