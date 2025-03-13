@@ -1,5 +1,5 @@
 use super::OsResult;
-use crate::{os_debug, os_info, os_warn};
+use crate::{os_debug, os_error, os_info, os_warn, sysc::OsError};
 use esp_idf_svc::ota::{EspOta, EspOtaUpdate, FirmwareInfo, SlotState};
 use pwmp_client::pwmp_msg::version::Version;
 use std::{
@@ -114,8 +114,8 @@ impl Ota {
         };
 
         let Some(version) = Self::parse_info_version(&info) else {
-            os_warn!("Previous firmware has an invalid version string");
-            return Ok(None);
+            os_error!("Previous firmware has an invalid version string");
+            return Err(OsError::IllegalFirmwareVersion);
         };
 
         Ok(Some(version))

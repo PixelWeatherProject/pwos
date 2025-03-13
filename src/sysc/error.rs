@@ -44,10 +44,6 @@ pub enum OsError {
     /// Invalid battery voltage result.
     #[error("Invalid battery voltage")]
     IllegalBatteryVoltage,
-
-    /// Invalid partition metadata.
-    #[error("Invalid/unexpected partition metadata")]
-    IllegalPartitionMeta,
 }
 
 pub trait ReportableError {
