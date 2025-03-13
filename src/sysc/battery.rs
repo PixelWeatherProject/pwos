@@ -42,7 +42,7 @@ pub struct Battery {
 impl Battery {
     pub fn new(adc: BatteryAdc, gpio: BatteryGpio) -> OsResult<Self> {
         let adc = Rc::new(BatteryAdcDriver::new(adc)?);
-        let ch = BatteryAdcChannelDriver::new(Rc::clone(&adc), gpio, &CONFIG).unwrap();
+        let ch = BatteryAdcChannelDriver::new(Rc::clone(&adc), gpio, &CONFIG)?;
 
         Ok(Self { adc, ch })
     }
