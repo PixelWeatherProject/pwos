@@ -186,7 +186,7 @@ fn setup_wifi(
     // filter out unknown APs
     networks.retain(|ap| WIFI_NETWORKS.iter().any(|entry| entry.0 == ap.ssid));
     // sort by signal strength
-    networks.sort_by(|a, b| b.signal_strength.partial_cmp(&a.signal_strength).unwrap());
+    networks.sort_by(|a, b| b.signal_strength.cmp(&a.signal_strength));
     // filter out APs with RSSI >= -90
     networks.retain(|ap| ap.signal_strength >= -90);
 
