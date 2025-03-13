@@ -1,6 +1,6 @@
 use super::OsResult;
 use crate::{os_debug, os_info, os_warn};
-use esp_idf_svc::ota::{EspOta, EspOtaUpdate, SlotState};
+use esp_idf_svc::ota::{EspOta, EspOtaUpdate, FirmwareInfo, SlotState};
 use pwmp_client::pwmp_msg::version::Version;
 use std::{
     mem::MaybeUninit,
@@ -97,12 +97,29 @@ impl Ota {
             return Ok(None);
         };
 
-        let Some(version) = Version::parse(info.version) else {
+        let Some(version) = Self::parse_info_version(&info) else {
             os_warn!("Previous firmware has an invalid version string");
             return Ok(None);
         };
 
         Ok(Some(version))
+    }
+
+    fn parse_info_version(info: &FirmwareInfo) -> Option<Version> {
+        /*
+         * If ESP-IDF uses `git describe` to get a version string, it will
+         * look like this: `v2.0.0-rc3-8-g1a1ba69`.
+         *
+         * This method assumes the above format.
+         */
+
+        // Index of the first `-`
+        let dash_index = info.version.find('-')?;
+
+        // Cut the version string
+        let slice = &info.version[1..dash_index];
+
+        Version::parse(slice)
     }
 }
 
