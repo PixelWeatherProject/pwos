@@ -1,3 +1,5 @@
+//! GPIO-related operations and utilities.
+
 use crate::os_warn;
 use esp_idf_svc::hal::{
     gpio::{AnyIOPin, IOPin},
@@ -5,6 +7,7 @@ use esp_idf_svc::hal::{
     prelude::Peripherals,
 };
 
+/// Map an integer value to the specified struct property.
 macro_rules! create_mapping {
     ($n:expr, $peripherals:ident, [$($num:literal => $gpio:ident),* $(,)?]) => {
         match $n {
@@ -19,6 +22,9 @@ macro_rules! create_mapping {
     };
 }
 
+/// Return a handle to the specified GPIO pin, identified by it's numeric name.
+///
+/// If the specified GPIO pin number is invalid, [`None`] is returned.
 pub fn number_to_io_pin(n: u8, peripherals: &mut Peripherals) -> Option<AnyIOPin> {
     create_mapping! {
         n,
