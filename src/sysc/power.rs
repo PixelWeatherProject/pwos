@@ -84,7 +84,6 @@ impl ResetReason {
 impl From<esp_reset_reason_t> for ResetReason {
     fn from(value: esp_reset_reason_t) -> Self {
         match value {
-            0 => Self::Unknown,
             1 => Self::PowerOn,
             2 => Self::External,
             3 => Self::Software,
@@ -100,7 +99,7 @@ impl From<esp_reset_reason_t> for ResetReason {
             13 => Self::Efuse,
             14 => Self::PowerGlitch,
             15 => Self::CpuLockup,
-            _ => unreachable!(),
+            _ => Self::Unknown,
         }
     }
 }
