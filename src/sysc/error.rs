@@ -43,7 +43,7 @@ pub enum OsError {
     MissingPartitionMetadata,
 
     /// Failiure during conversions to/from [`Decimal`](pwmp_client::pwmp_msg::Decimal).
-    #[error("Conversion beteen float/int and Decimal failed")]
+    #[error("Conversion between float/int and Decimal failed")]
     DecimalConversion,
 
     /// Invalid battery voltage result.
