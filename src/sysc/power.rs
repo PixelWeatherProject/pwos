@@ -5,37 +5,52 @@ const INFINITE_SLEEP_TIME: Duration = Duration::from_micros(2_629_746_000_000); 
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ResetReason {
-    ///Reset reason can not be determined
+    /// Reset reason can not be determined
     Unknown,
-    ///Reset due to power-on event
+
+    /// Reset due to power-on event
     PowerOn,
-    ///Reset by external pin (not applicable for ESP32)
+
+    /// Reset by external pin (not applicable for ESP32)
     External,
-    ///Software reset via `esp_restart()`
+
+    /// Software reset via `esp_restart()`
     Software,
-    ///Software reset due to exception/panic
+
+    /// Software reset due to exception/panic
     Panic,
-    ///Reset (software or hardware) due to interrupt watchdog
+
+    /// Reset (software or hardware) due to interrupt watchdog
     WatchdogInterrupt,
-    ///Reset due to task watchdog
+
+    /// Reset due to task watchdog
     WatchdogTask,
-    ///Reset due to other watchdogs
+
+    /// Reset due to other watchdogs
     WatchdogOther,
-    ///Reset after exiting deep sleep mode
+
+    /// Reset after exiting deep sleep mode
     DeepsleepWakeup,
-    ///Brownout reset (software or hardware)
+
+    /// Brownout reset (software or hardware)
     Brownout,
-    ///Reset over SDIO
+
+    /// Reset over SDIO
     Sdio,
-    ///Reset by USB peripheral
+
+    /// Reset by USB peripheral
     Usb,
-    ///Reset by JTAG
+
+    /// Reset by JTAG
     Jtag,
-    ///Reset due to efuse error
+
+    /// Reset due to efuse error
     Efuse,
-    ///Reset due to power glitch detected
+
+    /// Reset due to power glitch detected
     PowerGlitch,
-    ///Reset due to CPU lock up (double exception)
+
+    /// Reset due to CPU lock up (double exception)
     CpuLockup,
 }
 
