@@ -6,7 +6,7 @@ use crate::{
 use esp_idf_svc::hal::i2c::I2cDriver;
 use pwmp_client::pwmp_msg::{
     aliases::{AirPressure, Humidity, Temperature},
-    Decimal,
+    dec, Decimal,
 };
 use std::{thread::sleep, time::Duration};
 
@@ -47,17 +47,15 @@ impl<'s> Htu<'s> {
                 .read(Self::DEV_ADDR, &mut buffer, Self::BUS_TIMEOUT)?;
         }
 
-        Ok(((buffer[0] as u16) << 8) | (buffer[1] as u16))
+        Ok(((u16::from(buffer[0])) << 8) | (u16::from(buffer[1])))
     }
 
-    fn calc_temperature(raw: u16) -> OsResult<Temperature> {
+    fn calc_temperature(raw: u16) -> Temperature {
         // ((175.72 * raw) / 65536.0) - 46.85
-        let temp = ((175.72 * (raw as f32)) / 65536.0) - 46.85;
-        let mut decimal = Decimal::from_f32_retain(temp).ok_or(OsError::DecimalConversion)?;
+        let mut temp = ((dec!(175.72) * (Decimal::from(raw))) / dec!(65536.0)) - dec!(46.85);
+        temp.rescale(2);
 
-        decimal.rescale(2);
-
-        Ok(decimal)
+        temp
     }
 }
 
@@ -70,14 +68,16 @@ impl EnvironmentSensor for Htu<'_> {
     fn read_temperature(&mut self) -> OsResult<Temperature> {
         let raw = self.command(Command::ReadTemperature)?;
 
-        Self::calc_temperature(raw)
+        Ok(Self::calc_temperature(raw))
     }
 
     fn read_humidity(&mut self) -> OsResult<Humidity> {
         let raw = self.command(Command::ReadHumidity)?;
-        let hum = ((125.0 * raw as f32) / 65536.0) - 6.0;
+        let hum = ((dec!(125.0) * Decimal::from(raw)) / dec!(65536.0)) - dec!(6.0);
+        let percentage = hum.floor().clamp(Decimal::ZERO, Decimal::ONE_HUNDRED);
 
-        Ok(hum.floor().clamp(0.0, 100.0) as u8)
+        // SAFETY: The value of `percentage` is clamped between 0 and 100, which is a valid `u8`.
+        Ok(unsafe { u8::try_from(percentage).unwrap_unchecked() })
     }
 
     fn read_air_pressure(&mut self) -> OsResult<Option<AirPressure>> {
