@@ -1,8 +1,11 @@
+//! Error types for the firmware.
+
 use crate::os_warn;
 use esp_idf_svc::sys::EspError;
 use std::fmt::Display;
 use thiserror::Error;
 
+/// A wrapper for several different lower-level error types.
 #[allow(clippy::doc_markdown)]
 #[derive(Debug, Error)]
 pub enum OsError {
@@ -51,7 +54,11 @@ pub enum OsError {
     IllegalBatteryVoltage,
 }
 
+/// Trait for non-fatal error types that can be "reported" to the console.
+///
+/// This trait is meant to be implemented for [`Result`](Result)s.
 pub trait ReportableError {
+    /// Log a warning to the console if the [`Result`] variant is an [`Err`], or do nothing if it's [`Ok`].
     fn report(self, desc: &str);
 }
 
@@ -64,6 +71,9 @@ impl<T, E: Display> ReportableError for Result<T, E> {
 }
 
 impl OsError {
+    /// Returns whether the error is non-fatal.
+    ///
+    /// This returns `true`, for errors related to WiFi/Internet and PWNP connectivity/IO issues.
     pub const fn recoverable(&self) -> bool {
         matches!(
             self,
