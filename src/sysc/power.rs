@@ -40,7 +40,8 @@ pub enum ResetReason {
 }
 
 pub fn deep_sleep(time: Option<Duration>) -> ! {
-    let us = time.unwrap_or(INFINITE_SLEEP_TIME).as_micros() as u64;
+    let us = u64::try_from(time.unwrap_or(INFINITE_SLEEP_TIME).as_micros())
+        .expect("Deep sleep duration is too long");
 
     unsafe {
         esp_deep_sleep(us);
