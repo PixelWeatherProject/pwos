@@ -12,7 +12,7 @@ use esp_idf_svc::{
     },
     nvs::EspDefaultNvsPartition,
 };
-use std::{panic::PanicHookInfo, str::FromStr, time::Instant};
+use std::{fmt::Write, panic::PanicHookInfo, time::Instant};
 use sysc::{
     battery::Battery,
     gpio,
@@ -180,28 +180,23 @@ fn main() {
 }
 
 fn handle_panic(info: &PanicHookInfo) {
-    let heapless_str = heapless::String::from_str(&info.to_string())
-        .or_else(|()| heapless::String::from_str("unknown"));
+    let mut heapless_str = heapless::String::<128>::new();
+    let payload = info.payload_as_str().unwrap_or("N/A");
 
-    match heapless_str {
-        Ok(s) => {
-            // This program is not multithreaded, so this will always be safe.
-            unsafe { LAST_PANIC = Some(s) };
-        }
-        Err(()) => {
-            os_warn!("Cannot cache last panic");
-        }
-    };
+    let _ = write!(heapless_str, "{payload}",).or_else(|_| {
+        // If the payload is too long, just write a static string there.
+        heapless_str.clear();
+        write!(heapless_str, "[too long]")
+    });
+    unsafe { LAST_PANIC = Some(heapless_str) };
 
     os_error!("====================[PANIC]====================");
     os_error!("Firmware paniced!");
-    os_error!("Message: {}", info.payload_as_str().unwrap_or("N/A"));
+    os_error!("Message: {payload}");
     os_error!(
         "Location: {}",
-        info.location().map_or_else(
-            || "Unknown".to_string(),
-            |l| format!("{}, line: {}, col: {}", l.file(), l.line(), l.column())
-        )
+        info.location()
+            .map_or_else(|| "N/A".to_string(), |l| l.to_string())
     );
     os_error!("====================[PANIC]====================");
 }
