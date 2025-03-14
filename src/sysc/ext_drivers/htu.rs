@@ -1,3 +1,9 @@
+//! Driver for temperature and humidity sensors such as:
+//! - HTU21D
+//! - Si7021
+//!
+//! These sensors work over the I2C protocol.
+
 use super::EnvironmentSensor;
 use crate::{
     os_debug,
@@ -10,22 +16,31 @@ use pwmp_client::pwmp_msg::{
 };
 use std::{thread::sleep, time::Duration};
 
+/// Commands for HTU21D (and similar) sensors.
 #[derive(PartialEq, Clone, Copy)]
 #[repr(u8)]
 enum Command {
+    /// Request temperature reading
     ReadTemperature = 0xE3,
+
+    /// Request humidity reading
     ReadHumidity = 0xE5,
+
+    /// Reset the device
     Reset = 0xFE,
 }
 
+/// Driver handle for HTU21D (and similar) sensors.
 pub struct Htu<'s>(I2cDriver<'s>);
 
 impl<'s> Htu<'s> {
+    /// Known default address
     pub const DEV_ADDR: u8 = 0x40;
 
     const BUS_TIMEOUT: u32 = 1000;
     const CMD_WAIT_TIME: u64 = 50;
 
+    /// Initialize the driver with the given I2C driver handle.
     pub fn new_with_driver(driver: I2cDriver<'s>) -> Result<Self, OsError> {
         os_debug!("Loading driver");
         let mut dev = Self(driver);
@@ -35,6 +50,7 @@ impl<'s> Htu<'s> {
         Ok(dev)
     }
 
+    /// Send a command to the device.
     fn command(&mut self, cmd: Command) -> OsResult<u16> {
         let mut buffer = [0u8; 2];
 
@@ -50,6 +66,7 @@ impl<'s> Htu<'s> {
         Ok(((u16::from(buffer[0])) << 8) | (u16::from(buffer[1])))
     }
 
+    /// Calculate temperature in Celsius from the result measured by the sensor.
     fn calc_temperature(raw: u16) -> Temperature {
         // ((175.72 * raw) / 65536.0) - 46.85
         let mut temp = ((dec!(175.72) * (Decimal::from(raw))) / dec!(65536.0)) - dec!(46.85);
