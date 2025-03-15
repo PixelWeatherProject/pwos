@@ -23,6 +23,9 @@ use esp_idf_svc::{
 use pwmp_client::pwmp_msg::mac::Mac;
 use std::{thread::sleep, time::Duration};
 
+/// Maximum number of networks to scan
+pub const MAX_NET_SCAN: usize = 2;
+
 pub struct WiFi {
     driver: EspWifi<'static>,
     event_loop: EspEventLoop<System>,
@@ -67,10 +70,10 @@ impl WiFi {
         Ok(())
     }
 
-    pub fn scan<const MAXN: usize>(
+    pub fn scan(
         &mut self,
         timeout: Duration,
-    ) -> OsResult<heapless::Vec<AccessPointInfo, MAXN>> {
+    ) -> OsResult<heapless::Vec<AccessPointInfo, MAX_NET_SCAN>> {
         self.driver.start_scan(
             &ScanConfig {
                 bssid: None,

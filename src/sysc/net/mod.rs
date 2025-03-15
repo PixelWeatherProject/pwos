@@ -3,7 +3,7 @@ mod wifi;
 use esp_idf_svc::sys::{
     wifi_ps_type_t_WIFI_PS_MAX_MODEM, wifi_ps_type_t_WIFI_PS_MIN_MODEM, wifi_ps_type_t_WIFI_PS_NONE,
 };
-pub use wifi::WiFi;
+pub use wifi::{WiFi, MAX_NET_SCAN};
 
 #[allow(unused)]
 #[repr(u32)]

@@ -21,9 +21,6 @@ pub const STATIC_IP_CONFIG: Option<ClientSettings> = None;
 /// WiFi Connection timeout
 pub const WIFI_TIMEOUT: Duration = Duration::from_secs(10);
 
-/// Maximum number of networks to scan
-pub const MAX_NET_SCAN: usize = 4;
-
 /// PWMP server configuration
 pub const PWMP_SERVER: &str = "123.456.789.000:55300";
 

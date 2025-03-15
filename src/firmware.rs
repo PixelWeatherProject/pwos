@@ -1,11 +1,11 @@
 use crate::{
-    config::{AppConfig, MAX_NET_SCAN, PWMP_SERVER, WIFI_NETWORKS, WIFI_TIMEOUT},
+    config::{AppConfig, PWMP_SERVER, WIFI_NETWORKS, WIFI_TIMEOUT},
     os_debug, os_error, os_info, os_warn,
     sysc::{
         battery::{Battery, CRITICAL_VOLTAGE},
         ext_drivers::{AnySensor, EnvironmentSensor, Htu, MeasurementResults},
         ledctl::BoardLed,
-        net::{PowerSavingMode, WiFi},
+        net::{PowerSavingMode, WiFi, MAX_NET_SCAN},
         ota::{Ota, OtaHandle},
         power::{deep_sleep, get_reset_reason},
         usbctl, OsError, OsResult, ReportableError,
@@ -169,14 +169,14 @@ fn setup_wifi(
     os_debug!("Starting WiFi scan");
     #[cfg(debug_assertions)]
     let scan_start = std::time::Instant::now();
-    let mut networks = wifi.scan::<MAX_NET_SCAN>(Duration::from_secs(2))?;
+    let mut networks = wifi.scan(Duration::from_secs(2))?;
 
     #[cfg(debug_assertions)]
     {
         let network_names = networks
             .iter()
             .map(|net| net.ssid.as_str())
-            .collect::<heapless::Vec<&str, MAX_NET_SCAN>>();
+            .collect::<heapless::Vec<&str, { MAX_NET_SCAN }>>();
 
         os_debug!(
             "Found networks: {network_names:?} in {:.02?}",
