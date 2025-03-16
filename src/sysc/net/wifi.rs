@@ -24,7 +24,7 @@ use esp_idf_svc::{
     },
 };
 use pwmp_client::pwmp_msg::mac::Mac;
-use std::{thread::sleep, time::Duration};
+use std::{mem::MaybeUninit, time::Duration};
 
 /// Maximum number of networks to scan
 pub const MAX_NET_SCAN: usize = 2;
@@ -76,10 +76,7 @@ impl WiFi {
         Ok(())
     }
 
-    pub fn scan(
-        &mut self,
-        timeout: Duration,
-    ) -> OsResult<heapless::Vec<AccessPointInfo, MAX_NET_SCAN>> {
+    pub fn scan(&mut self) -> OsResult<heapless::Vec<AccessPointInfo, MAX_NET_SCAN>> {
         self.driver.start_scan(
             &ScanConfig {
                 bssid: None,
@@ -97,8 +94,31 @@ impl WiFi {
             false,
         )?;
 
-        sleep(timeout);
-        self.driver.stop_scan()?;
+        /*
+         * Since 2.4GHz WiFi has only 13 channels, and according to the above configuration, we'll only
+         * spend 120ms on every channel, we can determine how long we should wait at most.
+         *
+         * 13 * 120ms = 1560ms => 1.56s
+         */
+
+        // wait until scan is completed with the specified timeout
+        let scan_res = self.await_event::<WifiEvent, _, _>(
+            || self.driver.is_scan_done(),
+            // SAFETY: This value is never actually read.
+            |_| unsafe { MaybeUninit::<OsError>::zeroed().assume_init() },
+            Duration::from_millis(13 * 120), /* 13 channels, 120ms/channel */
+        );
+
+        // The scan may finish early, so we can handle that.
+        match scan_res {
+            Ok(()) => {
+                os_debug!("Scan finished early");
+            }
+            Err(.. /* NOTE: This value should never be read! */) => {
+                os_debug!("Scan exceeded timeout, force-stopping");
+                self.driver.stop_scan()?;
+            }
+        }
 
         Ok(self.driver.get_scan_result_n()?.0)
     }

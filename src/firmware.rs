@@ -19,7 +19,6 @@ use esp_idf_svc::{
     wifi::AccessPointInfo,
 };
 use pwmp_client::{ota::UpdateStatus, pwmp_msg::version::Version, PwmpClient};
-use std::time::Duration;
 
 #[allow(clippy::too_many_arguments, clippy::cognitive_complexity)]
 pub fn fw_main(
@@ -169,7 +168,7 @@ fn setup_wifi(
     os_debug!("Starting WiFi scan");
     #[cfg(debug_assertions)]
     let scan_start = std::time::Instant::now();
-    let mut networks = wifi.scan(Duration::from_secs(2))?;
+    let mut networks = wifi.scan()?;
 
     #[cfg(debug_assertions)]
     {
