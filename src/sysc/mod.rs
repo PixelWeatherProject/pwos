@@ -1,4 +1,5 @@
 pub mod battery;
+#[cfg(debug_assertions)]
 pub mod brownout;
 mod error;
 pub mod ext_drivers;
