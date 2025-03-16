@@ -94,7 +94,7 @@ impl EnvironmentSensor for Htu<'_> {
         let percentage = hum.floor().clamp(Decimal::ZERO, Decimal::ONE_HUNDRED);
 
         // SAFETY: The value of `percentage` is clamped between 0 and 100, which is a valid `u8`.
-        Ok(unsafe { u8::try_from(percentage).unwrap_unchecked() })
+        u8::try_from(percentage).map_err(|_| OsError::DecimalConversion)
     }
 
     fn read_air_pressure(&mut self) -> OsResult<Option<AirPressure>> {
