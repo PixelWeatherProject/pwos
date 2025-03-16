@@ -105,14 +105,11 @@ impl WiFi {
         );
 
         // The scan may finish early, so we can handle that.
-        match scan_res {
-            Ok(()) => {
-                os_debug!("Scan finished early");
-            }
-            Err(.. /* NOTE: This value should never be read! */) => {
-                os_debug!("Scan exceeded timeout, force-stopping");
-                self.driver.stop_scan()?;
-            }
+        if let Ok(()) = scan_res {
+            os_debug!("Scan finished early");
+        } else {
+            os_debug!("Scan exceeded timeout, force-stopping");
+            self.driver.stop_scan()?;
         }
 
         Ok(self.driver.get_scan_result_n()?.0)
