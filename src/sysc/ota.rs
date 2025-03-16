@@ -3,19 +3,19 @@ use crate::{os_debug, os_error, os_info, os_warn, sysc::OsError};
 use esp_idf_svc::ota::{EspOta, EspOtaUpdate, FirmwareInfo, SlotState};
 use pwmp_client::pwmp_msg::version::Version;
 use std::{
-    mem::MaybeUninit,
-    ops::{AddAssign, Deref, DerefMut},
+    ops::{Deref, DerefMut},
+    sync::atomic::{AtomicBool, AtomicU8, Ordering},
 };
 
 const MAX_FAILIURES: u8 = 3;
 
 /// Number of times the current firmware has failed.
-#[link_section = ".rtc_noinit"]
-static mut FAILIURES: MaybeUninit<u8> = MaybeUninit::uninit();
+#[link_section = ".rtc.data"]
+static FAILIURES: AtomicU8 = AtomicU8::new(0);
 
 /// Whether the last update has been reported back to the PWMP server.
-#[link_section = ".rtc_noinit"]
-static mut REPORTED: MaybeUninit<bool> = MaybeUninit::uninit();
+#[link_section = ".rtc.data"]
+static REPORTED: AtomicBool = AtomicBool::new(false);
 
 /// Over-the-Air updates handler.
 pub struct Ota(EspOta);
@@ -35,8 +35,7 @@ impl Ota {
 
     #[allow(clippy::unused_self)]
     pub fn mark_reported(&self) {
-        // SAFETY: This method is only called after an update has been performed. So `REPORTED` is initialized to `false`.
-        unsafe { REPORTED.write(true) };
+        REPORTED.store(true, Ordering::SeqCst);
     }
 
     pub fn report_needed(&self) -> OsResult<bool> {
@@ -46,8 +45,7 @@ impl Ota {
             return Ok(false);
         }
 
-        // SAFETY: This method is only called after an update has been performed. So `REPORTED` is initialized.
-        Ok(unsafe { !REPORTED.assume_init() })
+        Ok(!REPORTED.load(Ordering::SeqCst))
     }
 
     pub fn rollback_detected(&self) -> OsResult<bool> {
@@ -64,10 +62,7 @@ impl Ota {
             return Ok(());
         }
 
-        // SAFETY: This part can only be reached after an update has been performed. So `REPORTED` is initialized.
-        let fails = unsafe { FAILIURES.assume_init() };
-
-        if fails >= MAX_FAILIURES {
+        if FAILIURES.load(Ordering::SeqCst) >= MAX_FAILIURES {
             os_info!("Rolling back to previous version");
             self.0.mark_running_slot_invalid_and_reboot();
         }
@@ -80,11 +75,9 @@ impl Ota {
             return Ok(());
         }
 
-        // SAFETY: This part can only be reached after an update has been performed. So `REPORTED` is initialized.
-        let fail_count = unsafe { FAILIURES.assume_init_mut() };
-        fail_count.add_assign(1);
+        let counter = FAILIURES.fetch_add(1, Ordering::SeqCst) /* returns old value */ + 1;
+        os_warn!("Firmware has failed {}/{} times", counter, MAX_FAILIURES);
 
-        os_warn!("Firmware has failed {}/{} times", fail_count, MAX_FAILIURES);
         Ok(())
     }
 
@@ -179,10 +172,8 @@ impl Drop for OtaHandle<'_> {
         handle.flush().expect("Failed to flush OTA write");
         handle.complete().expect("Failed to complete update");
 
-        unsafe {
-            FAILIURES.write(0);
-            REPORTED.write(false);
-        }
+        FAILIURES.store(0, Ordering::SeqCst);
+        REPORTED.store(false, Ordering::SeqCst);
 
         // Null-safety of `self.0`:
         // The handle can never be used after this drop.
