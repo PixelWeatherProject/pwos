@@ -52,6 +52,14 @@ pub enum OsError {
     /// Invalid battery voltage result.
     #[error("Invalid battery voltage")]
     IllegalBatteryVoltage,
+
+    /// A buffer has been filled unexpectedly
+    #[error("A buffer capacity has been exceeded")]
+    UnexpectedBufferFailiure,
+
+    /// A value was `None`, when `Some(..)` was expected.
+    #[error("Unexpected NULL")]
+    UnexpectedNull,
 }
 
 /// Trait for non-fatal error types that can be "reported" to the console.
@@ -79,5 +87,14 @@ impl OsError {
             self,
             Self::WifiConnect(..) | Self::NoInternet | Self::PwmpError(..)
         )
+    }
+}
+
+mod macros {
+    #[macro_export]
+    macro_rules! null_check {
+        ($e: expr) => {
+            $e.ok_or($crate::OsError::UnexpectedNull)?
+        };
     }
 }
