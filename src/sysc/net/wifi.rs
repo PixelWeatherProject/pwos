@@ -223,8 +223,11 @@ impl WiFi {
         unsafe {
             buffer.push_str("pixelweather-node-").unwrap_unchecked(); // 18 chars
             buffer
-                .push_str(&format!("{last_two_bytes:02X?}"))
-                .unwrap_unchecked(); // max 4 characters
+                .push_str(&format!("{:02X?}", last_two_bytes[0]))
+                .unwrap_unchecked(); // max 2 chars
+            buffer
+                .push_str(&format!("{:02X?}", last_two_bytes[1]))
+                .unwrap_unchecked(); // max 2 chars
         }
 
         buffer
