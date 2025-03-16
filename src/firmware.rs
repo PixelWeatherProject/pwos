@@ -7,7 +7,7 @@ use crate::{
         ledctl::BoardLed,
         net::{PowerSavingMode, WiFi, MAX_NET_SCAN},
         ota::{Ota, OtaHandle},
-        power::{deep_sleep, get_reset_reason},
+        power::{deep_sleep, get_reset_reason, ResetReasonExt},
         usbctl, OsError, OsResult, ReportableError,
     },
     LAST_ERROR,
