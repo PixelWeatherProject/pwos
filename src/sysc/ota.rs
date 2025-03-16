@@ -145,29 +145,30 @@ impl<'h> Deref for OtaHandle<'h> {
     type Target = EspOtaUpdate<'h>;
 
     fn deref(&self) -> &Self::Target {
-        // SAFETY: Handle is always Some() at this point
-        unsafe { self.0.as_ref().unwrap_unchecked() }
+        self.0
+            .as_ref()
+            .ok_or(OsError::UnexpectedNull)
+            .expect("Unexpected NULL")
     }
 }
 
 impl DerefMut for OtaHandle<'_> {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        // SAFETY: Handle is always Some() at this point
-        unsafe { self.0.as_mut().unwrap_unchecked() }
+        self.0
+            .as_mut()
+            .ok_or(OsError::UnexpectedNull)
+            .expect("Unexpected NULL")
     }
 }
 
 #[allow(static_mut_refs)]
 impl Drop for OtaHandle<'_> {
     fn drop(&mut self) {
-        if self.0.is_none() {
+        let Some(mut handle) = self.0.take() else {
             return;
-        }
+        };
 
         os_debug!("Finalizing update");
-
-        // SAFETY: Handle is always Some() at this point
-        let mut handle = unsafe { self.0.take().unwrap_unchecked() };
 
         handle.flush().expect("Failed to flush OTA write");
         handle.complete().expect("Failed to complete update");
