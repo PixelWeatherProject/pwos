@@ -172,7 +172,7 @@ fn handle_panic(info: &PanicHookInfo) {
     os_error!(
         "Location: {}",
         info.location()
-            .map_or_else(|| "N/A".to_string(), |l| l.to_string())
+            .map_or_else(|| "N/A".to_string(), ToString::to_string)
     );
     os_error!("====================[PANIC]====================");
 }
