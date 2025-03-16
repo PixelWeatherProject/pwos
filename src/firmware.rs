@@ -15,7 +15,6 @@ use crate::{
 use esp_idf_svc::{
     eventloop::EspSystemEventLoop,
     hal::{i2c::I2cDriver, modem::Modem},
-    nvs::EspDefaultNvsPartition,
     wifi::AccessPointInfo,
 };
 use pwmp_client::{ota::UpdateStatus, pwmp_msg::version::Version, PwmpClient};
@@ -26,7 +25,6 @@ pub fn fw_main(
     i2c: I2cDriver,
     modem: Modem,
     sys_loop: EspSystemEventLoop,
-    nvs: EspDefaultNvsPartition,
     mut led: BoardLed,
     ota: &mut Ota,
     cfg: &mut AppConfig,
@@ -36,7 +34,7 @@ pub fn fw_main(
     }
 
     os_debug!("Starting WiFi setup");
-    let (wifi, ap) = setup_wifi(modem, sys_loop, nvs)?;
+    let (wifi, ap) = setup_wifi(modem, sys_loop)?;
     os_debug!("Connecting to PWMP");
     let mut pws = PwmpClient::new(PWMP_SERVER, wifi.get_mac()?, None, None, None)?;
 
@@ -139,13 +137,9 @@ pub fn fw_main(
     Ok(())
 }
 
-fn setup_wifi(
-    modem: Modem,
-    sys_loop: EspSystemEventLoop,
-    nvs: EspDefaultNvsPartition,
-) -> OsResult<(WiFi, AccessPointInfo)> {
+fn setup_wifi(modem: Modem, sys_loop: EspSystemEventLoop) -> OsResult<(WiFi, AccessPointInfo)> {
     os_debug!("Initializing WiFi");
-    let mut wifi = WiFi::new(modem, sys_loop, nvs)?;
+    let mut wifi = WiFi::new(modem, sys_loop)?;
 
     os_debug!("Disabling WiFi power saving");
     wifi.set_power_saving(PowerSavingMode::Off)?;

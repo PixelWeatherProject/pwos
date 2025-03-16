@@ -10,7 +10,6 @@ use esp_idf_svc::{
         peripherals::Peripherals,
         units::FromValueType,
     },
-    nvs::EspDefaultNvsPartition,
 };
 use std::{panic::PanicHookInfo, time::Instant};
 use sysc::{
@@ -72,9 +71,6 @@ fn main() {
     os_debug!("Initializing System Event Loop");
     let sys_loop = EspSystemEventLoop::take().expect("SEL init error");
 
-    os_debug!("Initializing NVS Storage");
-    let nvs = EspDefaultNvsPartition::take().expect("NVS init error");
-
     os_debug!("Initializing system LED");
     let led = BoardLed::new(
         gpio::number_to_io_pin(LED_BUILTIN, &mut peripherals).expect("Invalid LED pin"),
@@ -128,7 +124,6 @@ fn main() {
         i2c,
         peripherals.modem,
         sys_loop,
-        nvs,
         led,
         &mut ota,
         &mut appcfg,

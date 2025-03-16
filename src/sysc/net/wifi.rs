@@ -12,7 +12,6 @@ use esp_idf_svc::{
         DHCPClientSettings,
     },
     netif::{EspNetif, IpEvent, NetifConfiguration, NetifStack},
-    nvs::EspDefaultNvsPartition,
     sys::{
         esp, esp_wifi_set_country_code, esp_wifi_set_ps, esp_wifi_set_storage,
         wifi_storage_t_WIFI_STORAGE_RAM, EspError,
@@ -37,17 +36,15 @@ pub struct WiFi {
 #[allow(clippy::unused_self)]
 impl WiFi {
     #[allow(clippy::needless_pass_by_value)]
-    pub fn new(
-        modem: Modem,
-        sys_loop: EspSystemEventLoop,
-        nvs: EspDefaultNvsPartition,
-    ) -> OsResult<Self> {
-        let wifi = WifiDriver::new(modem, sys_loop.clone(), Some(nvs))?;
+    pub fn new(modem: Modem, sys_loop: EspSystemEventLoop) -> OsResult<Self> {
+        let wifi = WifiDriver::new(modem, sys_loop.clone(), None)?;
         let ip_config = if STATIC_IP_CONFIG.is_some() {
             Self::generate_static_ip_config()
         } else {
             Self::generate_dhcp_config(&wifi)
         };
+
+        esp!(unsafe { esp_wifi_set_storage(wifi_storage_t_WIFI_STORAGE_RAM) })?;
 
         os_debug!("Configuring WiFi interface");
         let mut wifi = EspWifi::wrap_all(
@@ -56,8 +53,6 @@ impl WiFi {
             EspNetif::new(NetifStack::Ap)?,
         )?;
         wifi.set_configuration(&Configuration::Client(ClientConfiguration::default()))?;
-
-        esp!(unsafe { esp_wifi_set_storage(wifi_storage_t_WIFI_STORAGE_RAM) })?;
 
         os_debug!("Starting WiFi interface");
         wifi.start()?;
