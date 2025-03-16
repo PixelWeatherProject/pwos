@@ -105,7 +105,7 @@ impl WiFi {
         );
 
         // The scan may finish early, so we can handle that.
-        if let Ok(()) = scan_res {
+        if matches!(scan_res, Ok(())) {
             os_debug!("Scan finished early");
         } else {
             os_debug!("Scan exceeded timeout, force-stopping");
