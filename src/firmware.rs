@@ -181,7 +181,7 @@ fn setup_wifi(modem: Modem, sys_loop: EspSystemEventLoop) -> OsResult<(WiFi, Acc
         let psk = null_check!(WIFI_NETWORKS
             .iter()
             .find(|entry| entry.0 == ap.ssid)
-            .map(|e| e.0));
+            .map(|e| e.1));
 
         #[cfg(debug_assertions)]
         let start = std::time::Instant::now();
