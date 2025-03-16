@@ -1,6 +1,6 @@
 use super::PowerSavingMode;
 use crate::{
-    config::STATIC_IP_CONFIG,
+    config::{STATIC_IP_CONFIG, WIFI_COUNTRY_CODE},
     os_debug,
     sysc::{OsError, OsResult, ReportableError},
 };
@@ -13,7 +13,10 @@ use esp_idf_svc::{
     },
     netif::{EspNetif, IpEvent, NetifConfiguration, NetifStack},
     nvs::EspDefaultNvsPartition,
-    sys::{esp, esp_wifi_set_ps, esp_wifi_set_storage, wifi_storage_t_WIFI_STORAGE_RAM, EspError},
+    sys::{
+        esp, esp_wifi_set_country_code, esp_wifi_set_ps, esp_wifi_set_storage,
+        wifi_storage_t_WIFI_STORAGE_RAM, EspError,
+    },
     wifi::{
         config::{ScanConfig, ScanType},
         AccessPointInfo, AuthMethod, ClientConfiguration, Configuration, EspWifi, WifiDeviceId,
@@ -58,6 +61,9 @@ impl WiFi {
 
         os_debug!("Starting WiFi interface");
         wifi.start()?;
+
+        os_debug!("Setting country code");
+        esp!(unsafe { esp_wifi_set_country_code(WIFI_COUNTRY_CODE.as_ptr().cast(), true) })?;
 
         Ok(Self {
             driver: wifi,
