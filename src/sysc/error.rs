@@ -89,12 +89,3 @@ impl OsError {
         )
     }
 }
-
-mod macros {
-    #[macro_export]
-    macro_rules! null_check {
-        ($e: expr) => {
-            $e.ok_or($crate::OsError::UnexpectedNull)?
-        };
-    }
-}
