@@ -1,7 +1,7 @@
 //! A driver for reading the battery supply voltage using the node's ADC.
 
 use super::{OsError, OsResult};
-use crate::{os_debug, os_error};
+use crate::{os_debug, os_error, os_warn};
 use esp_idf_svc::{
     hal::{
         adc::{
@@ -72,7 +72,7 @@ impl Battery {
         let mut result = (volts * (R1 + R2)) / (R2);
 
         if result > MAX_VOLTAGE || result < MIN_VOLTAGE {
-            os_debug!("Abnormal battery voltage result, attempting fix");
+            os_warn!("Abnormal battery voltage result, attempting fix");
 
             // swap R1 and R2
             result = (volts * (R2 + R1)) / (R1);
