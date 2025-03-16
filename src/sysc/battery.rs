@@ -42,6 +42,8 @@ const CONFIG: AdcChannelConfig = AdcChannelConfig {
 };
 /// Maximum voltage we expect
 const MAX_VOLTAGE: Decimal = dec!(5.00);
+/// Minimum voltage we expect
+const MIN_VOLTAGE: Decimal = dec!(2.80);
 /// Critical voltage value that's still higher than the minimum supply voltage for the ESP32
 pub const CRITICAL_VOLTAGE: Decimal = dec!(2.70);
 
@@ -69,7 +71,7 @@ impl Battery {
         let volts = Decimal::from(self.adc.raw_to_mv(&self.ch, raw)?) / dec!(1000);
         let mut result = (volts * (R1 + R2)) / (R2);
 
-        if result > MAX_VOLTAGE {
+        if result > MAX_VOLTAGE || result < MIN_VOLTAGE {
             os_debug!("Abnormal battery voltage result, attempting fix");
 
             // swap R1 and R2
