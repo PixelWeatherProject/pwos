@@ -1,6 +1,6 @@
 use crate::{
     config::{AppConfig, PWMP_SERVER, WIFI_NETWORKS, WIFI_TIMEOUT},
-    os_debug, os_error, os_info, os_warn,
+    null_check, os_debug, os_error, os_info, os_warn,
     sysc::{
         battery::{Battery, CRITICAL_VOLTAGE},
         ext_drivers::{AnySensor, EnvironmentSensor, Htu, MeasurementResults},
@@ -178,15 +178,10 @@ fn setup_wifi(modem: Modem, sys_loop: EspSystemEventLoop) -> OsResult<(WiFi, Acc
 
     for ap in networks {
         os_debug!("Connecting to {} ({}dBm)", ap.ssid, ap.signal_strength);
-
-        // SAFETY: Unknown APs are filtered out, so `find` will always return something.
-        let psk = unsafe {
-            WIFI_NETWORKS
-                .iter()
-                .find(|entry| entry.0 == ap.ssid)
-                .unwrap_unchecked()
-                .1
-        };
+        let psk = null_check!(WIFI_NETWORKS
+            .iter()
+            .find(|entry| entry.0 == ap.ssid)
+            .map(|e| e.0));
 
         #[cfg(debug_assertions)]
         let start = std::time::Instant::now();
