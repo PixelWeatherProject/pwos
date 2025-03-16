@@ -1,7 +1,7 @@
 pub use super::PowerSavingMode;
 use crate::{
     config::{STATIC_IP_CONFIG, WIFI_COUNTRY_CODE},
-    os_debug,
+    null_check, os_debug,
     sysc::{OsError, OsResult, ReportableError},
 };
 use esp_idf_svc::{
@@ -42,7 +42,7 @@ impl WiFi {
             Self::generate_static_ip_config()
         } else {
             Self::generate_dhcp_config(&wifi)
-        };
+        }?;
 
         esp!(unsafe { esp_wifi_set_storage(wifi_storage_t_WIFI_STORAGE_RAM) })?;
 
@@ -122,18 +122,10 @@ impl WiFi {
         auth: AuthMethod,
         timeout: Duration,
     ) -> OsResult<()> {
-        if ssid.len() > 32 {
-            return Err(OsError::SsidTooLong);
-        }
-
-        if psk.len() > 64 {
-            return Err(OsError::PskTooLong);
-        }
-
         self.driver
             .set_configuration(&Configuration::Client(ClientConfiguration {
-                ssid: unsafe { ssid.try_into().unwrap_unchecked() },
-                password: unsafe { psk.try_into().unwrap_unchecked() },
+                ssid: ssid.try_into().map_err(|_| OsError::SsidTooLong)?,
+                password: psk.try_into().map_err(|_| OsError::PskTooLong)?,
                 auth_method: auth,
                 ..Default::default()
             }))?;
@@ -186,43 +178,38 @@ impl WiFi {
         self.driver.is_connected().unwrap_or(false)
     }
 
-    fn generate_dhcp_config(wifi_driver: &WifiDriver) -> NetifConfiguration {
-        NetifConfiguration {
+    fn generate_dhcp_config(wifi_driver: &WifiDriver) -> OsResult<NetifConfiguration> {
+        Ok(NetifConfiguration {
             ip_configuration: Some(IpConfiguration::Client(IpClientConfiguration::DHCP(
                 DHCPClientSettings {
-                    hostname: Some(Self::generate_hostname(wifi_driver)),
+                    hostname: Some(Self::generate_hostname(wifi_driver)?),
                 },
             ))),
             ..NetifConfiguration::wifi_default_client()
-        }
+        })
     }
 
-    fn generate_static_ip_config() -> NetifConfiguration {
-        NetifConfiguration {
+    fn generate_static_ip_config() -> OsResult<NetifConfiguration> {
+        Ok(NetifConfiguration {
             ip_configuration: Some(IpConfiguration::Client(IpClientConfiguration::Fixed(
-                unsafe { STATIC_IP_CONFIG.unwrap_unchecked() },
+                null_check!(STATIC_IP_CONFIG),
             ))),
 
             ..NetifConfiguration::wifi_default_client()
-        }
+        })
     }
 
-    fn generate_hostname(wifi_driver: &WifiDriver) -> heapless::String<30> {
+    fn generate_hostname(wifi_driver: &WifiDriver) -> OsResult<heapless::String<30>> {
         let mut buffer = heapless::String::new();
         let last_two_bytes = &wifi_driver.get_mac(WifiDeviceId::Sta).unwrap_or_default()[4..6];
 
-        // SAFETY: This is less than 30 characters, so it will always fit.
-        unsafe {
-            buffer.push_str("pixelweather-node-").unwrap_unchecked(); // 18 chars
-            buffer
-                .push_str(&format!("{:02X?}", last_two_bytes[0]))
-                .unwrap_unchecked(); // max 2 chars
-            buffer
-                .push_str(&format!("{:02X?}", last_two_bytes[1]))
-                .unwrap_unchecked(); // max 2 chars
-        }
-
         buffer
+            .push_str("pixelweather-node-")
+            .and_then(|_| buffer.push_str(&format!("{:02X?}", last_two_bytes[0])))
+            .and_then(|_| buffer.push_str(&format!("{:02X?}", last_two_bytes[1])))
+            .map_err(|_| OsError::UnexpectedBufferFailiure)?;
+
+        Ok(buffer)
     }
 }
 
