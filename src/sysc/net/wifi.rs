@@ -85,7 +85,13 @@ impl WiFi {
                 bssid: None,
                 ssid: None,
                 channel: None,
-                scan_type: ScanType::Passive(timeout),
+                scan_type: ScanType::Active {
+                    /* This means that the device will wait 120ms on every channel.
+                     * Refer to: https://docs.espressif.com/projects/esp-idf/en/v5.3.2/esp32s3/api-guides/wifi.html#scan-configuration
+                     */
+                    min: Duration::ZERO,
+                    max: Duration::ZERO,
+                },
                 show_hidden: false,
             },
             false,
