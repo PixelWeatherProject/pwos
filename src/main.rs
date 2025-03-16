@@ -12,14 +12,14 @@ use esp_idf_svc::{
     },
     nvs::EspDefaultNvsPartition,
 };
-use std::{fmt::Write, panic::PanicHookInfo, time::Instant};
+use std::{panic::PanicHookInfo, time::Instant};
 use sysc::{
     battery::Battery,
     gpio,
     ledctl::BoardLed,
     logging::OsLogger,
     ota::Ota,
-    power::{self, deep_sleep, fake_sleep, ResetReason},
+    power::{deep_sleep, fake_sleep},
     usbctl, OsError,
 };
 
@@ -33,13 +33,6 @@ mod sysc;
 /// This variable is not preserved when the node is connected to a PC for an unknown reason.
 #[link_section = ".rtc.data"]
 static mut LAST_ERROR: Option<OsError> = Option::None;
-
-/// Storage for a panic message that may have occurred during a previous run.
-///
-/// ## Note
-/// This variable is not preserved when the node is connected to a PC for an unknown reason.
-#[link_section = ".rtc.data"]
-static mut LAST_PANIC: Option<heapless::String<128>> = Option::None;
 
 #[allow(clippy::cognitive_complexity, clippy::too_many_lines)]
 fn main() {
@@ -86,10 +79,6 @@ fn main() {
     let led = BoardLed::new(
         gpio::number_to_io_pin(LED_BUILTIN, &mut peripherals).expect("Invalid LED pin"),
     );
-
-    if power::get_reset_reason() == ResetReason::PowerOn {
-        unsafe { LAST_PANIC = None };
-    }
 
     os_debug!("Setting panic handle");
     std::panic::set_hook(Box::new(handle_panic));
@@ -180,15 +169,7 @@ fn main() {
 }
 
 fn handle_panic(info: &PanicHookInfo) {
-    let mut heapless_str = heapless::String::<128>::new();
     let payload = info.payload_as_str().unwrap_or("N/A");
-
-    let _ = write!(heapless_str, "{payload}",).or_else(|_| {
-        // If the payload is too long, just write a static string there.
-        heapless_str.clear();
-        write!(heapless_str, "[too long]")
-    });
-    unsafe { LAST_PANIC = Some(heapless_str) };
 
     os_error!("====================[PANIC]====================");
     os_error!("Firmware paniced!");
