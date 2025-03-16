@@ -1,3 +1,4 @@
+use super::OsResult;
 use crate::config::LED_BUILTIN_INVERT;
 use esp_idf_svc::hal::gpio::{AnyIOPin, Output, PinDriver};
 
@@ -6,11 +7,11 @@ type LedDriver = PinDriver<'static, AnyIOPin, Output>;
 pub struct BoardLed(LedDriver);
 
 impl BoardLed {
-    pub fn new(pin: AnyIOPin) -> Self {
-        let mut i = Self(unsafe { PinDriver::output(pin).unwrap_unchecked() });
+    pub fn new(pin: AnyIOPin) -> OsResult<Self> {
+        let mut i = Self(PinDriver::output(pin)?);
         i.on();
 
-        i
+        Ok(i)
     }
 
     // On/Off operations are usually not failable, but errors are not fatal either.

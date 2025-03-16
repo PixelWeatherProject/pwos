@@ -74,7 +74,8 @@ fn main() {
     os_debug!("Initializing system LED");
     let led = BoardLed::new(
         gpio::number_to_io_pin(LED_BUILTIN, &mut peripherals).expect("Invalid LED pin"),
-    );
+    )
+    .expect("Failed to set up onboard LED");
 
     os_debug!("Setting panic handle");
     std::panic::set_hook(Box::new(handle_panic));
