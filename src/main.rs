@@ -38,7 +38,7 @@ static mut LAST_ERROR: Option<OsError> = Option::None;
 ///
 /// ## Note
 /// This variable is not preserved when the node is connected to a PC for an unknown reason.
-#[link_section = ".rtc_noinit"]
+#[link_section = ".rtc.data"]
 static mut LAST_PANIC: Option<heapless::String<128>> = Option::None;
 
 #[allow(clippy::cognitive_complexity, clippy::too_many_lines)]
