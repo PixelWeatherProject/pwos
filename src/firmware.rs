@@ -5,7 +5,7 @@ use crate::{
         battery::{Battery, CRITICAL_VOLTAGE},
         ext_drivers::{AnySensor, EnvironmentSensor, Htu, MeasurementResults},
         ledctl::BoardLed,
-        net::{PowerSavingMode, WiFi, MAX_NET_SCAN},
+        net::wifi::{PowerSavingMode, WiFi},
         ota::{Ota, OtaHandle},
         power::{deep_sleep, get_reset_reason, ResetReasonExt},
         usbctl, OsError, OsResult, ReportableError,
@@ -151,6 +151,8 @@ fn setup_wifi(modem: Modem, sys_loop: EspSystemEventLoop) -> OsResult<(WiFi, Acc
 
     #[cfg(debug_assertions)]
     {
+        use crate::sysc::net::wifi::MAX_NET_SCAN;
+
         let network_names = networks
             .iter()
             .map(|net| net.ssid.as_str())

@@ -1,4 +1,4 @@
-use super::PowerSavingMode;
+pub use super::PowerSavingMode;
 use crate::{
     config::{STATIC_IP_CONFIG, WIFI_COUNTRY_CODE},
     os_debug,
