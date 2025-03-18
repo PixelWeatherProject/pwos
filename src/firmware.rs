@@ -15,9 +15,14 @@ use crate::{
 use esp_idf_svc::{
     eventloop::EspSystemEventLoop,
     hal::{i2c::I2cDriver, modem::Modem},
+    sys::esp_random,
     wifi::AccessPointInfo,
 };
-use pwmp_client::{ota::UpdateStatus, pwmp_msg::version::Version, PwmpClient};
+use pwmp_client::{
+    ota::UpdateStatus,
+    pwmp_msg::{version::Version, MsgId},
+    PwmpClient,
+};
 
 #[allow(clippy::too_many_arguments, clippy::cognitive_complexity)]
 pub fn fw_main(
@@ -36,8 +41,12 @@ pub fn fw_main(
     os_debug!("Starting WiFi setup");
     let (wifi, ap) = setup_wifi(modem, sys_loop)?;
     os_debug!("Connecting to PWMP");
-    let mut pws = PwmpClient::new(PWMP_SERVER, wifi.get_mac()?, None, None, None)?;
+    let mut pws = PwmpClient::new(PWMP_SERVER, &pwmp_msg_id_rng, None, None, None)?;
 
+    os_debug!("Sending handshake request");
+    pws.perform_handshake(wifi.get_mac()?)?;
+
+    os_debug!("Requesting app configuration");
     read_appcfg(&mut pws, cfg)?;
 
     let bat_voltage = battery.read(16)?;
@@ -282,4 +291,8 @@ fn begin_update(pws: &mut PwmpClient, handle: &mut OtaHandle) -> OsResult<()> {
     }
 
     Ok(())
+}
+
+fn pwmp_msg_id_rng() -> MsgId {
+    unsafe { esp_random() }
 }

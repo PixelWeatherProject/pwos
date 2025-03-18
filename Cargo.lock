@@ -53,6 +53,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dcfed56ad506cb2c684a14971b8861fdc3baaaae314b9e5f9bb532cbe3ba7a4f"
 
 [[package]]
+name = "arrayref"
+version = "0.3.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "76a2e8124351fda1ef8aaaa3bbd7ebbcb486bbcd4225aca0aa0d84bb2db8fecb"
+
+[[package]]
 name = "arrayvec"
 version = "0.7.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1188,16 +1194,18 @@ dependencies = [
 [[package]]
 name = "pwmp-client"
 version = "2.0.3"
-source = "git+ssh://git@github.com/PixelWeatherProject/pwmp-client.git?tag=v2.0.3#a1efa5b1de26c6c89e6707899e23a9fbd4087df2"
+source = "git+ssh://git@github.com/PixelWeatherProject/pwmp-client.git?branch=extended-api#485e6f4edee8c2a9b0f4c84132e3bcc81262a163"
 dependencies = [
+ "arrayref",
  "pwmp-msg",
+ "socket2",
  "thiserror 2.0.12",
 ]
 
 [[package]]
 name = "pwmp-msg"
 version = "2.0.1"
-source = "git+https://github.com/PixelWeatherProject/pwmp-msg?tag=v2.0.1#898a51e8cd753a0d7a76d28f3ac1de17773e231c"
+source = "git+https://github.com/PixelWeatherProject/pwmp-msg?branch=extended#ce3b97589ee96daf31f0af10e9d7763d7ad0afc1"
 dependencies = [
  "postcard",
  "rust_decimal",
@@ -1489,6 +1497,16 @@ name = "simdutf8"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e3a9fe34e3e7a50316060351f37187a3f546bce95496156754b601a5fa71b76e"
+
+[[package]]
+name = "socket2"
+version = "0.5.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c970269d99b64e60ec3bd6ad27270092a5394c4e309314b18ae3fe575695fbe8"
+dependencies = [
+ "libc",
+ "windows-sys 0.52.0",
+]
 
 [[package]]
 name = "stable_deref_trait"
