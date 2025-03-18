@@ -64,9 +64,15 @@ The project currently only supports the ESP32. There are no plans to support any
 
 ## Power
 Consumption measurements:
-| **Board** | **Sensor** | **Test voltage** | **Running** | **Sleeping** | **Peak** | **Notes** |
-| --------- | ---------- | ---------------- | ----------- | ------------ | -------- | --------- |
-| N/A       | N/A        | N/A              | N/A         | N/A          | N/A      | N/A       |
+| **Board**        | **Sensor**      | **Test voltage** | **Running** | **Sleeping** | **Peak** | **Notes** |
+| ---------------- | --------------- | ---------------- | ----------- | ------------ | -------- | --------- |
+| LILYGO T7S3 v1.2 | Adafruit Si7021 | 5V* (USB)        | ~140mA      | 0.75mA       | N/A      | N/A       |
+
+<details>
+  <summary>Notes</summary>
+  
+  - `*`: There seems to be a large voltage drop from the USB connector. The measured voltage on the 5V was *4.352V*.
+</details>
 
 Battery life measurements:
 | **Board** | **Sensor** | **Battery model** | **Capacity** | **Environment** | **Sleep time** | **Time** |
