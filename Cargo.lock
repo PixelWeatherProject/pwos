@@ -951,9 +951,9 @@ dependencies = [
 
 [[package]]
 name = "libc"
-version = "0.2.170"
+version = "0.2.171"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "875b3680cb2f8f71bdcf9a30f38d48282f5d3c95cbf9b3fa57269bb5d5c06828"
+checksum = "c19937216e9d3aa9956d9bb8dfc0b0c8beb6058fc4f7a4dc4d850edf86a237d6"
 
 [[package]]
 name = "libloading"
@@ -1194,11 +1194,10 @@ dependencies = [
 [[package]]
 name = "pwmp-client"
 version = "2.0.3"
-source = "git+ssh://git@github.com/PixelWeatherProject/pwmp-client.git?branch=extended-api#485e6f4edee8c2a9b0f4c84132e3bcc81262a163"
 dependencies = [
  "arrayref",
+ "libc",
  "pwmp-msg",
- "socket2",
  "thiserror 2.0.12",
 ]
 
@@ -1497,16 +1496,6 @@ name = "simdutf8"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e3a9fe34e3e7a50316060351f37187a3f546bce95496156754b601a5fa71b76e"
-
-[[package]]
-name = "socket2"
-version = "0.5.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c970269d99b64e60ec3bd6ad27270092a5394c4e309314b18ae3fe575695fbe8"
-dependencies = [
- "libc",
- "windows-sys 0.52.0",
-]
 
 [[package]]
 name = "stable_deref_trait"

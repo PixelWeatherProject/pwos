@@ -58,3 +58,9 @@ CONFIG_BROWNOUT_DET_LVL_SEL_0=y
 # https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-guides/performance/speed.html
 CONFIG_ESPTOOLPY_FLASHFREQ=80
 CONFIG_ESPTOOLPY_FLASHFREQ_80M=y
+
+# Enable support for SO_LINGER option.
+CONFIG_LWIP_SO_LINGER=y
+
+# Try to restore last DHCP IP
+CONFIG_LWIP_DHCP_RESTORE_LAST_IP=y
