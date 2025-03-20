@@ -97,12 +97,18 @@ impl WiFi {
          * 13 * T = TOTAL SCAN DURATION
          */
 
+        let wait_time = (if CHANNEL_SCAN_WAIT_TIME.is_zero() {
+            Duration::from_millis(120)
+        } else {
+            CHANNEL_SCAN_WAIT_TIME
+        }) * 13;
+
         // wait until scan is completed with the specified timeout
         let scan_res = self.await_event::<WifiEvent, _, _>(
             || self.driver.is_scan_done(),
             // SAFETY: This value is never actually read.
             |_| unsafe { MaybeUninit::<OsError>::zeroed().assume_init() },
-            CHANNEL_SCAN_WAIT_TIME * 13, /* 13 channels */
+            wait_time,
         );
 
         // The scan may finish early, so we can handle that.
