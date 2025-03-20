@@ -28,9 +28,9 @@ use std::{mem::MaybeUninit, time::Duration};
 /// Maximum number of networks to scan
 pub const MAX_NET_SCAN: usize = 2;
 
-/// How long should the device scan a single WiFi channel.
+/// How long should the device scan a single Wi-Fi channel.
 /// 120ms is the default in ESP-IDF.
-/// Refer to: https://docs.espressif.com/projects/esp-idf/en/v5.3.2/esp32s3/api-guides/wifi.html#scan-configuration
+/// Refer to: <https://docs.espressif.com/projects/esp-idf/en/v5.3.2/esp32s3/api-guides/wifi.html#scan-configuration>
 const CHANNEL_SCAN_WAIT_TIME: Duration = Duration::from_millis(120);
 
 pub struct WiFi {
@@ -40,7 +40,6 @@ pub struct WiFi {
 
 #[allow(clippy::unused_self)]
 impl WiFi {
-    #[allow(clippy::needless_pass_by_value)]
     pub fn new(modem: Modem, sys_loop: EspSystemEventLoop) -> OsResult<Self> {
         let wifi = WifiDriver::new(modem, sys_loop.clone(), None)?;
         let ip_config = if STATIC_IP_CONFIG.is_some() {
@@ -126,8 +125,8 @@ impl WiFi {
     ) -> OsResult<()> {
         self.driver
             .set_configuration(&Configuration::Client(ClientConfiguration {
-                ssid: ssid.try_into().map_err(|_| OsError::SsidTooLong)?,
-                password: psk.try_into().map_err(|_| OsError::PskTooLong)?,
+                ssid: ssid.try_into().map_err(|()| OsError::SsidTooLong)?,
+                password: psk.try_into().map_err(|()| OsError::PskTooLong)?,
                 auth_method: auth,
                 ..Default::default()
             }))?;
@@ -207,9 +206,9 @@ impl WiFi {
 
         buffer
             .push_str("pixelweather-node-")
-            .and_then(|_| buffer.push_str(&format!("{:02X?}", last_two_bytes[0])))
-            .and_then(|_| buffer.push_str(&format!("{:02X?}", last_two_bytes[1])))
-            .map_err(|_| OsError::UnexpectedBufferFailiure)?;
+            .and_then(|()| buffer.push_str(&format!("{:02X?}", last_two_bytes[0])))
+            .and_then(|()| buffer.push_str(&format!("{:02X?}", last_two_bytes[1])))
+            .map_err(|()| OsError::UnexpectedBufferFailiure)?;
 
         Ok(buffer)
     }
