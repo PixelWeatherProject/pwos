@@ -28,6 +28,11 @@ use std::{mem::MaybeUninit, time::Duration};
 /// Maximum number of networks to scan
 pub const MAX_NET_SCAN: usize = 2;
 
+/// How long should the device scan a single WiFi channel.
+/// 120ms is the default in ESP-IDF.
+/// Refer to: https://docs.espressif.com/projects/esp-idf/en/v5.3.2/esp32s3/api-guides/wifi.html#scan-configuration
+const CHANNEL_SCAN_WAIT_TIME: Duration = Duration::from_millis(120);
+
 pub struct WiFi {
     driver: EspWifi<'static>,
     event_loop: EspEventLoop<System>,
@@ -78,11 +83,8 @@ impl WiFi {
                 ssid: None,
                 channel: None,
                 scan_type: ScanType::Active {
-                    /* This means that the device will wait 120ms on every channel.
-                     * Refer to: https://docs.espressif.com/projects/esp-idf/en/v5.3.2/esp32s3/api-guides/wifi.html#scan-configuration
-                     */
-                    min: Duration::ZERO,
-                    max: Duration::ZERO,
+                    min: CHANNEL_SCAN_WAIT_TIME,
+                    max: CHANNEL_SCAN_WAIT_TIME,
                 },
                 show_hidden: false,
             },
@@ -91,9 +93,9 @@ impl WiFi {
 
         /*
          * Since 2.4GHz WiFi has only 13 channels, and according to the above configuration, we'll only
-         * spend 120ms on every channel, we can determine how long we should wait at most.
+         * spend T amount of time on every channel, we can determine how long we should wait at most.
          *
-         * 13 * 120ms = 1560ms => 1.56s
+         * 13 * T = TOTAL SCAN DURATION
          */
 
         // wait until scan is completed with the specified timeout
@@ -101,7 +103,7 @@ impl WiFi {
             || self.driver.is_scan_done(),
             // SAFETY: This value is never actually read.
             |_| unsafe { MaybeUninit::<OsError>::zeroed().assume_init() },
-            Duration::from_millis(13 * 120), /* 13 channels, 120ms/channel */
+            CHANNEL_SCAN_WAIT_TIME * 13, /* 13 channels */
         );
 
         // The scan may finish early, so we can handle that.
