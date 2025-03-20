@@ -30,8 +30,7 @@ esp-idf-svc = { version = "0.51.0", default-features = false, features = [
     "alloc",
     "binstart",
 ] }
-#pwmp-client = { git = "ssh://git@github.com/PixelWeatherProject/pwmp-client.git", branch = "extended-api" }
-pwmp-client = { path = "/home/br0kenpixel/Documents/C Projects/Rust/pwmp-new-stack/pwmp-client" }
+pwmp-client = { git = "ssh://git@github.com/PixelWeatherProject/pwmp-client.git", tag = "v2.1.0" }
 log = { version = "0.4", default-features = false, features = ["release_max_level_info", "max_level_debug"] }
 thiserror = "2.0.11"
 heapless = "0.8.0"
