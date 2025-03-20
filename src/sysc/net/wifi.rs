@@ -31,7 +31,7 @@ pub const MAX_NET_SCAN: usize = 2;
 /// How long should the device scan a single Wi-Fi channel.
 /// 120ms is the default in ESP-IDF.
 /// Refer to: <https://docs.espressif.com/projects/esp-idf/en/v5.3.2/esp32s3/api-guides/wifi.html#scan-configuration>
-const CHANNEL_SCAN_WAIT_TIME: Duration = Duration::from_millis(120);
+const CHANNEL_SCAN_WAIT_TIME: Duration = Duration::from_millis(240);
 
 pub struct WiFi {
     driver: EspWifi<'static>,
