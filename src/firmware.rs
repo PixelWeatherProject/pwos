@@ -1,41 +1,58 @@
 use crate::{
-    config::{AppConfig, MAX_NET_SCAN, PWMP_SERVER, WIFI_NETWORKS, WIFI_TIMEOUT},
-    os_debug, os_error, os_info, os_warn,
+    config::{AppConfig, PWMP_SERVER, WIFI_NETWORKS, WIFI_TIMEOUT},
+    null_check, os_debug, os_error, os_info, os_warn,
     sysc::{
         battery::{Battery, CRITICAL_VOLTAGE},
-        drivers::{AnySensor, EnvironmentSensor, Htu, MeasurementResults},
+        ext_drivers::{AnySensor, EnvironmentSensor, Htu, MeasurementResults},
         ledctl::BoardLed,
-        net::{PowerSavingMode, WiFi},
-        sleep::deep_sleep,
-        OsError, OsResult, ReportableError,
+        net::wifi::{PowerSavingMode, WiFi},
+        ota::{Ota, OtaHandle},
+        power::{deep_sleep, get_reset_reason, ResetReasonExt},
+        usbctl, OsError, OsResult, ReportableError,
     },
+    LAST_ERROR,
 };
 use esp_idf_svc::{
     eventloop::EspSystemEventLoop,
     hal::{i2c::I2cDriver, modem::Modem},
-    nvs::EspDefaultNvsPartition,
-    wifi::{AccessPointInfo, AuthMethod},
+    sys::esp_random,
+    wifi::AccessPointInfo,
 };
-use pwmp_client::PwmpClient;
-use std::time::Duration;
-#[cfg(debug_assertions)]
-use std::time::Instant;
+use pwmp_client::{
+    ota::UpdateStatus,
+    pwmp_msg::{version::Version, MsgId},
+    PwmpClient,
+};
 
+#[allow(clippy::too_many_arguments, clippy::cognitive_complexity)]
 pub fn fw_main(
     mut battery: Battery,
     i2c: I2cDriver,
     modem: Modem,
     sys_loop: EspSystemEventLoop,
-    nvs: EspDefaultNvsPartition,
     mut led: BoardLed,
+    ota: &mut Ota,
     cfg: &mut AppConfig,
 ) -> OsResult<()> {
-    let (wifi, ap) = setup_wifi(modem, sys_loop, nvs)?;
-    let mut pws = PwmpClient::new(PWMP_SERVER, wifi.get_mac()?)?;
+    if !ota.current_verified()? {
+        os_warn!("Running unverified firmware");
+    }
 
+    os_debug!("Starting WiFi setup");
+    let (wifi, ap) = setup_wifi(modem, sys_loop)?;
+    os_debug!("Connecting to PWMP");
+    let mut pws = PwmpClient::new(PWMP_SERVER, &pwmp_msg_id_rng, None, None, None)?;
+
+    os_debug!("Sending handshake request");
+    pws.perform_handshake(wifi.get_mac()?)?;
+
+    os_debug!("Requesting app configuration");
     read_appcfg(&mut pws, cfg)?;
 
-    let bat_voltage = battery.read_voltage(4)?;
+    let bat_voltage = battery.read(16)?;
+    if usbctl::is_connected() {
+        os_warn!("Battery voltage measurement may be affected by USB power");
+    }
     os_info!("Battery: {bat_voltage}V");
 
     if (bat_voltage <= CRITICAL_VOLTAGE) && cfg.sbop {
@@ -57,6 +74,71 @@ pub fn fw_main(
     os_debug!("Posting stats");
     pws.post_stats(bat_voltage, &ap.ssid, ap.signal_strength)?;
 
+    let reset_reason = get_reset_reason();
+    if reset_reason.is_abnormal() {
+        os_warn!("Detected abnormal reset reason: {reset_reason:?}");
+
+        pws.send_notification(format!(
+            "Detected abnormal reset reason: {:?}",
+            get_reset_reason()
+        ))
+        .report("Failed to report abnormal reset reason");
+    } else {
+        os_debug!("Reset reason ({reset_reason:?}) is normal");
+    }
+
+    // SAFETY: Since this program is not multithreaded, this will always be safe.
+    #[allow(static_mut_refs)]
+    if let Some(error) = unsafe {
+        LAST_ERROR.take() /* also clears the Option */
+    } {
+        os_info!("Reporting error from previous run");
+
+        pws.send_notification(format!(
+            "An error has been detected during a previous run: {error}"
+        ))
+        .report("Failed to report previous error");
+    } else {
+        os_debug!("No error detected from previous run");
+    }
+
+    if ota.report_needed()? {
+        let success = !ota.rollback_detected()?;
+
+        os_info!(
+            "Reporting {}successfull firmware update",
+            if success { "" } else { "un" }
+        );
+
+        pws.send_notification(format!(
+            "Update to PWOS {} has {}",
+            if success {
+                env!("CARGO_PKG_VERSION").to_string()
+            } else {
+                ota.previous_version()?
+                    .map_or_else(|| "unknown".to_string(), |v| v.to_string())
+            },
+            if success { "succeeded" } else { "failed" }
+        ))?;
+
+        pws.report_firmware(success)?;
+        ota.mark_reported();
+    } else {
+        os_debug!("No update report needed");
+    }
+
+    os_debug!("Checking for updates");
+    if check_ota(&mut pws)? {
+        let mut handle = ota.begin_update()?;
+
+        if let Err(why) = begin_update(&mut pws, &mut handle) {
+            os_error!("OTA failed: {why}, aborting");
+            handle.cancel()?;
+        }
+
+        os_info!("Update installed successfully");
+    } // Handle will be dropped and the update should finalize
+
     // Peacefully disconnect
     drop(pws);
 
@@ -64,26 +146,26 @@ pub fn fw_main(
     Ok(())
 }
 
-fn setup_wifi(
-    modem: Modem,
-    sys_loop: EspSystemEventLoop,
-    nvs: EspDefaultNvsPartition,
-) -> OsResult<(WiFi, AccessPointInfo)> {
+fn setup_wifi(modem: Modem, sys_loop: EspSystemEventLoop) -> OsResult<(WiFi, AccessPointInfo)> {
     os_debug!("Initializing WiFi");
-    let mut wifi = WiFi::new(modem, sys_loop, nvs)?;
+    let mut wifi = WiFi::new(modem, sys_loop)?;
 
-    wifi.set_power_saving(PowerSavingMode::Minimum)?;
-    wifi.set_power(84)?;
+    os_debug!("Disabling WiFi power saving");
+    wifi.set_power_saving(PowerSavingMode::Off)?;
 
+    os_debug!("Starting WiFi scan");
     #[cfg(debug_assertions)]
-    let scan_start = Instant::now();
-    let mut networks = wifi.scan::<MAX_NET_SCAN>(Duration::from_secs(2))?;
+    let scan_start = std::time::Instant::now();
+    let mut networks = wifi.scan()?;
+
     #[cfg(debug_assertions)]
     {
+        use crate::sysc::net::wifi::MAX_NET_SCAN;
+
         let network_names = networks
             .iter()
             .map(|net| net.ssid.as_str())
-            .collect::<heapless::Vec<&str, MAX_NET_SCAN>>();
+            .collect::<heapless::Vec<&str, { MAX_NET_SCAN }>>();
 
         os_debug!(
             "Found networks: {network_names:?} in {:.02?}",
@@ -94,7 +176,7 @@ fn setup_wifi(
     // filter out unknown APs
     networks.retain(|ap| WIFI_NETWORKS.iter().any(|entry| entry.0 == ap.ssid));
     // sort by signal strength
-    networks.sort_by(|a, b| b.signal_strength.partial_cmp(&a.signal_strength).unwrap());
+    networks.sort_by(|a, b| b.signal_strength.cmp(&a.signal_strength));
     // filter out APs with RSSI >= -90
     networks.retain(|ap| ap.signal_strength >= -90);
 
@@ -104,29 +186,23 @@ fn setup_wifi(
     }
 
     for ap in networks {
-        os_debug!("Connecting to {}", ap.ssid);
-
-        // SAFETY: Unknown APs are filtered out, so `find`` will always return something.
-        let psk = unsafe {
-            WIFI_NETWORKS
-                .iter()
-                .find(|entry| entry.0 == ap.ssid)
-                .unwrap_unchecked()
-                .1
-        };
-
-        let auth_method = match ap.auth_method.unwrap_or(AuthMethod::None) {
-            AuthMethod::WPA2WPA3Personal => AuthMethod::WPA2Personal,
-            // add other overrides if needed
-            other => other,
-        };
+        os_debug!("Connecting to {} ({}dBm)", ap.ssid, ap.signal_strength);
+        let psk = null_check!(WIFI_NETWORKS
+            .iter()
+            .find(|entry| entry.0 == ap.ssid)
+            .map(|e| e.1));
 
         #[cfg(debug_assertions)]
-        let start = Instant::now();
-        match wifi.connect(&ap.ssid, psk, auth_method, WIFI_TIMEOUT) {
+        let start = std::time::Instant::now();
+        match wifi.connect(
+            &ap.ssid,
+            psk,
+            ap.auth_method.unwrap_or_default(),
+            WIFI_TIMEOUT,
+        ) {
             Ok(()) => {
                 os_debug!("Connected in {:?}", start.elapsed());
-                os_debug!("IP: {}", wifi.get_ip_info().unwrap().ip);
+                os_debug!("IP: {}", wifi.get_ip_info()?.ip);
                 return Ok((wifi, ap));
             }
             Err(why) => os_error!("Failed to connect: {why}"),
@@ -139,8 +215,11 @@ fn setup_wifi(
 fn read_appcfg(pws: &mut PwmpClient, appcfg: &mut AppConfig) -> OsResult<()> {
     os_debug!("Reading settings");
 
-    let values = pws.get_settings(AppConfig::ALL_SETTINGS)?;
-    appcfg.update_settings(values);
+    if let Some(settings) = pws.get_settings()? {
+        **appcfg = settings;
+    } else {
+        os_warn!("Got empty node settings, using defaults");
+    }
 
     os_debug!("Settings updated");
     Ok(())
@@ -162,14 +241,15 @@ fn setup_envsensor(mut i2c_driver: I2cDriver<'_>) -> OsResult<AnySensor<'_>> {
     match working {
         Some(Htu::DEV_ADDR) => {
             os_debug!("Detected HTU-compatible sensor");
-            Ok(AnySensor::HtuCompatible(Htu::new_with_driver(i2c_driver)?))
+            return Ok(AnySensor::HtuCompatible(Htu::new_with_driver(i2c_driver)?));
         }
         Some(other) => {
-            os_error!("Unrecognised device @ I2C/0x{other:X}");
-            Err(OsError::NoEnvSensor)
+            os_warn!("Unrecognised device @ I2C/0x{other:X}");
         }
-        None => Err(OsError::NoEnvSensor),
+        None => (),
     }
+
+    Err(OsError::NoEnvSensor)
 }
 
 fn read_environment(mut env: AnySensor) -> OsResult<MeasurementResults> {
@@ -178,4 +258,41 @@ fn read_environment(mut env: AnySensor) -> OsResult<MeasurementResults> {
         humidity: env.read_humidity()?,
         air_pressure: env.read_air_pressure()?,
     })
+}
+
+fn check_ota(pws: &mut PwmpClient) -> OsResult<bool> {
+    let current_version =
+        Version::parse(env!("CARGO_PKG_VERSION")).ok_or(OsError::IllegalFirmwareVersion)?;
+
+    match pws.check_os_update(current_version)? {
+        UpdateStatus::UpToDate => {
+            os_info!("No update available");
+            Ok(false)
+        }
+        UpdateStatus::Available(new_version) => {
+            os_info!("Update v{new_version} available");
+            Ok(true)
+        }
+    }
+}
+
+fn begin_update(pws: &mut PwmpClient, handle: &mut OtaHandle) -> OsResult<()> {
+    let mut maybe_chunk = pws.next_update_chunk(Some(1024))?;
+    let mut i = 1;
+
+    while let Some(chunk) = maybe_chunk {
+        if i % 128 == 0 {
+            os_debug!("Writing OTA update chunk #{i}");
+        }
+
+        handle.write(&chunk)?;
+        maybe_chunk = pws.next_update_chunk(Some(1024))?;
+        i += 1;
+    }
+
+    Ok(())
+}
+
+fn pwmp_msg_id_rng() -> MsgId {
+    unsafe { esp_random() }
 }

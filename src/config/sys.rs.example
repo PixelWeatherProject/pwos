@@ -5,11 +5,29 @@ pub const WIFI_NETWORKS: &[(&str, &str)] = &[
     ("My wifi 1", "mypass123"),
 ];
 
+/// Static IP configuration
+pub const STATIC_IP_CONFIG: Option<ClientSettings> = Some(ClientSettings {
+    ip: Ipv4Addr::new(192, 168, 0, 102),
+    subnet: Subnet {
+        gateway: Ipv4Addr::new(192, 168, 0, 1),
+        mask: Mask(24),
+    },
+    dns: Some(Ipv4Addr::new(192, 168, 0, 1)),
+    secondary_dns: None,
+});
+// or use DHCP
+pub const STATIC_IP_CONFIG: Option<ClientSettings> = None;
+
 /// WiFi Connection timeout
 pub const WIFI_TIMEOUT: Duration = Duration::from_secs(10);
 
-/// Maximum number of networks to scan
-pub const MAX_NET_SCAN: usize = 4;
+/// WiFi Country code
+/// Refer to: https://docs.espressif.com/projects/esp-idf/en/v5.3.2/esp32s3/api-reference/network/esp_wifi.html#_CPPv425esp_wifi_set_country_codePKcb
+pub const WIFI_COUNTRY_CODE: &str = "SK";
 
 /// PWMP server configuration
 pub const PWMP_SERVER: &str = "123.456.789.000:55300";
+
+/// Built-in LED pin number
+pub const LED_BUILTIN: u8 = 17;
+pub const LED_BUILTIN_INVERT: bool = true;

@@ -4,20 +4,30 @@ mod htu;
 use super::OsResult;
 pub use envsensor_trait::EnvironmentSensor;
 pub use htu::Htu;
-use pwmp_client::pwmp_types::aliases::{AirPressure, Humidity, Temperature};
+use pwmp_client::pwmp_msg::aliases::{AirPressure, Humidity, Temperature};
 
+/// A wrapper that allows abstracting the underlying sensor driver without the use of generics.
 pub enum AnySensor<'s> {
     HtuCompatible(Htu<'s>),
     // add future sensors here...
 }
 
+/// A structure for holding all possible measurements that an environment sensor is
+/// expected to support.
 pub struct MeasurementResults {
+    /// Temperature in degrees Celsius
     pub temperature: Temperature,
+
+    /// Relative humidity (`0..=100`) in percentage
     pub humidity: Humidity,
+
+    /// Air pressure in hecto-Pascals
+    ///
+    /// This may not be supported by all sensors.
     pub air_pressure: Option<AirPressure>,
 }
 
-impl<'s> EnvironmentSensor for AnySensor<'s> {
+impl EnvironmentSensor for AnySensor<'_> {
     fn connected(&mut self) -> OsResult<bool> {
         match self {
             Self::HtuCompatible(dev) => dev.connected(),

@@ -1,31 +1,46 @@
+//! Driver for temperature and humidity sensors such as:
+//! - HTU21D
+//! - Si7021
+//!
+//! These sensors work over the I2C protocol.
+
 use super::EnvironmentSensor;
 use crate::{
     os_debug,
     sysc::{OsError, OsResult},
 };
 use esp_idf_svc::hal::i2c::I2cDriver;
-use pwmp_client::pwmp_types::{
+use pwmp_client::pwmp_msg::{
     aliases::{AirPressure, Humidity, Temperature},
-    Decimal,
+    dec, Decimal,
 };
 use std::{thread::sleep, time::Duration};
 
+/// Commands for HTU21D (and similar) sensors.
 #[derive(PartialEq, Clone, Copy)]
 #[repr(u8)]
 enum Command {
+    /// Request temperature reading
     ReadTemperature = 0xE3,
+
+    /// Request humidity reading
     ReadHumidity = 0xE5,
+
+    /// Reset the device
     Reset = 0xFE,
 }
 
+/// Driver handle for HTU21D (and similar) sensors.
 pub struct Htu<'s>(I2cDriver<'s>);
 
 impl<'s> Htu<'s> {
+    /// Known default address
     pub const DEV_ADDR: u8 = 0x40;
 
     const BUS_TIMEOUT: u32 = 1000;
     const CMD_WAIT_TIME: u64 = 50;
 
+    /// Initialize the driver with the given I2C driver handle.
     pub fn new_with_driver(driver: I2cDriver<'s>) -> Result<Self, OsError> {
         os_debug!("Loading driver");
         let mut dev = Self(driver);
@@ -35,6 +50,7 @@ impl<'s> Htu<'s> {
         Ok(dev)
     }
 
+    /// Send a command to the device.
     fn command(&mut self, cmd: Command) -> OsResult<u16> {
         let mut buffer = [0u8; 2];
 
@@ -47,21 +63,20 @@ impl<'s> Htu<'s> {
                 .read(Self::DEV_ADDR, &mut buffer, Self::BUS_TIMEOUT)?;
         }
 
-        Ok(((buffer[0] as u16) << 8) | (buffer[1] as u16))
+        Ok(((u16::from(buffer[0])) << 8) | (u16::from(buffer[1])))
     }
 
+    /// Calculate temperature in Celsius from the result measured by the sensor.
     fn calc_temperature(raw: u16) -> Temperature {
         // ((175.72 * raw) / 65536.0) - 46.85
-        let temp = ((175.72 * (raw as f32)) / 65536.0) - 46.85;
-        let mut decimal = Decimal::from_f32_retain(temp).unwrap();
+        let mut temp = ((dec!(175.72) * (Decimal::from(raw))) / dec!(65536.0)) - dec!(46.85);
+        temp.rescale(2);
 
-        decimal.rescale(2);
-
-        decimal
+        temp
     }
 }
 
-impl<'s> EnvironmentSensor for Htu<'s> {
+impl EnvironmentSensor for Htu<'_> {
     fn connected(&mut self) -> OsResult<bool> {
         self.command(Command::Reset)?;
         Ok(true)
@@ -75,9 +90,11 @@ impl<'s> EnvironmentSensor for Htu<'s> {
 
     fn read_humidity(&mut self) -> OsResult<Humidity> {
         let raw = self.command(Command::ReadHumidity)?;
-        let hum = ((125.0 * raw as f32) / 65536.0) - 6.0;
+        let hum = ((dec!(125.0) * Decimal::from(raw)) / dec!(65536.0)) - dec!(6.0);
+        let percentage = hum.floor().clamp(Decimal::ZERO, Decimal::ONE_HUNDRED);
 
-        Ok(hum.floor().clamp(0.0, 100.0) as u8)
+        // SAFETY: The value of `percentage` is clamped between 0 and 100, which is a valid `u8`.
+        u8::try_from(percentage).map_err(|_| OsError::DecimalConversion)
     }
 
     fn read_air_pressure(&mut self) -> OsResult<Option<AirPressure>> {

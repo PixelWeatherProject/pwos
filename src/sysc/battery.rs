@@ -1,90 +1,103 @@
-use super::OsResult;
+//! A driver for reading the battery supply voltage using the node's ADC.
+
+use super::{OsError, OsResult};
+use crate::{os_debug, os_error, os_warn};
 use esp_idf_svc::{
     hal::{
         adc::{
             attenuation::DB_11,
-            oneshot::{config::AdcChannelConfig, AdcChannelDriver, AdcDriver},
-            Adc, Resolution, ADC1,
+            oneshot::{
+                config::{AdcChannelConfig, Calibration},
+                AdcChannelDriver, AdcDriver,
+            },
+            Resolution, ADC1,
         },
-        gpio::Gpio35,
+        gpio::Gpio2,
     },
-    sys::{
-        adc_atten_t, esp_adc_cal_characteristics_t, esp_adc_cal_characterize,
-        esp_adc_cal_raw_to_voltage,
-    },
+    sys::adc_atten_t,
 };
-use pwmp_client::pwmp_types::{aliases::BatteryVoltage, dec, Decimal};
-use std::{thread::sleep, time::Duration};
+use pwmp_client::pwmp_msg::{dec, Decimal};
+use std::{rc::Rc, thread::sleep, time::Duration};
 
-const ATTEN: adc_atten_t = DB_11;
-const DIVIDER_R1: f32 = 20_000.0; // 20kOhm
-const DIVIDER_R2: f32 = 6800.0; // 6.8kOhm
-type BatteryGpio = Gpio35;
+/// GPIO pin where the output of the voltage divider is connected
+type BatteryGpio = Gpio2;
+/// The ADC hardware
 type BatteryAdc = ADC1;
-type BatteryDriver = AdcDriver<'static, BatteryAdc>;
-type BatteryChDriver = AdcChannelDriver<'static, BatteryGpio, BatteryDriver>;
+/// Alias for the ADC driver
+type BatteryAdcDriver = AdcDriver<'static, BatteryAdc>;
+/// Alias for the ADC channel driver
+type BatteryAdcChannelDriver = AdcChannelDriver<'static, BatteryGpio, Rc<BatteryAdcDriver>>;
 
-pub const CRITICAL_VOLTAGE: Decimal = dec!(2.70);
-pub const RESOLUTION: Resolution = Resolution::Resolution12Bit;
-pub const ADC_CONFIG: AdcChannelConfig = AdcChannelConfig {
-    attenuation: ATTEN,
-    calibration: true,
-    resolution: Resolution::Resolution12Bit,
+/// Input signal attenuation level
+const ATTEN: adc_atten_t = DB_11;
+/// Value of the first resistor of the voltage divider
+const R1: Decimal = dec!(20_000); // 20kOhm
+/// Value of the second resistor of the voltage divider
+const R2: Decimal = dec!(6_800); // 6.8kOhm
+/// ADC channel configuration
+const CONFIG: AdcChannelConfig = AdcChannelConfig {
+    attenuation: ATTEN,              /* refer to the attenuation value above  */
+    calibration: Calibration::Curve, /* ADC auto-calibration type */
+    resolution: Resolution::Resolution12Bit, /* ADC resolution */
 };
+/// Maximum voltage we expect
+const MAX_VOLTAGE: Decimal = dec!(5.00);
+/// Minimum voltage we expect
+const MIN_VOLTAGE: Decimal = dec!(2.80);
+/// Critical voltage value that's still higher than the minimum supply voltage for the ESP32
+pub const CRITICAL_VOLTAGE: Decimal = dec!(3.20);
 
-pub struct Battery(BatteryChDriver);
+/// Battery voltage measurement driver.
+pub struct Battery {
+    /// ADC driver handle
+    adc: Rc<BatteryAdcDriver>,
+
+    /// ADC channel driver handle
+    ch: BatteryAdcChannelDriver,
+}
 
 impl Battery {
+    /// Initiliaze a new instance of this driver using the given peripheral handles.
     pub fn new(adc: BatteryAdc, gpio: BatteryGpio) -> OsResult<Self> {
-        let driver = BatteryDriver::new(adc)?;
-        let ch_driver = BatteryChDriver::new(driver, gpio, &ADC_CONFIG)?;
+        let adc = Rc::new(BatteryAdcDriver::new(adc)?);
+        let ch = BatteryAdcChannelDriver::new(Rc::clone(&adc), gpio, &CONFIG)?;
 
-        Ok(Self(ch_driver))
+        Ok(Self { adc, ch })
     }
 
-    pub fn read_voltage(&mut self, samples: u16) -> OsResult<BatteryVoltage> {
-        let div_out = self.read_raw_voltage(samples)?;
-        // Vout = Vin * (R2 / (R1 + R2)) => Vin = Vout * (R1 + R2) / R2
-        let vin = div_out * (DIVIDER_R1 + DIVIDER_R2) / DIVIDER_R2;
-        let voltage = vin.clamp(0.0, 4.2);
+    /// Read the ADC value and calculate the voltage.
+    pub fn read(&mut self, samples: u8) -> OsResult<Decimal> {
+        let raw = self.read_raw(samples)?;
+        let volts = Decimal::from(self.adc.raw_to_mv(&self.ch, raw)?) / dec!(1000);
+        let mut result = (volts * (R1 + R2)) / R2;
 
-        let mut decimal = Decimal::from_f32_retain(voltage).unwrap();
-        decimal.rescale(2);
+        if !(MIN_VOLTAGE..=MAX_VOLTAGE).contains(&result) {
+            os_warn!("Abnormal battery voltage result, attempting fix");
 
-        Ok(decimal)
-    }
+            // swap R1 and R2
+            result = (volts * (R2 + R1)) / (R1);
 
-    pub fn read_raw_voltage(&mut self, samples: u16) -> OsResult<f32> {
-        Ok(Self::raw_to_voltage(self.read_raw(samples)?))
-    }
+            if result > MAX_VOLTAGE {
+                os_error!("Abnormal battery voltage");
+                return Err(OsError::IllegalBatteryVoltage);
+            }
 
-    fn raw_to_voltage(raw: u16) -> f32 {
-        let mut characteristics = esp_adc_cal_characteristics_t::default();
-
-        unsafe {
-            esp_adc_cal_characterize(
-                ADC1::unit(),
-                ATTEN,
-                RESOLUTION.into(),
-                1100,
-                &mut characteristics,
-            );
+            os_debug!("Detected swapped R1/R2 values, fix successful");
         }
 
-        let millivolts = unsafe { esp_adc_cal_raw_to_voltage(raw as u32, &characteristics) };
-
-        millivolts as f32 / 1000.0
+        Ok(result.trunc_with_scale(2))
     }
 
-    fn read_raw(&mut self, samples: u16) -> OsResult<u16> {
-        let mut avg = 0.0f32;
+    /// Read the raw ADC value.
+    fn read_raw(&mut self, samples: u8) -> OsResult<u16> {
+        let mut avg = dec!(0);
 
         for _ in 0..samples {
-            avg += self.0.read()? as f32;
-            sleep(Duration::from_millis(20));
+            avg += Decimal::from(self.adc.read_raw(&mut self.ch)?);
+            sleep(Duration::from_millis(10));
         }
 
-        avg /= samples as f32;
-        Ok(avg as u16)
+        avg /= Decimal::from(samples);
+        u16::try_from(avg).map_err(|_| OsError::DecimalConversion)
     }
 }

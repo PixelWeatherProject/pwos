@@ -1,10 +1,15 @@
 [package]
 name = "pwos"
-version = "1.2.0"
+version = "2.0.0"
 authors = ["Fábián Varga <23280129+br0kenpixel@users.noreply.github.com>"]
+description = "PixelWeatherOS for the PixelWeather weather station project."
+homepage = "https://github.com/PixelWeatherProject"
+license-file = "LICENSE"
+readme = "README.md"
+repository = "https://github.com/PixelWeatherProject/pwos"
 edition = "2021"
 resolver = "2"
-rust-version = "1.77"
+rust-version = "1.84"
 
 [[bin]]
 name = "pwos"
@@ -12,27 +17,26 @@ harness = false # do not use the built in cargo test harness -> resolve rust-ana
 
 [profile.release]
 opt-level = 3
+codegen-units = 1
+lto = "thin"
 
 [profile.dev]
 debug = true    # Symbols are nice and they don't increase the size on Flash
 opt-level = "z"
 
 [dependencies]
-log = { version = "0.4", default-features = false }
-esp-idf-svc = { version = "0.49.1", default-features = false, features = [
+esp-idf-svc = { version = "0.51.0", default-features = false, features = [
     "std",
     "alloc",
     "binstart",
 ] }
-build-time = "0.1.3"
-thiserror = "2.0.3"
+pwmp-client = { git = "ssh://git@github.com/PixelWeatherProject/pwmp-client.git", tag = "v2.1.2" }
+log = { version = "0.4", default-features = false, features = ["release_max_level_info", "max_level_debug"] }
+thiserror = "2.0.11"
 heapless = "0.8.0"
-simple_logger = { version = "5.0.0", default-features = false, features = [
-    "colors",
-    "colored",
-] }
-pwmp-client = { git = "ssh://git@github.com/PixelWeatherProject/pwmp-stack.git", tag = "v1.1.4" }
 
 [build-dependencies]
-embuild = "0.32.0"
-cc = "=1.1.30"     # Necessary until a new version of `esp-idf-sys` is released
+embuild = "0.33.0"
+
+[patch.crates-io]
+embedded-svc = { git = "ssh://git@github.com/PixelWeatherProject/embedded-svc.git", rev = "29afd95" }

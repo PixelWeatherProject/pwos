@@ -1,11 +1,16 @@
 pub mod battery;
+#[cfg(debug_assertions)]
 pub mod brownout;
-pub mod drivers;
 mod error;
+pub mod ext_drivers;
+pub mod gpio;
 pub mod ledctl;
 pub mod logging;
+mod macros;
 pub mod net;
-pub mod sleep;
+pub mod ota;
+pub mod power;
+pub mod usbctl;
 
 pub use error::{OsError, ReportableError};
 pub type OsResult<T> = ::std::result::Result<T, OsError>;
