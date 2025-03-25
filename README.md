@@ -32,8 +32,10 @@ PixelWeather is a weather station network that collects environment data using "
 ## Recommended ESP32 boards
 As of now, this firmware has been tested with:
 - [x] [LILYGO T7 S3 v1.2](https://lilygo.cc/products/t7-s3)
+  - ⭐ Recommended
 - [x] [Arduino Nano ESP32](https://store.arduino.cc/en-sk/products/nano-esp32)
 - [x] [Seeed Studio XIAO ESP32S3](https://wiki.seeedstudio.com/xiao_esp32s3_getting_started/)
+  - ⚠️ Not recommended, see board-specific details.
 
 ## Recommended sensor hardware
 As of now, this firmware has been tested with:
@@ -119,6 +121,9 @@ To build a debug image (or flash it) remove the `--release` flag from the above 
 ### Board-specific configuration
 <details>
   <summary>LILYGO T7 S3 v1.2</summary>
+
+  ## Note
+  This board has performed well during tests, even when powered over the 5V *output* pin.
   
   ### ESP SDK configuration 
   The provided `sdkconfig.debug` and `sdkconfig.release` configurations are designed for this board by default.
@@ -164,6 +169,9 @@ To build a debug image (or flash it) remove the `--release` flag from the above 
 
 <details>
   <summary>Seeed Studio XIAO ESP32S3</summary>
+
+  ### Note
+  This board has **not** performed well during tests. It had many connectivity issues as well as many watchdog resets for an unknown reason, even if it was very close to an AP. This behavior did not change regardless if the board was powered over the 5V *output* pin, nor the intended battery input. It's **not** recommended to use this board.
   
   ### ESP SDK configuration 
   The provided `sdkconfig.debug` and `sdkconfig.release` configurations are designed for this board by default.
