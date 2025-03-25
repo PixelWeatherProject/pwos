@@ -69,9 +69,9 @@ impl Battery {
     pub fn read(&mut self, samples: u8) -> OsResult<Decimal> {
         let raw = self.read_raw(samples)?;
         let volts = Decimal::from(self.adc.raw_to_mv(&self.ch, raw)?) / dec!(1000);
-        let mut result = (volts * (R1 + R2)) / (R2);
+        let mut result = (volts * (R1 + R2)) / R2;
 
-        if result > MAX_VOLTAGE || result < MIN_VOLTAGE {
+        if !(MIN_VOLTAGE..=MAX_VOLTAGE).contains(&result) {
             os_warn!("Abnormal battery voltage result, attempting fix");
 
             // swap R1 and R2
