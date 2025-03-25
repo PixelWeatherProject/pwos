@@ -18,18 +18,10 @@ impl BoardLed {
     // They can be safely ignored. This also reduces the size of the firmware.
 
     pub fn on(&mut self) {
-        let _ = if LED_BUILTIN_INVERT {
-            self.0.set_low()
-        } else {
-            self.0.set_high()
-        };
+        let _ = self.0.set_level((!LED_BUILTIN_INVERT).into());
     }
 
     pub fn off(&mut self) {
-        let _ = if LED_BUILTIN_INVERT {
-            self.0.set_high()
-        } else {
-            self.0.set_low()
-        };
+        let _ = self.0.set_level(LED_BUILTIN_INVERT.into());
     }
 }
