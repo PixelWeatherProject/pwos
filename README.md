@@ -13,9 +13,9 @@ PixelWeather is a weather station network that collects environment data using "
     - 8MB Flash **minimum**
         - 4MB models are **not** supported.
         - Read section [Build variants](#build-variants) for details
-    - 512KB SRAM (models with less may be sufficient)
-    - PSRAM **not** required, it's not used (yet)
-- 2x resistors for measuring battery voltage. Exact values are defined in [`battery.rs`](src/sysc/battery.rs) - `DIVIDER_R1` and `DIVIDER_R2`.
+    - 512KB SRAM
+    - PSRAM required due to build configuration
+- 2x resistors for measuring battery voltage. Exact values are defined in [`battery.rs`](src/sysc/battery.rs) - `R1` and `R2`.
 - Battery - any generic 18650 will do
     - Additional protection circuit recommended
 - An environment sensor
@@ -66,14 +66,17 @@ The project currently only supports the ESP32. There are no plans to support any
 
 ## Power
 Consumption measurements:
-| **Board**        | **Sensor**      | **Test voltage** | **Running** | **Sleeping** | **Peak** | **Notes** |
-| ---------------- | --------------- | ---------------- | ----------- | ------------ | -------- | --------- |
-| LILYGO T7S3 v1.2 | Adafruit Si7021 | 5V* (USB)        | ~140mA      | 0.75mA       | N/A      | N/A       |
+| **Board**        | **Sensor**      | **Test voltage**     | **Running** | **Sleeping** | **Peak**            | **Notes**   |
+| ---------------- | --------------- | -------------------- | ----------- | ------------ | ------------------- | ----------- |
+| LILYGO T7S3 v1.2 | Adafruit Si7021 | 5V<sup>*</sup> (USB) | ~140mA      | 0.75mA       | N/A                 | N/A         |
+| LILYGO T7S3 v1.2 | Adafruit Si7021 | 4.2V<sup>**</sup>    | 112mA       | 904μA        | 438mA<sup>***</sup> | Using PPKII |
 
 <details>
   <summary>Notes</summary>
   
   - `*`: There seems to be a large voltage drop from the USB connector. The measured voltage on the 5V was *4.352V*.
+  - `**`: Powered through the 5V *output* pin, using a [Nordic Semiconductor Power Profiler Kit II](https://www.nordicsemi.com/Products/Development-hardware/Power-Profiler-Kit-2).
+  - `***`: Only during WiFi communication
 </details>
 
 Battery life measurements:
