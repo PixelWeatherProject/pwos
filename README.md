@@ -42,6 +42,9 @@ As of now, this firmware has been tested with:
 - [Adafruit Si7021 Temperature & Humidity Sensor](https://www.adafruit.com/product/3251)
 - [HTU21D from SparkFun](https://www.sparkfun.com/products/retired/12064)
 
+## Recommended batteries
+- [x] [XTAR 18650 4000mAh (protected) - 10A](https://www.nkon.nl/en/xtar-18650-4000mah-protected-10a.html)
+
 It's recommended to use hardware from reputable brands such as Adafruit, SparkFun, DFRobot, etc. These are generally more expensive but also higher quality.
 
 ## Code structure
