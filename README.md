@@ -88,7 +88,7 @@ Battery life measurements:
 | LILYGO T7S3 v1.2 | Adafruit Si7021 | XTAR 18650        | 4Ah          | Outdoor (2-21°C) |       1m       | 6d/22h/17m |
 | LILYGO T7S3 v1.2 | Adafruit Si7021 | XTAR 18650        | 4Ah          | Outdoor (2-21°C) |       1m       | 7d/8h/23mi |
 
-**Note that the battery voltage measurement is currently unreliable.**
+The default battery voltage measurement configuration has a measured inaccuracy of ±2-6mV. The inaccuracy is higher at higher input voltages, which is to be expected due to the ESP32S3's ADC not being fully linear.
 
 ## Building
 1. Make sure that `sdkconfig.debug` and `sdkconfig.release` are correct for your specific board.
@@ -222,7 +222,8 @@ A version is deemed "stable" if it runs without interruptions/buggy behaviour fo
 - Hidden WiFi networks are not supported.
 - It's recommended to ensure that the RSSI (signal strength) is no less than *-70dBm*. Some boards can handle worse scenarios, but others may experience connectivity issues.
 - WiFi credentials are stored in code, instead of NVS because it's design is way too simple to store the kind of configuration PWOS needs (SSID, password, IP configuration). This would require extensive work, and would make it very hard to update these settings using OTA updates.
-- The maximum battery voltage (with the default resistor values in [`src/sysc/battery.rs`](src/sysc/battery.rs)) should be `4.335V`.
+- The maximum battery voltage (with the default resistor values in [`src/sysc/battery.rs`](src/sysc/battery.rs)) should be `969.23mV`.
+- If you change the default resistor values, make sure to also adjust the ADC attenuation value [accordingly](https://docs.espressif.com/projects/esp-idf/en/v4.4/esp32s3/api-reference/peripherals/adc.html#adc-attenuation).
 - While the order in which you connect the `R1` and `R2` resistors (for measuring battery voltage) **matters**, PWOS will detect this and auto-correct the measurement. **It is however recommended that you fix this to prevent potential damage to your MCU.**
 
 ## Terms
