@@ -5,7 +5,6 @@ use crate::{os_debug, os_error, os_warn};
 use esp_idf_svc::{
     hal::{
         adc::{
-            attenuation::DB_11,
             oneshot::{
                 config::{AdcChannelConfig, Calibration},
                 AdcChannelDriver, AdcDriver,
@@ -29,11 +28,16 @@ type BatteryAdcDriver = AdcDriver<'static, BatteryAdc>;
 type BatteryAdcChannelDriver = AdcChannelDriver<'static, BatteryGpio, Rc<BatteryAdcDriver>>;
 
 /// Input signal attenuation level
-const ATTEN: adc_atten_t = DB_11;
+/// See the attenuation table [here](https://docs.espressif.com/projects/esp-idf/en/v4.4/esp32s3/api-reference/peripherals/adc.html#adc-attenuation).
+// With the resistor configuration below, the maximum ADC input
+// at 4.2V should be 970mV, so 0 attenuation is almost the correct
+// choice. Due to the high resistor values, even if this higher voltage enters
+// the ADC, the current should be very limited, i.e. no damage should be done.
+const ATTEN: adc_atten_t = 0;
 /// Value of the first resistor of the voltage divider
-const R1: Decimal = dec!(20_000); // 20kOhm
+const R1: Decimal = dec!(1_000_000); // 1MOhm
 /// Value of the second resistor of the voltage divider
-const R2: Decimal = dec!(6_800); // 6.8kOhm
+const R2: Decimal = dec!(300_000); // 300kOhm
 /// ADC channel configuration
 const CONFIG: AdcChannelConfig = AdcChannelConfig {
     attenuation: ATTEN,              /* refer to the attenuation value above  */
