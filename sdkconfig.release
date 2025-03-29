@@ -89,3 +89,6 @@ CONFIG_NEWLIB_NANO_FORMAT=y
 
 # Disable VFS I/O features
 CONFIG_VFS_SUPPORT_IO=n
+
+# Force the entire heap component to be placed in flash memory
+CONFIG_HEAP_PLACE_FUNCTION_INTO_FLASH=y
