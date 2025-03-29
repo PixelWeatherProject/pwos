@@ -83,9 +83,10 @@ Consumption measurements:
 </details>
 
 Battery life measurements:
-| **Board** | **Sensor** | **Battery model** | **Capacity** | **Environment** | **Sleep time** | **Time** |
-| --------- | ---------- | ----------------- | ------------ | --------------- | :------------: | :------: |
-| N/A       | N/A        | N/A               | N/A          | N/A             |      N/A       |   N/A    |
+| **Board**        | **Sensor**      | **Battery model** | **Capacity** | **Environment**  | **Sleep time** |  **Time**  |
+| ---------------- | --------------- | ----------------- | ------------ | ---------------- | :------------: | :--------: |
+| LILYGO T7S3 v1.2 | Adafruit Si7021 | XTAR 18650        | 4Ah          | Outdoor (2-21°C) |       1m       | 6d/22h/17m |
+| LILYGO T7S3 v1.2 | Adafruit Si7021 | XTAR 18650        | 4Ah          | Outdoor (2-21°C) |       1m       | 7d/8h/23mi |
 
 **Note that the battery voltage measurement is currently unreliable.**
 
