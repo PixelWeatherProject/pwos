@@ -86,3 +86,6 @@ CONFIG_LWIP_IPV6=n
 
 # Enable "nano" formatting mode for newlib
 CONFIG_NEWLIB_NANO_FORMAT=y
+
+# Disable VFS I/O features
+CONFIG_VFS_SUPPORT_IO=n
