@@ -11,7 +11,7 @@ use esp_idf_svc::{
         ClientConfiguration as IpClientConfiguration, Configuration as IpConfiguration,
         DHCPClientSettings,
     },
-    netif::{EspNetif, IpEvent, NetifConfiguration, NetifStack},
+    netif::{EspNetif, IpEvent, NetifConfiguration},
     sys::{
         esp, esp_wifi_set_country_code, esp_wifi_set_ps, esp_wifi_set_storage,
         wifi_storage_t_WIFI_STORAGE_RAM, EspError,
@@ -51,11 +51,7 @@ impl WiFi {
         esp!(unsafe { esp_wifi_set_storage(wifi_storage_t_WIFI_STORAGE_RAM) })?;
 
         os_debug!("Configuring WiFi interface");
-        let mut wifi = EspWifi::wrap_all(
-            wifi,
-            EspNetif::new_with_conf(&ip_config)?,
-            EspNetif::new(NetifStack::Ap)?,
-        )?;
+        let mut wifi = EspWifi::wrap_all(wifi, EspNetif::new_with_conf(&ip_config)?)?;
         wifi.set_configuration(&Configuration::Client(ClientConfiguration::default()))?;
 
         os_debug!("Starting WiFi interface");
