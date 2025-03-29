@@ -83,3 +83,6 @@ CONFIG_ESP_WIFI_ENTERPRISE_SUPPORT=n
 
 # Disable IPv6 support
 CONFIG_LWIP_IPV6=n
+
+# Enable "nano" formatting mode for newlib
+CONFIG_NEWLIB_NANO_FORMAT=y
