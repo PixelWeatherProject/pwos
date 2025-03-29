@@ -1,7 +1,6 @@
 //! A driver for reading the battery supply voltage using the node's ADC.
 
 use super::{OsError, OsResult};
-use crate::{os_debug, os_error, os_warn};
 use esp_idf_svc::{
     hal::{
         adc::{
@@ -44,10 +43,6 @@ const CONFIG: AdcChannelConfig = AdcChannelConfig {
     calibration: Calibration::Curve, /* ADC auto-calibration type */
     resolution: Resolution::Resolution12Bit, /* ADC resolution */
 };
-/// Maximum voltage we expect
-const MAX_VOLTAGE: Decimal = dec!(5.00);
-/// Minimum voltage we expect
-const MIN_VOLTAGE: Decimal = dec!(2.80);
 /// Critical voltage value that's still higher than the minimum supply voltage for the ESP32
 pub const CRITICAL_VOLTAGE: Decimal = dec!(3.22);
 
@@ -73,21 +68,7 @@ impl Battery {
     pub fn read(&mut self, samples: u8) -> OsResult<Decimal> {
         let raw = self.read_raw(samples)?;
         let volts = Decimal::from(self.adc.raw_to_mv(&self.ch, raw)?) / dec!(1000);
-        let mut result = (volts * (R1 + R2)) / R2;
-
-        if !(MIN_VOLTAGE..=MAX_VOLTAGE).contains(&result) {
-            os_warn!("Abnormal battery voltage result, attempting fix");
-
-            // swap R1 and R2
-            result = (volts * (R2 + R1)) / (R1);
-
-            if result > MAX_VOLTAGE {
-                os_error!("Abnormal battery voltage");
-                return Err(OsError::IllegalBatteryVoltage);
-            }
-
-            os_debug!("Detected swapped R1/R2 values, fix successful");
-        }
+        let result = (volts * (R1 + R2)) / R2;
 
         Ok(result.trunc_with_scale(2))
     }
