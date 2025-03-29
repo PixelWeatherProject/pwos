@@ -49,7 +49,7 @@ pub fn fw_main(
     os_debug!("Requesting app configuration");
     read_appcfg(&mut pws, cfg)?;
 
-    let bat_voltage = battery.read(32)?;
+    let bat_voltage = battery.read(64)?;
     if usbctl::is_connected() {
         os_warn!("Battery voltage measurement may be affected by USB power");
     }
