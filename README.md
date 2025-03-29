@@ -3,8 +3,6 @@ This is a universal firmware for all PixelWeather nodes. It was created using th
 
 PixelWeather is a weather station network that collects environment data using "nodes" (a collection of microcontrollers and sensors). This repository contains the firware for said nodes _(PWOS)_.
 
-**⚠️WARNING⚠️: You are currently viewing the v2 branch, which is an overhaul of v1, containing many significant changes - including updated hardware support!**
-
 **⚠️ Note that this project is under development. While it is decently stable, is not complete! There are missing and incomplete implementations of features. Production use is highly discouraged!**
 
 ### Hardware requirements:
