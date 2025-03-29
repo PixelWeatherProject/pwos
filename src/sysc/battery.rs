@@ -45,7 +45,7 @@ const MAX_VOLTAGE: Decimal = dec!(5.00);
 /// Minimum voltage we expect
 const MIN_VOLTAGE: Decimal = dec!(2.80);
 /// Critical voltage value that's still higher than the minimum supply voltage for the ESP32
-pub const CRITICAL_VOLTAGE: Decimal = dec!(3.20);
+pub const CRITICAL_VOLTAGE: Decimal = dec!(3.22);
 
 /// Battery voltage measurement driver.
 pub struct Battery {
