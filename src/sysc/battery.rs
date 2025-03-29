@@ -98,7 +98,7 @@ impl Battery {
 
         for _ in 0..samples {
             avg += Decimal::from(self.adc.read_raw(&mut self.ch)?);
-            sleep(Duration::from_millis(2));
+            sleep(Duration::from_millis(1));
         }
 
         avg /= Decimal::from(samples);
