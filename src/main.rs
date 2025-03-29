@@ -57,10 +57,10 @@ fn main() {
 
     #[cfg(debug_assertions)]
     {
-        let raw_version = unsafe { esp_idf_svc::sys::esp_get_idf_version() };
-        let version = unsafe { std::ffi::CStr::from_ptr(raw_version.cast()) };
-        os_debug!("Using ESP-IDF {}", version.to_string_lossy());
-
+        os_debug!(
+            "Using ESP-IDF {}",
+            sysc::get_idf_version().as_deref().unwrap_or("?")
+        );
         os_debug!("Disabling brownout detector");
         sysc::brownout::disable_brownout_detector();
     }
