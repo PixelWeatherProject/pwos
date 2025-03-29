@@ -3,7 +3,7 @@ This is a universal firmware for all PixelWeather nodes. It was created using th
 
 PixelWeather is a weather station network that collects environment data using "nodes" (a collection of microcontrollers and sensors). This repository contains the firware for said nodes _(PWOS)_.
 
-**⚠️ Note that this project is under development. While it is decently stable, is not complete! There are missing and incomplete implementations of features. Production use is highly discouraged!**
+**⚠️ Note that this project is under development. While it is decently stable, is not complete!**
 
 ### Hardware requirements:
 - Espressif ESP32-S3 microcontroller
@@ -27,7 +27,10 @@ PixelWeather is a weather station network that collects environment data using "
 - [Rust](https://rustlang.org/)
 - [ESP32 Rust toolchain](https://esp-rs.github.io/book/)
 
-## Recommended ESP32 boards
+### Recommended hardware
+For a generally stable, safe and reliable experience, you should stick to reputable a higher-quality brands. Below are the listed recommendations for all categories of hardware.
+
+#### ESP32S3 boards
 As of now, this firmware has been tested with:
 - [x] [LILYGO T7 S3 v1.2](https://lilygo.cc/products/t7-s3)
   - ⭐ Recommended
@@ -35,15 +38,23 @@ As of now, this firmware has been tested with:
 - [x] [Seeed Studio XIAO ESP32S3](https://wiki.seeedstudio.com/xiao_esp32s3_getting_started/)
   - ⚠️ Not recommended, see board-specific details.
 
-## Recommended sensor hardware
+It's recommended to use hardware from reputable brands such as Adafruit, SparkFun, DFRobot, etc. These are generally more expensive but also higher quality.
+
+#### Environment sensors
 As of now, this firmware has been tested with:
 - [Adafruit Si7021 Temperature & Humidity Sensor](https://www.adafruit.com/product/3251)
 - [HTU21D from SparkFun](https://www.sparkfun.com/products/retired/12064)
 
-## Recommended batteries
-- [x] [XTAR 18650 4000mAh (protected) - 10A](https://www.nkon.nl/en/xtar-18650-4000mah-protected-10a.html)
+#### Recommended batteries
+> **⚠️WARNING⚠️**
+>
+> Lithium-ion batteries can be *highly dagerous*, **explosive** and a *fire hazard*!
+> Handle them with care!
+>
+> It's recommended that you use models **with built-in protection**. Note that this does **not make them completely safe**.
 
-It's recommended to use hardware from reputable brands such as Adafruit, SparkFun, DFRobot, etc. These are generally more expensive but also higher quality.
+- [x] [XTAR 18650 4000mAh (protected) - 10A](https://www.nkon.nl/en/xtar-18650-4000mah-protected-10a.html)
+  - ⭐ Recommended - high capacity, legitimate brand and built-in protection
 
 ## Code structure
 - [`src/firmware.rs`](/src/firmware.rs) - This is the entry point for the firmware. If you want to explore this project, you should start from here.
@@ -230,11 +241,6 @@ A version is deemed "stable" if it runs without interruptions/buggy behaviour fo
 - *appconfig*/*application configuration* - Defines how PWOS behaves, e.g. whether it should check battery voltages, how long should the node sleep, etc. This configuration is defined in the PWMP database.
 - *sBOP*/*software-based battery overdischarge protection* - Permanently shuts down the node if the battery voltage drops below a critical value.
 - *OTA*/*Over-the-Air (updates)* - Firmware updates that are delivered wirelessly to the nodes.
-
-## WIP Features
-- [x] OTA Updates
-- [x] USB connection detection
-  - Serial port detection can't be implemented yet due to API limitations of ESP IDF v5.2.2
 
 ## Emulation
 You can download prebuilt binaries of Espressif's QEMU fork from [here](https://github.com/espressif/qemu/releases). However as of now, PWOS cannot be emulated. You will get a panic on boot. This is likely due to the emulator not being able to emulate the WiFi hardware.
