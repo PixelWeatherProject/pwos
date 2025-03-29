@@ -49,10 +49,6 @@ pub enum OsError {
     #[error("Conversion between float/int and Decimal failed")]
     DecimalConversion,
 
-    /// Invalid battery voltage result.
-    #[error("Invalid battery voltage")]
-    IllegalBatteryVoltage,
-
     /// A buffer has been filled unexpectedly
     #[error("A buffer capacity has been exceeded")]
     UnexpectedBufferFailiure,
