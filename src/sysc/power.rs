@@ -1,5 +1,8 @@
 pub use esp_idf_svc::hal::reset::ResetReason;
-use esp_idf_svc::sys::{esp_deep_sleep, esp_reset_reason, esp_restart};
+use esp_idf_svc::{
+    hal::reset::restart,
+    sys::{esp_deep_sleep, esp_reset_reason},
+};
 use std::time::Duration;
 
 const INFINITE_SLEEP_TIME: Duration = Duration::from_micros(2_629_746_000_000); /* 1 month */
@@ -15,7 +18,7 @@ pub fn deep_sleep(time: Option<Duration>) -> ! {
 
 pub fn fake_sleep(time: Option<Duration>) -> ! {
     std::thread::sleep(time.unwrap_or(INFINITE_SLEEP_TIME));
-    unsafe { esp_restart() };
+    restart();
 }
 
 pub fn get_reset_reason() -> ResetReason {
