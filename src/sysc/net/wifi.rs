@@ -23,7 +23,7 @@ use esp_idf_svc::{
     },
 };
 use pwmp_client::pwmp_msg::mac::Mac;
-use std::{mem::MaybeUninit, time::Duration};
+use std::{fmt::Write, mem::MaybeUninit, time::Duration};
 
 /// Maximum number of networks to scan
 pub const MAX_NET_SCAN: usize = 2;
@@ -206,11 +206,12 @@ impl WiFi {
         let mut buffer = heapless::String::new();
         let last_two_bytes = &wifi_driver.get_mac(WifiDeviceId::Sta).unwrap_or_default()[4..6];
 
-        buffer
-            .push_str("pixelweather-node-")
-            .and_then(|()| buffer.push_str(&format!("{:02X?}", last_two_bytes[0])))
-            .and_then(|()| buffer.push_str(&format!("{:02X?}", last_two_bytes[1])))
-            .map_err(|()| OsError::UnexpectedBufferFailiure)?;
+        write!(
+            &mut buffer,
+            "pixelweather-node-{:02X}{:02X}",
+            last_two_bytes[0], last_two_bytes[1]
+        )
+        .map_err(|_| OsError::UnexpectedBufferFailiure)?;
 
         Ok(buffer)
     }
