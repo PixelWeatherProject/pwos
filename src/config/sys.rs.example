@@ -27,7 +27,3 @@ pub const WIFI_COUNTRY_CODE: &str = "SK";
 
 /// PWMP server configuration
 pub const PWMP_SERVER: &str = "123.456.789.000:55300";
-
-/// Built-in LED pin number
-pub const LED_BUILTIN: u8 = 17;
-pub const LED_BUILTIN_INVERT: bool = true;

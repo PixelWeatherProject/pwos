@@ -2,22 +2,18 @@
 #![feature(panic_payload_as_str)]
 
 use crate::config::AppConfig;
-use config::LED_BUILTIN;
-use esp_idf_svc::{
-    eventloop::EspSystemEventLoop,
-    hal::{
-        i2c::{config::Config, I2cDriver},
-        peripherals::Peripherals,
-        units::FromValueType,
-    },
+use esp_idf_svc::hal::{
+    gpio::IOPin,
+    i2c::{config::Config, I2cDriver},
+    units::FromValueType,
 };
 use std::{panic::PanicHookInfo, time::Instant};
 use sysc::{
     battery::Battery,
-    gpio,
     ledctl::BoardLed,
     logging::OsLogger,
     ota::Ota,
+    periph::SystemPeripherals,
     power::{deep_sleep, fake_sleep},
     usbctl, OsError,
 };
@@ -65,15 +61,13 @@ fn main() {
         sysc::brownout::disable_brownout_detector();
     }
 
-    os_debug!("Initializing peripherals");
-    let mut peripherals = Peripherals::take().expect("Failed to initialize peripherals");
-
-    os_debug!("Initializing System Event Loop");
-    let sys_loop = EspSystemEventLoop::take().expect("SEL init error");
+    os_debug!("Initializing system peripherals");
+    let peripherals = SystemPeripherals::take();
 
     os_debug!("Initializing system LED");
     let led = BoardLed::new(
-        gpio::number_to_io_pin(LED_BUILTIN, &mut peripherals).expect("Invalid LED pin"),
+        peripherals.onboard_led.pin.downgrade(),
+        peripherals.onboard_led.invert,
     )
     .expect("Failed to set up onboard LED");
 
@@ -102,14 +96,14 @@ fn main() {
     );
 
     os_debug!("Initializing system Battery");
-    let battery = Battery::new(peripherals.adc1, peripherals.pins.gpio2)
+    let battery = Battery::new(peripherals.battery.adc, peripherals.battery.pin)
         .expect("Failed to initialize battery ADC");
 
     os_debug!("Initializing I2C bus");
     let i2c = I2cDriver::new(
-        peripherals.i2c1,
-        peripherals.pins.gpio5,
-        peripherals.pins.gpio8,
+        peripherals.i2c.i2c,
+        peripherals.i2c.sda,
+        peripherals.i2c.scl,
         &Config::default().baudrate(400u32.kHz().into()),
     )
     .expect("Failed to initialize I2C");
@@ -123,8 +117,8 @@ fn main() {
     let fw_exit = firmware::fw_main(
         battery,
         i2c,
-        peripherals.modem,
-        sys_loop,
+        peripherals.wifi.modem,
+        peripherals.wifi.sys_loop,
         led,
         &mut ota,
         &mut appcfg,

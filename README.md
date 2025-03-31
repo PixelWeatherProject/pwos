@@ -109,12 +109,12 @@ The default battery voltage measurement configuration has a measured inaccuracy 
 
 If you just want to build the image, use the following command (for example):
 ```sh
-cargo espflash save-image -T partitions.csv --frozen --locked --release --chip esp32s3 --merge image.bin 
+cargo espflash save-image --features $BOARD -T partitions.csv --frozen --locked --release --chip esp32s3 --merge image.bin 
 ```
 
 To directly flash the firmware, use the command below. **Remember to change the serial port for your machine.**
 ```sh
-cargo espflash flash -T partitions.csv --frozen --locked --release -c esp32s3 --noverify --erase-data-parts otadata -B 921600 -p /dev/ttyXXXX
+cargo espflash flash --features $BOARD -T partitions.csv --frozen --locked --release -c esp32s3 --noverify --erase-data-parts otadata -B 921600 -p /dev/ttyXXXX
 ```
 
 If you notice weird/buggy bevaiour, you can erase the entire flash like so:
@@ -131,6 +131,7 @@ cargo espflash erase-flash -c esp32s3 -p /dev/ttyACM0 -B 921600
 Depending on which ESP32S3 development board you're using, you may need to add additional arguments to the two example commands above (especially `flash`).
 - `-c esp32s3`
 - `-s 16mb` / `-s 8mb` - For 16MB and 8MB of flash respectively.
+- `--features` - Check section below.
 
 To build a debug image (or flash it) remove the `--release` flag from the above commands.
 
@@ -146,7 +147,7 @@ To build a debug image (or flash it) remove the `--release` flag from the above 
   No changes are needed.
 
   ### GPIO Pins
-  The default pin configuration of PWOS is designed for this board. No changes are needed.
+  The default pin configuration of PWOS is designed for this board. No changes are needed. You may also leave out the `--features` flag for `espflash`.
   
   - On-board LED: `GPIO_17`
   - I2C SDA: `GPIO_5`
@@ -155,9 +156,9 @@ To build a debug image (or flash it) remove the `--release` flag from the above 
   
   ### `espflash` commands
   - For saving as image:
-    - `cargo espflash save-image --frozen --locked --release -T partitions.csv -s 16mb --chip esp32s3 image.bin`
+    - `cargo espflash save-image --features lilygo-t7s3 --frozen --locked --release -T partitions.csv -s 16mb --chip esp32s3 image.bin`
   - For flashing:
-    - `cargo espflash flash --frozen --locked --release -T partitions.csv -s 16mb -c esp32s3 -B 921600 -p /dev/ttyXXXX -M --no-verify --erase-data-parts ota`
+    - `cargo espflash flash --features lilygo-t7s3 --frozen --locked --release -T partitions.csv -s 16mb -c esp32s3 -B 921600 -p /dev/ttyXXXX -M --no-verify --erase-data-parts ota`
 </details>
 
 <details>
@@ -170,7 +171,7 @@ To build a debug image (or flash it) remove the `--release` flag from the above 
   ```
 
   ### GPIO Pins
-  The on-board LED is on a different pin. You'll need to set `LED_BUILTIN` in your sysconfig ([src/config/sys.rs](src/config/sys.rs)).
+  The on-board LED is on a different pin.
   - On-board LED: `GPIO_48`
   - I2C SDA: `GPIO_5`
   - I2C SCL: `GPIO_8`
@@ -178,9 +179,9 @@ To build a debug image (or flash it) remove the `--release` flag from the above 
   
   ### `espflash` commands
   - For saving as image:
-    - `cargo espflash save-image --frozen --locked --release -T partitions.csv -s 16mb --chip esp32s3 image.bin`
+    - `cargo espflash save-image --features arduino-nano-esp32 --frozen --locked --release -T partitions.csv -s 16mb --chip esp32s3 image.bin`
   - For flashing:
-    - `cargo espflash flash --frozen --locked --release -T partitions.csv -s 16mb -c esp32s3 -B 921600 -p /dev/ttyXXXX -M --no-verify --erase-data-parts ota`
+    - `cargo espflash flash --features arduino-nano-esp32 --frozen --locked --release -T partitions.csv -s 16mb -c esp32s3 -B 921600 -p /dev/ttyXXXX -M --no-verify --erase-data-parts ota`
 </details>
 
 <details>
@@ -194,7 +195,7 @@ To build a debug image (or flash it) remove the `--release` flag from the above 
   No changes are needed.
 
   ### GPIO Pins
-  The on-board LED is on a different pin. You'll need to set `LED_BUILTIN` in your sysconfig ([src/config/sys.rs](src/config/sys.rs)). Additionally, you'll also need to set `LED_BUILTIN_INVERT` to `true`, because the LED's negative terminal is connected to the GPIO pin.
+  The on-board LED is on a different pin, and its negative terminal is connected to the GPIO pin, meaning it works with inverted logic.
   
   - On-board LED: `GPIO_21`
   - I2C SDA: `GPIO_5`
@@ -203,9 +204,9 @@ To build a debug image (or flash it) remove the `--release` flag from the above 
   
   ### `espflash` commands
   - For saving as image:
-    - `cargo espflash save-image --frozen --locked --release -T partitions.csv -s 8mb --chip esp32s3 image.bin`
+    - `cargo espflash save-image --features xiao-s3 --frozen --locked --release -T partitions.csv -s 8mb --chip esp32s3 image.bin`
   - For flashing:
-    - `cargo espflash flash --frozen --locked --release -T partitions.csv -s 8mb -c esp32s3 -B 921600 -p /dev/ttyXXXX -M --no-verify --erase-data-parts ota`
+    - `cargo espflash flash --features xiao-s3 --frozen --locked --release -T partitions.csv -s 8mb -c esp32s3 -B 921600 -p /dev/ttyXXXX -M --no-verify --erase-data-parts ota`
 </details>
 
 ## Build variants
