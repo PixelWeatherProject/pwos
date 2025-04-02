@@ -198,7 +198,7 @@ fn setup_wifi(modem: Modem, sys_loop: EspSystemEventLoop) -> OsResult<(WiFi, Acc
             WIFI_TIMEOUT,
         ) {
             Ok(()) => {
-                os_debug!("Connected in {:?}", start.elapsed());
+                os_debug!("Connected in {:.02?}", start.elapsed());
                 os_debug!("IP: {}", wifi.get_ip_info()?.ip);
                 return Ok((wifi, ap));
             }
