@@ -1,6 +1,6 @@
 [package]
 name = "pwos"
-version = "2.0.1"
+version = "2.0.2"
 authors = ["Fábián Varga <23280129+br0kenpixel@users.noreply.github.com>"]
 description = "PixelWeatherOS for the PixelWeather weather station project."
 homepage = "https://github.com/PixelWeatherProject"
