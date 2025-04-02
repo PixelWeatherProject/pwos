@@ -124,8 +124,8 @@ impl WiFi {
     ) -> OsResult<()> {
         self.driver
             .set_configuration(&Configuration::Client(ClientConfiguration {
-                ssid: ssid.try_into().map_err(|()| OsError::SsidTooLong)?,
-                password: psk.try_into().map_err(|()| OsError::PskTooLong)?,
+                ssid: ssid.try_into().map_err(|()| OsError::ArgumentTooLong)?,
+                password: psk.try_into().map_err(|()| OsError::ArgumentTooLong)?,
                 auth_method: auth,
                 ..Default::default()
             }))?;

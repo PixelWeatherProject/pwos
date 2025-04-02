@@ -29,13 +29,9 @@ pub enum OsError {
     #[error("esp api: {0}")]
     Esp(#[from] EspError),
 
-    /// Specified ESSID was too long. (>=32 chars)
-    #[error("SSID too long")]
-    SsidTooLong,
-
-    /// Specified PSK was too long.
-    #[error("PSK too long")]
-    PskTooLong,
+    /// Specified parameter was too long.
+    #[error("Argument too long")]
+    ArgumentTooLong,
 
     /// Partition metadata contains an invalid version string.
     #[error("Unexpected version format")]
