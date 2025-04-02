@@ -5,7 +5,7 @@ use crate::{
         battery::{Battery, CRITICAL_VOLTAGE},
         ext_drivers::{AnySensor, EnvironmentSensor, Htu, MeasurementResults},
         ledctl::BoardLed,
-        net::wifi::{PowerSavingMode, WiFi},
+        net::wifi::{PowerSavingMode, WiFi, RSSI_THRESHOLD},
         ota::{Ota, OtaHandle},
         power::{deep_sleep, get_reset_reason, ResetReasonExt},
         usbctl, OsError, OsResult, ReportableError,
@@ -178,7 +178,7 @@ fn setup_wifi(modem: Modem, sys_loop: EspSystemEventLoop) -> OsResult<(WiFi, Acc
     // sort by signal strength
     networks.sort_by(|a, b| b.signal_strength.cmp(&a.signal_strength));
     // filter out APs with RSSI >= -90
-    networks.retain(|ap| ap.signal_strength >= -90);
+    networks.retain(|ap| ap.signal_strength >= RSSI_THRESHOLD);
 
     if networks.is_empty() {
         os_warn!("No usable networks found");

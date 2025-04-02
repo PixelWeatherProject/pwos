@@ -22,7 +22,7 @@ use esp_idf_svc::{
         WifiDriver, WifiEvent,
     },
 };
-use pwmp_client::pwmp_msg::mac::Mac;
+use pwmp_client::pwmp_msg::{aliases::Rssi, mac::Mac};
 use std::{fmt::Write, mem::MaybeUninit, time::Duration};
 
 /// Maximum number of networks to scan
@@ -32,6 +32,9 @@ pub const MAX_NET_SCAN: usize = 2;
 /// 120ms is the default in ESP-IDF.
 /// Refer to: <https://docs.espressif.com/projects/esp-idf/en/v5.3.2/esp32s3/api-guides/wifi.html#scan-configuration>
 const CHANNEL_SCAN_WAIT_TIME: Duration = Duration::from_millis(240);
+
+/// Maximum acceptable signal strength
+pub const RSSI_THRESHOLD: Rssi = -85;
 
 pub struct WiFi {
     driver: EspWifi<'static>,
