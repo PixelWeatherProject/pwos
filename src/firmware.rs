@@ -5,7 +5,7 @@ use crate::{
         battery::{Battery, CRITICAL_VOLTAGE},
         ext_drivers::{AnySensor, EnvironmentSensor, Htu, MeasurementResults},
         ledctl::BoardLed,
-        net::wifi::{PowerSavingMode, WiFi, RSSI_THRESHOLD},
+        net::wifi::{WiFi, RSSI_THRESHOLD},
         ota::{Ota, OtaHandle},
         power::{deep_sleep, get_reset_reason, ResetReasonExt},
         usbctl, OsError, OsResult, ReportableError,
@@ -149,9 +149,6 @@ pub fn fw_main(
 fn setup_wifi(modem: Modem, sys_loop: EspSystemEventLoop) -> OsResult<(WiFi, AccessPointInfo)> {
     os_debug!("Initializing WiFi");
     let mut wifi = WiFi::new(modem, sys_loop)?;
-
-    os_debug!("Disabling WiFi power saving");
-    wifi.set_power_saving(PowerSavingMode::Off)?;
 
     os_debug!("Starting WiFi scan");
     #[cfg(debug_assertions)]

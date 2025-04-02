@@ -1,4 +1,3 @@
-pub use super::PowerSavingMode;
 use crate::{
     config::{STATIC_IP_CONFIG, WIFI_COUNTRY_CODE},
     null_check, os_debug,
@@ -13,8 +12,8 @@ use esp_idf_svc::{
     },
     netif::{EspNetif, IpEvent, NetifConfiguration},
     sys::{
-        esp, esp_wifi_set_country_code, esp_wifi_set_ps, esp_wifi_set_storage,
-        wifi_storage_t_WIFI_STORAGE_RAM, EspError,
+        esp, esp_wifi_set_country_code, esp_wifi_set_storage, wifi_storage_t_WIFI_STORAGE_RAM,
+        EspError,
     },
     wifi::{
         config::{ScanConfig, ScanType},
@@ -67,11 +66,6 @@ impl WiFi {
             driver: wifi,
             event_loop: sys_loop,
         })
-    }
-
-    pub fn set_power_saving(&self, mode: PowerSavingMode) -> OsResult<()> {
-        EspError::convert(unsafe { esp_wifi_set_ps(mode as u32) })?;
-        Ok(())
     }
 
     pub fn scan(&mut self) -> OsResult<heapless::Vec<AccessPointInfo, MAX_NET_SCAN>> {
