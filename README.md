@@ -224,17 +224,29 @@ __Latest verified stable version: N/A__
 A version is deemed "stable" if it runs without interruptions/buggy behaviour for at least 1 month.
 
 ## Caveats
+This section contains information about the current and possible limitations of this firmware. If you are having issues, you should read this.
+
+### Building/Compilation/Deployment
 - If you're planning to flash the firmware and use it "in production", you should always use release builds. Just pass `--release` to `cargo build` **and** `cargo espflash`.
 - For troubleshooting, you should use debug builds, as they have more verbose logging.
 - Make sure to use the given partition layout ([`partitions.csv`](partitions.csv)) by passing `-T partitions.csv` to `cargo espflash`. The default partition layout has a way too small `app` partition.
 - Some lower-quality USB cables may require a lower baud rate. Use `115200` if `921600` does not work for you.
-- The firmware does **not** support unencrypted WiFi networks (at least not without modifying [`src/firmware.rs`](src/firmware.rs) and [`src/sysc/net/wifi.rs`](src/sysc/net/wifi.rs)).
-- Hidden WiFi networks are not supported.
-- It's recommended to ensure that the RSSI (signal strength) is no less than *-70dBm*. Some boards can handle worse scenarios, but others may experience connectivity issues.
-- WiFi credentials are stored in code, instead of NVS because it's design is way too simple to store the kind of configuration PWOS needs (SSID, password, IP configuration). This would require extensive work, and would make it very hard to update these settings using OTA updates.
+
+### General
 - The maximum battery voltage (with the default resistor values in [`src/sysc/battery.rs`](src/sysc/battery.rs)) should be `969.23mV`.
 - If you change the default resistor values, make sure to also adjust the ADC attenuation value [accordingly](https://docs.espressif.com/projects/esp-idf/en/v4.4/esp32s3/api-reference/peripherals/adc.html#adc-attenuation).
 - While the order in which you connect the `R1` and `R2` resistors (for measuring battery voltage) **matters**, PWOS will detect this and auto-correct the measurement. **It is however recommended that you fix this to prevent potential damage to your MCU.**
+
+### WiFi/Networking/Connectivity
+- Hidden WiFi networks are **not** supported.
+- Unencrypted WiFi networks are **not** supported.
+- It's recommended to ensure that the RSSI (signal strength) is no less than *-70dBm*. Some boards can handle worse scenarios, but others may experience connectivity issues.
+- WiFi credentials are stored in code, instead of NVS because it's design is way too simple to store the kind of configuration PWOS needs (SSID, password, IP configuration). This would require extensive work, and would make it very hard to update these settings using OTA updates.
+- When scanning for APs, the firmware uses a custom scan algorithm that severely limits the maximum scan duration to preserve as much power as possible. However, this comes at a cost - you AP/s might not be detected fast enough. If this is a problem for you, you can either:
+  1. Edit the [`CHANNEL_SCAN_WAIT_TIME`](src/sysc/net/wifi.rs). The maximum scan duration is derived from this.
+  2. Lower the [*Beacon Interval*](https://www.7signal.com/news/blog/controlling-beacons-boosts-wi-fi-performance) in your AP's settings. This is usually set to 100(ms), but you can lower this to (for e.g.) 50. **Don't mess with these settings if you don't know what you're doing!**
+     - In OpenWRT you can find this under *Network* > *Wireless* > *Edit* (your AP) > *Advanced Settings*
+     - In AsusWRT/Merlin you can find this under *Advanced Settings* > *Wireless* > *Professional* > (select 2.4GHz band if needed)
 
 ## Terms
 - *node* - A station that consists of PWOS-compatible hardware and runs PWOS. It collects weather information and sends it over PWMP to a remote server.
