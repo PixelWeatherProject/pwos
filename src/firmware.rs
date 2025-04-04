@@ -55,7 +55,7 @@ pub fn fw_main(
     }
     os_info!("Battery: {bat_voltage}V");
 
-    if (bat_voltage <= CRITICAL_VOLTAGE) && cfg.sbop {
+    if (bat_voltage <= CRITICAL_VOLTAGE) && cfg.sbop && !cfg.battery_ignore {
         os_warn!("Battery voltage too low, activating sBOP");
 
         pws.send_notification("Battery voltage too low, activating sBOP")
