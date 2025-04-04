@@ -52,6 +52,7 @@ pub fn fw_main(
     let bat_voltage = battery.read(64)?;
     if usbctl::is_connected() {
         os_warn!("Battery voltage measurement may be affected by USB power");
+        cfg.battery_ignore = true;
     }
     os_info!("Battery: {bat_voltage}V");
 
