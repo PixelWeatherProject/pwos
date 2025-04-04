@@ -78,7 +78,7 @@ impl Log for OsLogger {
 
         // Print the module level next
         lock.write_all(module.as_bytes())
-            .and_then(|_| lock.write_all(b"] "))
+            .and_then(|()| lock.write_all(b"] "))
             .expect("stdout-write-2 failed");
 
         // Print the actual message, but also avoid runtime formatting when possible
@@ -86,7 +86,7 @@ impl Log for OsLogger {
             Some(stat_str) => lock.write_all(stat_str.as_bytes()),
             None => lock.write_all(record.args().to_string().as_bytes()),
         }
-        .and_then(|_| lock.write_all(b"\n"))
+        .and_then(|()| lock.write_all(b"\n"))
         .expect("stdout-write-3 failed");
     }
 }
