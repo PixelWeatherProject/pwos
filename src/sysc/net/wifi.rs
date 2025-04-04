@@ -48,10 +48,7 @@ impl WiFi {
 
         os_debug!("Configuring WiFi interface");
         let mut wifi = EspWifi::wrap_all(wifi, EspNetif::new_with_conf(&ip_config)?)?;
-        wifi.set_configuration(&Configuration::Client(ClientConfiguration {
-            scan_method: ScanMethod::FastScan,
-            ..Default::default()
-        }))?;
+        wifi.set_configuration(&Configuration::Client(ClientConfiguration::default()))?;
 
         os_debug!("Starting WiFi interface");
         wifi.start()?;
