@@ -12,25 +12,19 @@ use esp_idf_svc::{
     },
     netif::{EspNetif, IpEvent, NetifConfiguration},
     sys::{
-        esp, esp_wifi_set_country_code, esp_wifi_set_storage, wifi_storage_t_WIFI_STORAGE_RAM,
-        EspError,
+        esp, esp_wifi_scan_start, esp_wifi_set_country_code, esp_wifi_set_storage,
+        wifi_storage_t_WIFI_STORAGE_RAM, EspError,
     },
     wifi::{
-        config::{ScanConfig, ScanType},
         AccessPointInfo, AuthMethod, ClientConfiguration, Configuration, EspWifi, ScanMethod,
         WifiDeviceId, WifiDriver, WifiEvent,
     },
 };
 use pwmp_client::pwmp_msg::{aliases::Rssi, mac::Mac};
-use std::{fmt::Write, mem::MaybeUninit, time::Duration};
+use std::{fmt::Write, ptr, time::Duration};
 
 /// Maximum number of networks to scan
 pub const MAX_NET_SCAN: usize = 2;
-
-/// How long should the device scan a single Wi-Fi channel.
-/// 120ms is the default in ESP-IDF.
-/// Refer to: <https://docs.espressif.com/projects/esp-idf/en/v5.3.2/esp32s3/api-guides/wifi.html#scan-configuration>
-const CHANNEL_SCAN_WAIT_TIME: Duration = Duration::from_millis(240);
 
 /// Maximum acceptable signal strength
 pub const RSSI_THRESHOLD: Rssi = -85;
@@ -72,49 +66,14 @@ impl WiFi {
     }
 
     pub fn scan(&mut self) -> OsResult<heapless::Vec<AccessPointInfo, MAX_NET_SCAN>> {
-        self.driver.start_scan(
-            &ScanConfig {
-                bssid: None,
-                ssid: None,
-                channel: None,
-                scan_type: ScanType::Active {
-                    min: CHANNEL_SCAN_WAIT_TIME,
-                    max: CHANNEL_SCAN_WAIT_TIME,
-                },
-                show_hidden: false,
-            },
-            false,
-        )?;
+        // Use the low-level scan function instead of `EspWifi::start_scan()`, which seems
+        // to be slower for some unknown reason.
+        // Default scan configuration is documented here: https://docs.espressif.com/projects/esp-idf/en/v5.3.2/esp32/api-reference/network/esp_wifi.html?#_CPPv419esp_wifi_scan_startPK18wifi_scan_config_tb
+        esp!(unsafe {
+            esp_wifi_scan_start(ptr::null() /* intentional */, true)
+        })?;
 
-        /*
-         * Since 2.4GHz WiFi has only 13 channels, and according to the above configuration, we'll only
-         * spend T amount of time on every channel, we can determine how long we should wait at most.
-         *
-         * 13 * T = TOTAL SCAN DURATION
-         */
-
-        let wait_time = (if CHANNEL_SCAN_WAIT_TIME.is_zero() {
-            Duration::from_millis(120)
-        } else {
-            CHANNEL_SCAN_WAIT_TIME
-        }) * 13;
-
-        // wait until scan is completed with the specified timeout
-        let scan_res = self.await_event::<WifiEvent, _, _>(
-            || self.driver.is_scan_done(),
-            // SAFETY: This value is never actually read.
-            |_| unsafe { MaybeUninit::<OsError>::zeroed().assume_init() },
-            wait_time,
-        );
-
-        // The scan may finish early, so we can handle that.
-        if matches!(scan_res, Ok(())) {
-            os_debug!("Scan finished early");
-        } else {
-            os_debug!("Scan exceeded timeout, force-stopping");
-            self.driver.stop_scan()?;
-        }
-
+        // Since the scan is blocking, we don't need to wait until it finishes.
         Ok(self.driver.get_scan_result_n()?.0)
     }
 
