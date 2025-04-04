@@ -223,6 +223,87 @@ __Latest verified stable version: N/A__
 
 A version is deemed "stable" if it runs without interruptions/buggy behaviour for at least 1 month.
 
+## Example logs from runs
+
+<details>
+  <summary>Release build</summary>
+
+  ```
+  INFO  [pwos] PixelWeatherOS v2.0.2-b8c53b3-devel (04.04.2025 08:46:51)
+  INFO  [pwos] (C) Fábián Varga 2025
+  INFO  [pwos] Staring main
+  WARN  [pwos::firmware] Got empty node settings, using defaults
+  WARN  [pwos::firmware] Battery voltage measurement may be affected by USB power
+  INFO  [pwos::firmware] Battery: 0.43V
+  INFO  [pwos::firmware] 22.83*C / 62%
+  INFO  [pwos::firmware] No update available
+  INFO  [pwos] Tasks completed successfully
+  INFO  [pwos] Tasks completed in 4.45s
+  ```
+</details>
+
+<details>
+  <summary>Debug build</summary>
+
+  ```
+  INFO  [pwos] PixelWeatherOS v2.0.2-b8c53b3-devel (04.04.2025 08:59:00)
+  INFO  [pwos] (C) Fábián Varga 2025
+  DEBUG [pwos] Using ESP-IDF v5.3.2
+  DEBUG [pwos] Disabling brownout detector
+  DEBUG [pwos] Initializing system peripherals
+  DEBUG [pwos::sysc::periph] Initializing base peripherals
+  DEBUG [pwos::sysc::periph] Initializing System Event Loop
+  DEBUG [pwos] Initializing system LED
+  DEBUG [pwos] Setting panic handle
+  DEBUG [pwos] Initializing OTA system
+  DEBUG [pwos] Reported current version: 2.0.1
+  DEBUG [pwos] Previous installed version: ?
+  DEBUG [pwos] Initializing system Battery
+  DEBUG [pwos] Initializing I2C bus
+  DEBUG [pwos] Initializing app configuration
+  INFO  [pwos] Staring main
+  DEBUG [pwos::firmware] Starting WiFi setup
+  DEBUG [pwos::firmware] Initializing WiFi
+  DEBUG [pwos::sysc::net::wifi] Configuring WiFi interface
+  DEBUG [pwos::sysc::net::wifi] Starting WiFi interface
+  DEBUG [pwos::sysc::net::wifi] Setting country code
+  DEBUG [pwos::firmware] Starting WiFi scan
+  DEBUG [pwos::firmware] Found networks: ["REDACTED"] in 2.50s
+  DEBUG [pwos::firmware] Connecting to REDACTED (-50dBm)
+  DEBUG [pwos::sysc::net::wifi] Starting connection to AP
+  DEBUG [pwos::sysc::net::wifi] Waiting for connection result
+  DEBUG [pwos::sysc::net::wifi] Waiting for IP address
+  DEBUG [pwos::firmware] Connected in 1.39s
+  DEBUG [pwos::firmware] IP: 192.168.0.199
+  DEBUG [pwos::firmware] Connecting to PWMP
+  DEBUG [pwos::firmware] Sending handshake request
+  DEBUG [pwos::firmware] Requesting app configuration
+  DEBUG [pwos::firmware] Reading settings
+  WARN  [pwos::firmware] Got empty node settings, using defaults
+  DEBUG [pwos::firmware] Settings updated
+  WARN  [pwos::firmware] Battery voltage measurement may be affected by USB power
+  INFO  [pwos::firmware] Battery: 0.42V
+  DEBUG [pwos::firmware] Found device @ I2C/0x40
+  DEBUG [pwos::firmware] Detected HTU-compatible sensor
+  DEBUG [pwos::sysc::ext_drivers::htu] Loading driver
+  WARN  [pwos::sysc::ext_drivers::htu] Air pressure is not supported
+  INFO  [pwos::firmware] 23.10*C / 59%
+  DEBUG [pwos::firmware] Posting measurements
+  DEBUG [pwos::firmware] Posting stats
+  DEBUG [pwos::firmware] Reset reason (USBPeripheral) is normal
+  DEBUG [pwos::firmware] No error detected from previous run
+  DEBUG [pwos::sysc::ota] Skipping report check on verified firmware
+  DEBUG [pwos::firmware] No update report needed
+  DEBUG [pwos::firmware] Checking for updates
+  INFO  [pwos::firmware] No update available
+  DEBUG [pwos::sysc::net::wifi] Deinitializing WiFi
+  INFO  [pwos] Tasks completed successfully
+  INFO  [pwos] Tasks completed in 4.56s
+  DEBUG [pwos] Sleeping for 60s
+  DEBUG [pwos] Using fake sleep instead of deep sleep
+  ```
+</details>
+
 ## Caveats
 This section contains information about the current and possible limitations of this firmware. If you are having issues, you should read this.
 
