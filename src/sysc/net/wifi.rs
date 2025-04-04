@@ -17,8 +17,8 @@ use esp_idf_svc::{
     },
     wifi::{
         config::{ScanConfig, ScanType},
-        AccessPointInfo, AuthMethod, ClientConfiguration, Configuration, EspWifi, WifiDeviceId,
-        WifiDriver, WifiEvent,
+        AccessPointInfo, AuthMethod, ClientConfiguration, Configuration, EspWifi, ScanMethod,
+        WifiDeviceId, WifiDriver, WifiEvent,
     },
 };
 use pwmp_client::pwmp_msg::{aliases::Rssi, mac::Mac};
@@ -54,7 +54,10 @@ impl WiFi {
 
         os_debug!("Configuring WiFi interface");
         let mut wifi = EspWifi::wrap_all(wifi, EspNetif::new_with_conf(&ip_config)?)?;
-        wifi.set_configuration(&Configuration::Client(ClientConfiguration::default()))?;
+        wifi.set_configuration(&Configuration::Client(ClientConfiguration {
+            scan_method: ScanMethod::FastScan,
+            ..Default::default()
+        }))?;
 
         os_debug!("Starting WiFi interface");
         wifi.start()?;
@@ -127,6 +130,7 @@ impl WiFi {
                 ssid: ssid.try_into().map_err(|()| OsError::ArgumentTooLong)?,
                 password: psk.try_into().map_err(|()| OsError::ArgumentTooLong)?,
                 auth_method: auth,
+                scan_method: ScanMethod::FastScan,
                 ..Default::default()
             }))?;
         os_debug!("Starting connection to AP");
