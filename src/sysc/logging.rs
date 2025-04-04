@@ -1,4 +1,6 @@
+use esp_idf_svc::sys::const_format::concatcp;
 use log::{Level, LevelFilter, Log};
+use std::io::{stdout, Write};
 
 const BLACKLISTED_MODULES: [&str; 1] = ["esp_idf_svc"];
 const COLOR_INFO: &str = "\x1b[1;94m";
@@ -6,6 +8,14 @@ const COLOR_WARN: &str = "\x1b[1;33m";
 const COLOR_ERROR: &str = "\x1b[1;91m";
 const COLOR_DEBUG: &str = "\x1b[1;95m";
 const RESET_COLOR: &str = "\x1b[0m";
+
+// We can pre-define these as they don't change during the entire firmware, and this
+// way we can avoid runtime formatting.
+const INFO_HEADER: &str = concatcp!(COLOR_INFO, "INFO", RESET_COLOR, "  [");
+const WARN_HEADER: &str = concatcp!(COLOR_WARN, "WARN", RESET_COLOR, "  [");
+const ERROR_HEADER: &str = concatcp!(COLOR_ERROR, "ERROR", RESET_COLOR, " [");
+const DEBUG_HEADER: &str = concatcp!(COLOR_DEBUG, "DEBUG", RESET_COLOR, " [");
+const TRACE_HEADER: &str = "TRACE [";
 
 pub struct OsLogger {
     enabled: bool,
@@ -53,15 +63,31 @@ impl Log for OsLogger {
             return;
         }
 
-        match record.level() {
-            Level::Info => print!("{COLOR_INFO}INFO{RESET_COLOR}  ["),
-            Level::Warn => print!("{COLOR_WARN}WARN{RESET_COLOR}  ["),
-            Level::Error => print!("{COLOR_ERROR}ERROR{RESET_COLOR} ["),
-            Level::Debug => print!("{COLOR_DEBUG}DEBUG{RESET_COLOR} ["),
-            Level::Trace => print!("TRACE ["),
-        }
+        // Get a lock to stdout
+        let mut lock = stdout().lock();
 
-        println!("{module}] {}", record.args());
+        // Print the level first
+        match record.level() {
+            Level::Info => lock.write_all(INFO_HEADER.as_bytes()),
+            Level::Warn => lock.write_all(WARN_HEADER.as_bytes()),
+            Level::Error => lock.write_all(ERROR_HEADER.as_bytes()),
+            Level::Debug => lock.write_all(DEBUG_HEADER.as_bytes()),
+            Level::Trace => lock.write_all(TRACE_HEADER.as_bytes()),
+        }
+        .expect("stdout-write failed");
+
+        // Print the module level next
+        lock.write_all(module.as_bytes())
+            .and_then(|_| lock.write_all(b"] "))
+            .expect("stdout-write-2 failed");
+
+        // Print the actual message, but also avoid runtime formatting when possible
+        match record.args().as_str() {
+            Some(stat_str) => lock.write_all(stat_str.as_bytes()),
+            None => lock.write_all(record.args().to_string().as_bytes()),
+        }
+        .and_then(|_| lock.write_all(b"\n"))
+        .expect("stdout-write-3 failed");
     }
 }
 
