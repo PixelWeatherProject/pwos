@@ -63,8 +63,8 @@ impl WiFi {
     }
 
     pub fn scan(&mut self) -> OsResult<heapless::Vec<AccessPointInfo, MAX_NET_SCAN>> {
-        // Use the low-level scan function instead of `EspWifi::start_scan()`, which seems
-        // to be slower for some unknown reason.
+        // Due to a bug in `esp-idf-svc` causing `ScanModes` to not be properly converted
+        // to `wifi_scan_type_t_*` this alternative is faster.
         // Default scan configuration is documented here: https://docs.espressif.com/projects/esp-idf/en/v5.3.2/esp32/api-reference/network/esp_wifi.html?#_CPPv419esp_wifi_scan_startPK18wifi_scan_config_tb
         esp!(unsafe {
             esp_wifi_scan_start(ptr::null() /* intentional */, true)
