@@ -175,7 +175,7 @@ fn setup_wifi(modem: Modem, sys_loop: EspSystemEventLoop) -> OsResult<(WiFi, Acc
     networks.retain(|ap| WIFI_NETWORKS.iter().any(|entry| entry.0 == ap.ssid));
     // sort by signal strength
     networks.sort_by(|a, b| b.signal_strength.cmp(&a.signal_strength));
-    // filter out APs with RSSI >= -90
+    // filter out APs with RSSI >= RSSI_THRESHOLD
     networks.retain(|ap| ap.signal_strength >= RSSI_THRESHOLD);
 
     if networks.is_empty() {
