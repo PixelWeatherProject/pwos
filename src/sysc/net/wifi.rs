@@ -1,7 +1,7 @@
 use crate::{
     config::{STATIC_IP_CONFIG, WIFI_COUNTRY_CODE},
     null_check, os_debug,
-    sysc::{OsError, OsResult, ReportableError},
+    sysc::{OsError, OsResult},
 };
 use esp_idf_svc::{
     eventloop::{EspEventLoop, EspEventSource, EspSystemEventLoop, System, Wait},
@@ -16,8 +16,8 @@ use esp_idf_svc::{
         wifi_storage_t_WIFI_STORAGE_RAM, EspError,
     },
     wifi::{
-        AccessPointInfo, AuthMethod, ClientConfiguration, Configuration, EspWifi, ScanMethod,
-        WifiDeviceId, WifiDriver, WifiEvent,
+        AccessPointInfo, AuthMethod, ClientConfiguration, Configuration, EspWifi, PmfConfiguration,
+        ScanMethod, WifiDeviceId, WifiDriver, WifiEvent,
     },
 };
 use pwmp_client::pwmp_msg::{aliases::Rssi, mac::Mac};
@@ -77,6 +77,8 @@ impl WiFi {
     pub fn connect(
         &mut self,
         ssid: &str,
+        bssid: &[u8; 6],
+        channel: u8,
         psk: &str,
         auth: AuthMethod,
         timeout: Duration,
@@ -86,8 +88,11 @@ impl WiFi {
                 ssid: ssid.try_into().map_err(|()| OsError::ArgumentTooLong)?,
                 password: psk.try_into().map_err(|()| OsError::ArgumentTooLong)?,
                 auth_method: auth,
-                scan_method: ScanMethod::FastScan,
-                ..Default::default()
+                scan_method: ScanMethod::FastScan, // https://github.com/espressif/esp-idf/tree/master/examples/wifi/fast_scan
+                /* the following parameters may improve connection times */
+                bssid: Some(*bssid),
+                channel: Some(channel),
+                pmf_cfg: PmfConfiguration::NotCapable, /* disables IEEE 802.11w-2009 support */
             }))?;
         os_debug!("Starting connection to AP");
         self.driver.connect().map_err(OsError::WifiConnect)?;
@@ -134,10 +139,6 @@ impl WiFi {
         Ok(Mac::new(raw[0], raw[1], raw[2], raw[3], raw[4], raw[5]))
     }
 
-    fn connected(&self) -> bool {
-        self.driver.is_connected().unwrap_or(false)
-    }
-
     fn generate_dhcp_config(wifi_driver: &WifiDriver) -> OsResult<NetifConfiguration> {
         Ok(NetifConfiguration {
             ip_configuration: Some(IpConfiguration::Client(IpClientConfiguration::DHCP(
@@ -171,17 +172,5 @@ impl WiFi {
         .map_err(|_| OsError::UnexpectedBufferFailiure)?;
 
         Ok(buffer)
-    }
-}
-
-impl Drop for WiFi {
-    fn drop(&mut self) {
-        os_debug!("Deinitializing WiFi");
-
-        if self.connected() {
-            self.driver.disconnect().report("Failed to disconnect");
-        }
-
-        self.driver.stop().report("Failed to disable");
     }
 }

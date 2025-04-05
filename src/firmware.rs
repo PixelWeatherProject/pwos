@@ -194,6 +194,8 @@ fn setup_wifi(modem: Modem, sys_loop: EspSystemEventLoop) -> OsResult<(WiFi, Acc
         let start = std::time::Instant::now();
         match wifi.connect(
             &ap.ssid,
+            &ap.bssid,
+            ap.channel,
             psk,
             ap.auth_method.unwrap_or_default(),
             WIFI_TIMEOUT,
