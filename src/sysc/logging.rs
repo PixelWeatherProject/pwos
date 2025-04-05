@@ -47,7 +47,7 @@ impl Log for OsLogger {
     }
 
     fn flush(&self) {
-        stdout().lock().flush().expect("Failed to flush stdout")
+        stdout().lock().flush().expect("Failed to flush stdout");
     }
 
     fn log(&self, record: &log::Record) {
