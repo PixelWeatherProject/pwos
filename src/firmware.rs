@@ -192,14 +192,7 @@ fn setup_wifi(modem: Modem, sys_loop: EspSystemEventLoop) -> OsResult<(WiFi, Acc
 
         #[cfg(debug_assertions)]
         let start = std::time::Instant::now();
-        match wifi.connect(
-            &ap.ssid,
-            &ap.bssid,
-            ap.channel,
-            psk,
-            ap.auth_method.unwrap_or_default(),
-            WIFI_TIMEOUT,
-        ) {
+        match wifi.connect(&ap, psk, WIFI_TIMEOUT) {
             Ok(()) => {
                 os_debug!("Connected in {:.02?}", start.elapsed());
                 os_debug!("IP: {}", wifi.get_ip_info()?.ip);

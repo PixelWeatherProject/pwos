@@ -16,8 +16,8 @@ use esp_idf_svc::{
         wifi_storage_t_WIFI_STORAGE_RAM, EspError,
     },
     wifi::{
-        AccessPointInfo, AuthMethod, ClientConfiguration, Configuration, EspWifi, PmfConfiguration,
-        ScanMethod, WifiDeviceId, WifiDriver, WifiEvent,
+        AccessPointInfo, ClientConfiguration, Configuration, EspWifi, PmfConfiguration, ScanMethod,
+        WifiDeviceId, WifiDriver, WifiEvent,
     },
 };
 use pwmp_client::pwmp_msg::{aliases::Rssi, mac::Mac};
@@ -74,24 +74,16 @@ impl WiFi {
         Ok(self.driver.get_scan_result_n()?.0)
     }
 
-    pub fn connect(
-        &mut self,
-        ssid: &heapless::String<32>,
-        bssid: &[u8; 6],
-        channel: u8,
-        psk: &str,
-        auth: AuthMethod,
-        timeout: Duration,
-    ) -> OsResult<()> {
+    pub fn connect(&mut self, ap: &AccessPointInfo, psk: &str, timeout: Duration) -> OsResult<()> {
         self.driver
             .set_configuration(&Configuration::Client(ClientConfiguration {
-                ssid: ssid.clone(),
+                ssid: ap.ssid.clone(),
                 password: psk.try_into().map_err(|()| OsError::ArgumentTooLong)?,
-                auth_method: auth,
+                auth_method: ap.auth_method.unwrap_or_default(),
                 scan_method: ScanMethod::FastScan, // https://github.com/espressif/esp-idf/tree/master/examples/wifi/fast_scan
                 /* the following parameters may improve connection times */
-                bssid: Some(*bssid),
-                channel: Some(channel),
+                bssid: Some(ap.bssid),
+                channel: Some(ap.channel),
                 pmf_cfg: PmfConfiguration::NotCapable, /* disables IEEE 802.11w-2009 support */
             }))?;
         os_debug!("Starting connection to AP");
