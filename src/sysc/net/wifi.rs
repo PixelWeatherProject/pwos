@@ -76,7 +76,7 @@ impl WiFi {
 
     pub fn connect(
         &mut self,
-        ssid: &str,
+        ssid: &heapless::String<32>,
         bssid: &[u8; 6],
         channel: u8,
         psk: &str,
@@ -85,7 +85,7 @@ impl WiFi {
     ) -> OsResult<()> {
         self.driver
             .set_configuration(&Configuration::Client(ClientConfiguration {
-                ssid: ssid.try_into().map_err(|()| OsError::ArgumentTooLong)?,
+                ssid: ssid.clone(),
                 password: psk.try_into().map_err(|()| OsError::ArgumentTooLong)?,
                 auth_method: auth,
                 scan_method: ScanMethod::FastScan, // https://github.com/espressif/esp-idf/tree/master/examples/wifi/fast_scan
