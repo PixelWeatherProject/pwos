@@ -26,6 +26,8 @@ PixelWeather is a weather station network that collects environment data using "
 ### Software requirements (for building):
 - [Rust](https://rustlang.org/)
 - [ESP32 Rust toolchain](https://esp-rs.github.io/book/)
+  - Version `1.84.0.0` is **recommended**.
+    - `espup install --toolchain-version 1.84.0.0`
 
 ### Recommended hardware
 For a generally stable, safe and reliable experience, you should stick to reputable a higher-quality brands. Below are the listed recommendations for all categories of hardware.
