@@ -154,9 +154,9 @@ dependencies = [
 
 [[package]]
 name = "bstr"
-version = "1.11.3"
+version = "1.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "531a9155a481e2ee699d4f98f43c0ca4ff8ee1bfd55c31e9e98fb29d2b176fe0"
+checksum = "234113d19d0d7d613b40e86fb654acf958910802bcceab913a4f9e7cda03b1a4"
 dependencies = [
  "memchr",
  "serde",
@@ -1015,9 +1015,9 @@ checksum = "d26c52dbd32dccf2d10cac7725f8eae5296885fb5703b261f7d0a0739ec807ab"
 
 [[package]]
 name = "linux-raw-sys"
-version = "0.9.3"
+version = "0.9.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fe7db12097d22ec582439daf8618b8fdd1a7bef6270e9af3b1ebcd30893cf413"
+checksum = "cd945864f07fe9f5371a27ad7b52a172b4b499999f1d97574c9fa68373937e12"
 
 [[package]]
 name = "log"
@@ -1224,8 +1224,8 @@ dependencies = [
 
 [[package]]
 name = "pwmp-client"
-version = "2.1.2"
-source = "git+ssh://git@github.com/PixelWeatherProject/pwmp-client.git?tag=v2.1.2#f89c09752f7d4f3f63362be969f38f372c052c10"
+version = "2.1.4"
+source = "git+ssh://git@github.com/PixelWeatherProject/pwmp-client.git?tag=v2.1.4#4fa42d1f9098a946fcd24cc15b243027b4160b7a"
 dependencies = [
  "arrayref",
  "libc",
@@ -1235,8 +1235,8 @@ dependencies = [
 
 [[package]]
 name = "pwmp-msg"
-version = "2.1.2"
-source = "git+https://github.com/PixelWeatherProject/pwmp-msg?tag=v2.1.2#71c8f897e538192f29d9cd7df6fec10917ebcca7"
+version = "2.1.3"
+source = "git+https://github.com/PixelWeatherProject/pwmp-msg?tag=v2.1.3#ace6f8fbf5465fa8cd6b4d7425f46e81335f0ff2"
 dependencies = [
  "derive_more",
  "postcard",
@@ -1452,7 +1452,7 @@ dependencies = [
  "bitflags 2.9.0",
  "errno",
  "libc",
- "linux-raw-sys 0.9.3",
+ "linux-raw-sys 0.9.4",
  "windows-sys 0.59.0",
 ]
 
@@ -1985,9 +1985,9 @@ checksum = "589f6da84c646204747d1270a2a5661ea66ed1cced2631d546fdfb155959f9ec"
 
 [[package]]
 name = "winnow"
-version = "0.7.4"
+version = "0.7.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0e97b544156e9bebe1a0ffbc03484fc1ffe3100cbce3ffb17eac35f7cdd7ab36"
+checksum = "63d3fcd9bba44b03821e7d699eeee959f3126dcc4aa8e4ae18ec617c2a5cea10"
 dependencies = [
  "memchr",
 ]
