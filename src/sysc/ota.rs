@@ -1,5 +1,5 @@
 use super::OsResult;
-use crate::{os_debug, os_error, os_info, os_warn, sysc::OsError};
+use crate::{null_check, os_debug, os_error, os_info, os_warn, sysc::OsError};
 use esp_idf_svc::ota::{EspOta, EspOtaUpdate, FirmwareInfo, SlotState};
 use pwmp_client::pwmp_msg::version::Version;
 use std::{
@@ -134,7 +134,7 @@ impl Ota {
 
 impl OtaHandle<'_> {
     pub fn cancel(mut self) -> OsResult<()> {
-        let inner = self.0.take().expect("Handle was NULL");
+        let inner = null_check!(self.0.take());
         inner.abort()?;
 
         Ok(())
