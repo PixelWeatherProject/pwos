@@ -73,6 +73,7 @@ impl Battery {
     }
 
     /// Read the raw ADC value.
+    #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
     fn read_raw(&mut self, samples: u8) -> OsResult<u16> {
         let mut avg = 0.;
 

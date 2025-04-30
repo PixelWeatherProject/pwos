@@ -82,6 +82,7 @@ impl EnvironmentSensor for Htu<'_> {
         Ok(Self::calc_temperature(raw))
     }
 
+    #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
     fn read_humidity(&mut self) -> OsResult<Humidity> {
         let raw = self.command(Command::ReadHumidity)?;
         let hum = ((125.0 * f32::from(raw)) / 65536.0) - 6.0;
