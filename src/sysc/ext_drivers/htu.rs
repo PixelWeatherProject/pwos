@@ -10,10 +10,7 @@ use crate::{
     sysc::{OsError, OsResult},
 };
 use esp_idf_svc::hal::i2c::I2cDriver;
-use pwmp_client::pwmp_msg::{
-    aliases::{AirPressure, Humidity, Temperature},
-    dec, Decimal,
-};
+use pwmp_client::pwmp_msg::aliases::{AirPressure, Humidity, Temperature};
 use std::{thread::sleep, time::Duration};
 
 /// Commands for HTU21D (and similar) sensors.
@@ -69,10 +66,7 @@ impl<'s> Htu<'s> {
     /// Calculate temperature in Celsius from the result measured by the sensor.
     fn calc_temperature(raw: u16) -> Temperature {
         // ((175.72 * raw) / 65536.0) - 46.85
-        let mut temp = ((dec!(175.72) * (Decimal::from(raw))) / dec!(65536.0)) - dec!(46.85);
-        temp.rescale(2);
-
-        temp
+        ((175.72 * f32::from(raw)) / 65536.0) - 46.85
     }
 }
 
@@ -90,10 +84,10 @@ impl EnvironmentSensor for Htu<'_> {
 
     fn read_humidity(&mut self) -> OsResult<Humidity> {
         let raw = self.command(Command::ReadHumidity)?;
-        let hum = ((dec!(125.0) * Decimal::from(raw)) / dec!(65536.0)) - dec!(6.0);
-        let percentage = hum.floor().clamp(Decimal::ZERO, Decimal::ONE_HUNDRED);
+        let hum = ((125.0 * f32::from(raw)) / 65536.0) - 6.0;
+        let percentage = hum.floor().clamp(0., 100.);
 
-        u8::try_from(percentage).map_err(|_| OsError::DecimalConversion)
+        Ok(percentage as u8)
     }
 
     fn read_air_pressure(&mut self) -> OsResult<Option<AirPressure>> {

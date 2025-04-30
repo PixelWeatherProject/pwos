@@ -1,6 +1,6 @@
 //! A driver for reading the battery supply voltage using the node's ADC.
 
-use super::{OsError, OsResult};
+use super::OsResult;
 use esp_idf_svc::{
     hal::{
         adc::{
@@ -14,7 +14,6 @@ use esp_idf_svc::{
     },
     sys::adc_atten_t,
 };
-use pwmp_client::pwmp_msg::{dec, Decimal};
 use std::{rc::Rc, thread::sleep, time::Duration};
 
 /// GPIO pin where the output of the voltage divider is connected
@@ -34,9 +33,9 @@ type BatteryAdcChannelDriver = AdcChannelDriver<'static, BatteryGpio, Rc<Battery
 // the ADC, the current should be very limited, i.e. no damage should be done.
 const ATTEN: adc_atten_t = 0;
 /// Value of the first resistor of the voltage divider
-const R1: Decimal = dec!(1_000_000); // 1MOhm
+const R1: f32 = 1_000_000.; // 1MOhm
 /// Value of the second resistor of the voltage divider
-const R2: Decimal = dec!(300_000); // 300kOhm
+const R2: f32 = 300_000.; // 300kOhm
 /// ADC channel configuration
 const CONFIG: AdcChannelConfig = AdcChannelConfig {
     attenuation: ATTEN,              /* refer to the attenuation value above  */
@@ -44,7 +43,7 @@ const CONFIG: AdcChannelConfig = AdcChannelConfig {
     resolution: Resolution::Resolution12Bit, /* ADC resolution */
 };
 /// Critical voltage value that's still higher than the minimum supply voltage for the ESP32
-pub const CRITICAL_VOLTAGE: Decimal = dec!(3.22);
+pub const CRITICAL_VOLTAGE: f32 = 3.22;
 
 /// Battery voltage measurement driver.
 pub struct Battery {
@@ -65,24 +64,25 @@ impl Battery {
     }
 
     /// Read the ADC value and calculate the voltage.
-    pub fn read(&mut self, samples: u8) -> OsResult<Decimal> {
+    pub fn read(&mut self, samples: u8) -> OsResult<f32> {
         let raw = self.read_raw(samples)?;
-        let volts = Decimal::from(self.adc.raw_to_mv(&self.ch, raw)?) / dec!(1000);
+        let volts = f32::from(self.adc.raw_to_mv(&self.ch, raw)?) / 1000.;
         let result = (volts * (R1 + R2)) / R2;
 
-        Ok(result.trunc_with_scale(2))
+        Ok(result)
     }
 
     /// Read the raw ADC value.
     fn read_raw(&mut self, samples: u8) -> OsResult<u16> {
-        let mut avg = dec!(0);
+        let mut avg = 0.;
 
         for _ in 0..samples {
-            avg += Decimal::from(self.adc.read_raw(&mut self.ch)?);
+            avg += f32::from(self.adc.read_raw(&mut self.ch)?);
             sleep(Duration::from_millis(1));
         }
 
-        avg /= Decimal::from(samples);
-        u16::try_from(avg).map_err(|_| OsError::DecimalConversion)
+        avg /= f32::from(samples);
+        avg = avg.clamp(0., 4095.);
+        Ok(avg as u16)
     }
 }

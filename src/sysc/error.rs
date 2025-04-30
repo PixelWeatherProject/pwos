@@ -41,10 +41,6 @@ pub enum OsError {
     #[error("Unexpected version format")]
     MissingPartitionMetadata,
 
-    /// Failiure during conversions to/from [`Decimal`](pwmp_client::pwmp_msg::Decimal).
-    #[error("Conversion between float/int and Decimal failed")]
-    DecimalConversion,
-
     /// A buffer has been filled unexpectedly
     #[error("A buffer capacity has been exceeded")]
     UnexpectedBufferFailiure,
