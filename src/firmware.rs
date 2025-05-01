@@ -54,7 +54,7 @@ pub fn fw_main(
         os_warn!("Battery voltage measurement may be affected by USB power");
         cfg.battery_ignore = true;
     }
-    os_info!("Battery: {bat_voltage}V");
+    os_info!("Battery: {bat_voltage:.02}V");
 
     if (bat_voltage <= CRITICAL_VOLTAGE) && cfg.sbop && !cfg.battery_ignore {
         os_warn!("Battery voltage too low, activating sBOP");
@@ -68,7 +68,7 @@ pub fn fw_main(
     let env_sensor = setup_envsensor(i2c)?;
 
     let results = read_environment(env_sensor)?;
-    os_info!("{}*C / {}%", results.temperature, results.humidity);
+    os_info!("{:.02}*C / {}%", results.temperature, results.humidity);
     os_debug!("Posting measurements");
     pws.post_measurements(results.temperature, results.humidity, results.air_pressure)?;
 
