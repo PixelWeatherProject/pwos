@@ -22,7 +22,7 @@ impl NonVolatileStorage {
     }
 
     pub fn get_last_os_error(&mut self) -> OsResult<Option<String>> {
-        self.get_key(LAST_OS_ERROR_KEY, true)
+        self.get_key(LAST_OS_ERROR_KEY, false)
     }
 
     pub fn clear_last_os_error(&mut self) -> OsResult<()> {

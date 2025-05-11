@@ -96,6 +96,8 @@ pub fn fw_main(
             "An error has been detected during a previous run: {error}"
         ))
         .report("Failed to report previous error");
+
+        nvs.clear_last_os_error()?;
     } else {
         os_debug!("No error detected from previous run");
     }
