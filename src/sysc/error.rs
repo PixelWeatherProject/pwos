@@ -48,6 +48,17 @@ pub enum OsError {
     /// A value was `None`, when `Some(..)` was expected.
     #[error("Unexpected NULL")]
     UnexpectedNull,
+
+    /// Expected a null-terminated string.
+    #[error("String is missing NULL-terminator")]
+    #[from(FromVecWithNulError)]
+    MissingNullTerminator,
+
+    /// Expected a UTF-8 string.
+    #[error("String is not UTF-8 encoded")]
+    #[from(Utf8Error)]
+    #[from(IntoStringError)]
+    InvalidUtf8,
 }
 
 /// Trait for non-fatal error types that can be "reported" to the console.
