@@ -59,6 +59,10 @@ pub enum OsError {
     #[from(Utf8Error)]
     #[from(IntoStringError)]
     InvalidUtf8,
+
+    /// Key not found in NVS storage.
+    #[error("NVS key does not exist")]
+    InvalidNvsKey,
 }
 
 /// Trait for non-fatal error types that can be "reported" to the console.

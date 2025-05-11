@@ -25,6 +25,17 @@ impl NonVolatileStorage {
         self.get_key(LAST_OS_ERROR_KEY, true)
     }
 
+    pub fn clear_last_os_error(&mut self) -> OsResult<()> {
+        self.delete_key(LAST_OS_ERROR_KEY)
+    }
+
+    fn delete_key(&mut self, key: &str) -> OsResult<()> {
+        if !self.0.remove(key)? {
+            return Err(OsError::InvalidNvsKey);
+        }
+        Ok(())
+    }
+
     fn get_key(&mut self, key: &str, delete_if_exists: bool) -> OsResult<Option<String>> {
         let Some(length) = self.0.str_len(key)? else {
             return Ok(None);
