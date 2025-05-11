@@ -6,11 +6,11 @@ use crate::{
         ext_drivers::{AnySensor, EnvironmentSensor, Htu, MeasurementResults},
         ledctl::BoardLed,
         net::wifi::{WiFi, RSSI_THRESHOLD},
+        nvs::NonVolatileStorage,
         ota::{Ota, OtaHandle},
         power::{deep_sleep, get_reset_reason, ResetReasonExt},
         usbctl, OsError, OsResult, ReportableError,
     },
-    LAST_ERROR,
 };
 use esp_idf_svc::{
     eventloop::EspSystemEventLoop,
@@ -31,6 +31,7 @@ pub fn fw_main(
     modem: Modem,
     sys_loop: EspSystemEventLoop,
     mut led: BoardLed,
+    nvs: &mut NonVolatileStorage,
     ota: &mut Ota,
     cfg: &mut AppConfig,
 ) -> OsResult<()> {
@@ -88,19 +89,13 @@ pub fn fw_main(
         os_debug!("Reset reason ({reset_reason:?}) is normal");
     }
 
-    // SAFETY: Since this program is not multithreaded, this will always be safe.
-    #[allow(static_mut_refs)]
-    if let Some(error) = unsafe {
-        LAST_ERROR.take() /* also clears the Option */
-    } {
-        os_info!("Reporting error from previous run");
+    if let Some(error) = nvs.get_last_os_error()? {
+        os_info!("Reporting error from previous run ({error})");
 
         pws.send_notification(format!(
             "An error has been detected during a previous run: {error}"
         ))
         .report("Failed to report previous error");
-    } else {
-        os_debug!("No error detected from previous run");
     }
 
     if ota.report_needed()? {

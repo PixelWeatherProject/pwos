@@ -22,13 +22,6 @@ mod config;
 mod firmware;
 mod sysc;
 
-/// Storage for a recoverable error that may have occurred during a previous run.
-///
-/// ## Note
-/// This variable is not preserved when the node is connected to a PC for an unknown reason.
-#[link_section = ".rtc.data"]
-static mut LAST_ERROR: Option<OsError> = Option::None;
-
 #[allow(clippy::cognitive_complexity, clippy::too_many_lines)]
 fn main() {
     esp_idf_svc::sys::link_patches();
@@ -95,6 +88,9 @@ fn main() {
             .map_or_else(|| "?".to_string(), |v| v.to_string())
     );
 
+    os_debug!("Initializing NVS");
+    let mut nvs = sysc::nvs::NonVolatileStorage::new().expect("Failed to initialize NVS");
+
     os_debug!("Initializing system Battery");
     let battery = Battery::new(peripherals.battery.adc, peripherals.battery.pin)
         .expect("Failed to initialize battery ADC");
@@ -120,6 +116,7 @@ fn main() {
         peripherals.wifi.modem,
         peripherals.wifi.sys_loop,
         led,
+        &mut nvs,
         &mut ota,
         &mut appcfg,
     );
@@ -135,10 +132,8 @@ fn main() {
                 deep_sleep(None);
             }
 
-            // SAFETY: Since this program is not multithreaded, this will always be safe.
-            #[allow(static_mut_refs)]
-            unsafe {
-                LAST_ERROR.replace(why)
+            if let Err(why) = nvs.store_last_os_error(&why) {
+                os_error!("Failed to store error in NVS: {why}");
             };
 
             ota.inc_failiures()

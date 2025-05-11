@@ -7,6 +7,7 @@ pub mod ledctl;
 pub mod logging;
 mod macros;
 pub mod net;
+pub mod nvs;
 pub mod ota;
 pub mod periph;
 pub mod power;
