@@ -128,14 +128,15 @@ fn main() {
         Err(why) => {
             os_error!("OS Error: {why}");
 
+            os_debug!("Saving error into NVS");
+            if let Err(why) = nvs.store_last_os_error(&why) {
+                os_error!("Failed to store error in NVS: {why}");
+            };
+
             if !why.recoverable() {
                 os_error!("System will now halt");
                 deep_sleep(None);
             }
-
-            if let Err(why) = nvs.store_last_os_error(&why) {
-                os_error!("Failed to store error in NVS: {why}");
-            };
 
             ota.inc_failiures()
                 .expect("Failed to increment failiure count");
