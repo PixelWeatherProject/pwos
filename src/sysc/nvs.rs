@@ -1,5 +1,6 @@
 use super::{OsError, OsResult};
 use esp_idf_svc::nvs::{EspDefaultNvsPartition, EspNvs, NvsDefault};
+use std::ffi::CString;
 
 const NAMESPACE: &str = "pixelweather";
 const LAST_OS_ERROR_KEY: &str = "last_error";
@@ -27,7 +28,11 @@ impl NonVolatileStorage {
 
         let mut buffer = vec![0u8; length];
         self.0.get_str(LAST_OS_ERROR_KEY, &mut buffer)?;
-        let err_string = String::from_utf8(buffer).expect("Last OS error in NVS is not UTF-8");
+
+        let err_string = CString::from_vec_with_nul(buffer)
+            .map_err(|_| OsError::MissingNullTerminator)?
+            .into_string()
+            .map_err(|_| OsError::InvalidUtf8)?;
 
         self.0.remove(LAST_OS_ERROR_KEY)?;
         Ok(Some(err_string))
