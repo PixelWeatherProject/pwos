@@ -22,19 +22,26 @@ impl NonVolatileStorage {
     }
 
     pub fn get_last_os_error(&mut self) -> OsResult<Option<String>> {
-        let Some(length) = self.0.str_len(LAST_OS_ERROR_KEY)? else {
+        self.get_key(LAST_OS_ERROR_KEY, true)
+    }
+
+    fn get_key(&mut self, key: &str, delete_if_exists: bool) -> OsResult<Option<String>> {
+        let Some(length) = self.0.str_len(key)? else {
             return Ok(None);
         };
 
         let mut buffer = vec![0u8; length];
-        self.0.get_str(LAST_OS_ERROR_KEY, &mut buffer)?;
+        self.0.get_str(key, &mut buffer)?;
 
         let err_string = CString::from_vec_with_nul(buffer)
             .map_err(|_| OsError::MissingNullTerminator)?
             .into_string()
             .map_err(|_| OsError::InvalidUtf8)?;
 
-        self.0.remove(LAST_OS_ERROR_KEY)?;
+        if delete_if_exists {
+            self.0.remove(key)?;
+        }
+
         Ok(Some(err_string))
     }
 }
