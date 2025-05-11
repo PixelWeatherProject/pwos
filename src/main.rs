@@ -1,4 +1,5 @@
 #![warn(clippy::unwrap_used)]
+#![deny(unused_must_use)]
 #![feature(panic_payload_as_str)]
 
 use crate::config::AppConfig;
