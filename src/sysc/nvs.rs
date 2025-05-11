@@ -44,7 +44,7 @@ impl NonVolatileStorage {
         self.0.get_str(key, &mut buffer)?;
         buffer.pop(); // Buffer contains a NULL-terminated string
 
-        let err_string = String::from_utf8(buffer).map_err(|_| OsError::InvalidUtf8)?;
+        let err_string = String::from_utf8(buffer)?;
 
         if delete_if_exists {
             self.0.remove(key)?;

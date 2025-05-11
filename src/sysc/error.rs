@@ -2,7 +2,7 @@
 
 use crate::os_warn;
 use esp_idf_svc::sys::EspError;
-use std::fmt::Display;
+use std::{fmt::Display, string::FromUtf8Error};
 use thiserror::Error;
 
 /// A wrapper for several different lower-level error types.
@@ -51,9 +51,7 @@ pub enum OsError {
 
     /// Expected a UTF-8 string.
     #[error("String is not UTF-8 encoded")]
-    #[from(Utf8Error)]
-    #[from(IntoStringError)]
-    InvalidUtf8,
+    InvalidUtf8(#[from] FromUtf8Error),
 
     /// Key not found in NVS storage.
     #[error("NVS key does not exist")]
