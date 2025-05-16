@@ -30,7 +30,7 @@ esp-idf-svc = { version = "0.51.0", default-features = false, features = [
     "alloc",
     "binstart",
 ] }
-pwmp-client = { git = "https://github.com/PixelWeatherProject/pwmp-client", tag = "v2.1.6" }
+pwmp-client = { git = "https://github.com/PixelWeatherProject/pwmp-client", tag = "v2.1.7" }
 log = { version = "0.4.27", default-features = false, features = ["release_max_level_info", "max_level_debug"] }
 thiserror = "2.0.12"
 heapless = "0.8.0"
