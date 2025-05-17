@@ -9,9 +9,41 @@ use thiserror::Error;
 #[allow(clippy::doc_markdown)]
 #[derive(Debug, Error)]
 pub enum OsError {
+    /// Failed to initialize WiFi.
+    #[error("wifi init: {0}")]
+    WifiInit(EspError),
+
     /// Failed to connect to WiFi AP.
     #[error("wifi connect: {0}")]
     WifiConnect(EspError),
+
+    /// Failed to set up a WiFi parameter.
+    #[error("wifi param: {0}")]
+    WifiParam(EspError),
+
+    /// Failed to set WiFi configuration.
+    #[error("wifi config: {0}")]
+    WifiConfig(EspError),
+
+    /// Failed to start the WiFi interface.
+    #[error("wifi start: {0}")]
+    WifiStart(EspError),
+
+    /// Failed to start AP scan or fetch the results.
+    #[error("wifi scan: {0}")]
+    WifiScan(EspError),
+
+    /// Failed to read WiFi interface information.
+    #[error("wifi info read: {0}")]
+    WifiInfo(EspError),
+
+    /// Timeout while waiting for an event.
+    #[error("event timeout: {0}")]
+    EventTimeout(EspError),
+
+    /// Failed to initialize event waiter ([Wait](esp_idf_svc::eventloop::Wait)).
+    #[error("event waiter: {0}")]
+    EventWaiterInit(EspError),
 
     /// No usable AP found.
     #[error("offline")]
@@ -25,9 +57,53 @@ pub enum OsError {
     #[error("environment sensor")]
     NoEnvSensor,
 
-    /// Generic ESP-IDF error.
-    #[error("esp api: {0}")]
-    Esp(#[from] EspError),
+    /// OTA module or update initialization has failed.
+    #[error("Failed to initialize an OTA update ({0})")]
+    OtaInit(EspError),
+
+    /// Failed to write an OTA update chunk to flash.
+    #[error("OTA chunk write failed ({0})")]
+    OtaWrite(EspError),
+
+    /// Failed to abort OTA update.
+    #[error("OTA abort failed ({0})")]
+    OtaAbort(EspError),
+
+    /// An I/O operation on an OTA slot failed.
+    #[error("Failed to operate on an OTA slot ({0})")]
+    OtaSlot(EspError),
+
+    /// NVS initialization has failed
+    #[error("Failed to initialize NVS ({0})")]
+    NvsInit(EspError),
+
+    /// Error while reading from NVS.
+    #[error("Failed to read from NVS ({0})")]
+    NvsRead(EspError),
+
+    /// Error while writing to NVS.
+    #[error("Failed to write to NVS ({0})")]
+    NvsWrite(EspError),
+
+    /// Failed to initialize a GPIO pin.
+    #[error("Failed to initialize a GPIO pin ({0})")]
+    GpioInit(EspError),
+
+    /// Failed to initialize ADC.
+    #[error("Failed to initialize a GPIO pin ({0})")]
+    AdcInit(EspError),
+
+    /// Failed to read from the ADC.
+    #[error("Failed to initialize a GPIO pin ({0})")]
+    AdcRead(EspError),
+
+    /// Error while reading from I2C.
+    #[error("Failed to read from I2C ({0})")]
+    I2cRead(EspError),
+
+    /// Error while writing to I2C.
+    #[error("Failed to write to I2C ({0})")]
+    I2cWrite(EspError),
 
     /// Specified parameter was too long.
     #[error("Argument too long")]
