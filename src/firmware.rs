@@ -139,9 +139,6 @@ pub fn fw_main(
         os_info!("Update installed successfully");
     } // Handle will be dropped and the update should finalize
 
-    // Peacefully disconnect
-    drop(pws);
-
     led.off();
     Ok(())
 }
