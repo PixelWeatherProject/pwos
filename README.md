@@ -28,6 +28,8 @@ PixelWeather is a weather station network that collects environment data using "
 - [ESP32 Rust toolchain](https://esp-rs.github.io/book/)
   - Version `1.84.0.0` is **recommended**.
     - `espup install --toolchain-version 1.84.0.0`
+- An instance of the PixelWeather Messaging Protocol (PWMP) server.
+  - Repository [here](https://github.com/PixelWeatherProject/pwmp-server).
 
 ### Recommended hardware
 For a generally stable, safe and reliable experience, you should stick to reputable a higher-quality brands. Below are the listed recommendations for all categories of hardware.
