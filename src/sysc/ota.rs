@@ -1,5 +1,5 @@
 use super::OsResult;
-use crate::{null_check, os_debug, os_error, os_info, os_warn, sysc::OsError};
+use crate::{null_check, os_debug, os_error, os_info, os_warn, re_esp, sysc::OsError};
 use esp_idf_svc::ota::{EspOta, EspOtaUpdate, FirmwareInfo, SlotState};
 use pwmp_client::pwmp_msg::version::Version;
 use std::{
@@ -26,11 +26,11 @@ pub struct OtaHandle<'h>(Option<EspOtaUpdate<'h>>);
 #[allow(static_mut_refs)]
 impl Ota {
     pub fn new() -> OsResult<Self> {
-        Ok(Self(EspOta::new()?))
+        Ok(Self(re_esp!(EspOta::new(), OtaInit)?))
     }
 
     pub fn current_verified(&self) -> OsResult<bool> {
-        Ok(self.0.get_running_slot()?.state == SlotState::Valid)
+        Ok(re_esp!(self.0.get_running_slot(), OtaSlot)?.state == SlotState::Valid)
     }
 
     #[allow(clippy::unused_self)]
@@ -49,12 +49,12 @@ impl Ota {
     }
 
     pub fn rollback_detected(&self) -> OsResult<bool> {
-        Ok(self.0.get_last_invalid_slot()?.is_some())
+        Ok(re_esp!(self.0.get_last_invalid_slot(), OtaSlot)?.is_some())
     }
 
     pub fn begin_update(&mut self) -> OsResult<OtaHandle<'_>> {
         os_debug!("Initializing update");
-        Ok(OtaHandle(Some(self.0.initiate_update()?)))
+        Ok(OtaHandle(Some(re_esp!(self.0.initiate_update(), OtaInit)?)))
     }
 
     pub fn rollback_if_needed(&mut self) -> OsResult<()> {
@@ -83,7 +83,7 @@ impl Ota {
 
     #[cfg(debug_assertions)]
     pub fn current_version(&self) -> OsResult<Option<Version>> {
-        let slot = self.0.get_running_slot()?;
+        let slot = crate::re_esp!(self.0.get_running_slot(), OtaSlot)?;
 
         let Some(info) = slot.firmware else {
             return Err(OsError::MissingPartitionMetadata);
@@ -98,7 +98,7 @@ impl Ota {
     }
 
     pub fn previous_version(&self) -> OsResult<Option<Version>> {
-        let Some(slot) = self.0.get_last_invalid_slot()? else {
+        let Some(slot) = re_esp!(self.0.get_last_invalid_slot(), OtaSlot)? else {
             return Ok(None);
         };
 
@@ -135,7 +135,7 @@ impl Ota {
 impl OtaHandle<'_> {
     pub fn cancel(mut self) -> OsResult<()> {
         let inner = null_check!(self.0.take());
-        inner.abort()?;
+        re_esp!(inner.abort(), OtaAbort)?;
 
         Ok(())
     }

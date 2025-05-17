@@ -1,6 +1,6 @@
 use crate::{
     config::{AppConfig, PWMP_SERVER, WIFI_NETWORKS, WIFI_TIMEOUT},
-    null_check, os_debug, os_error, os_info, os_warn,
+    null_check, os_debug, os_error, os_info, os_warn, re_esp,
     sysc::{
         battery::{Battery, CRITICAL_VOLTAGE},
         ext_drivers::{AnySensor, EnvironmentSensor, Htu, MeasurementResults},
@@ -274,7 +274,7 @@ fn begin_update(pws: &mut PwmpClient, handle: &mut OtaHandle) -> OsResult<()> {
             os_debug!("Writing OTA update chunk #{i}");
         }
 
-        handle.write(&chunk)?;
+        re_esp!(handle.write(&chunk), OtaWrite)?;
         maybe_chunk = pws.next_update_chunk(Some(1024))?;
         i += 1;
     }

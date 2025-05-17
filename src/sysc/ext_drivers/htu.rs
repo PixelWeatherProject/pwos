@@ -6,7 +6,7 @@
 
 use super::EnvironmentSensor;
 use crate::{
-    os_debug,
+    os_debug, re_esp,
     sysc::{OsError, OsResult},
 };
 use esp_idf_svc::hal::i2c::I2cDriver;
@@ -51,13 +51,18 @@ impl<'s> Htu<'s> {
     fn command(&mut self, cmd: Command) -> OsResult<u16> {
         let mut buffer = [0u8; 2];
 
-        self.0
-            .write(Self::DEV_ADDR, &[cmd as u8], Self::BUS_TIMEOUT)?;
+        re_esp!(
+            self.0
+                .write(Self::DEV_ADDR, &[cmd as u8], Self::BUS_TIMEOUT),
+            I2cWrite
+        )?;
         sleep(Duration::from_millis(Self::CMD_WAIT_TIME));
 
         if cmd != Command::Reset {
-            self.0
-                .read(Self::DEV_ADDR, &mut buffer, Self::BUS_TIMEOUT)?;
+            re_esp!(
+                self.0.read(Self::DEV_ADDR, &mut buffer, Self::BUS_TIMEOUT),
+                I2cRead
+            )?;
         }
 
         Ok(((u16::from(buffer[0])) << 8) | (u16::from(buffer[1])))

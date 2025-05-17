@@ -1,5 +1,7 @@
 //! A driver for reading the battery supply voltage using the node's ADC.
 
+use crate::re_esp;
+
 use super::OsResult;
 use esp_idf_svc::{
     hal::{
@@ -57,16 +59,19 @@ pub struct Battery {
 impl Battery {
     /// Initiliaze a new instance of this driver using the given peripheral handles.
     pub fn new(adc: BatteryAdc, gpio: BatteryGpio) -> OsResult<Self> {
-        let adc = Rc::new(BatteryAdcDriver::new(adc)?);
-        let ch = BatteryAdcChannelDriver::new(Rc::clone(&adc), gpio, &CONFIG)?;
+        let adc = Rc::new(re_esp!(BatteryAdcDriver::new(adc), AdcInit)?);
+        let ch = re_esp!(
+            BatteryAdcChannelDriver::new(Rc::clone(&adc), gpio, &CONFIG),
+            AdcInit
+        )?;
 
         Ok(Self { adc, ch })
     }
 
     /// Read the ADC value and calculate the voltage.
     pub fn read(&mut self, samples: u8) -> OsResult<f32> {
-        let raw = self.read_raw(samples)?;
-        let volts = f32::from(self.adc.raw_to_mv(&self.ch, raw)?) / 1000.;
+        let raw = self.read_raw_avg(samples)?;
+        let volts = f32::from(self.raw_to_mv(raw)?) / 1000.;
         let result = (volts * (R1 + R2)) / R2;
 
         Ok(result)
@@ -74,16 +79,24 @@ impl Battery {
 
     /// Read the raw ADC value.
     #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
-    fn read_raw(&mut self, samples: u8) -> OsResult<u16> {
+    fn read_raw_avg(&mut self, samples: u8) -> OsResult<u16> {
         let mut avg = 0.;
 
         for _ in 0..samples {
-            avg += f32::from(self.adc.read_raw(&mut self.ch)?);
+            avg += f32::from(self.read_raw()?);
             sleep(Duration::from_millis(1));
         }
 
         avg /= f32::from(samples);
         avg = avg.clamp(0., 4095.);
         Ok(avg as u16)
+    }
+
+    fn raw_to_mv(&self, raw: u16) -> OsResult<u16> {
+        re_esp!(self.adc.raw_to_mv(&self.ch, raw), AdcRead)
+    }
+
+    fn read_raw(&mut self) -> OsResult<u16> {
+        re_esp!(self.adc.read_raw(&mut self.ch), AdcRead)
     }
 }

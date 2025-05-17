@@ -1,4 +1,5 @@
 use super::OsResult;
+use crate::re_esp;
 use esp_idf_svc::hal::gpio::{AnyIOPin, Output, PinDriver};
 
 type LedDriver = PinDriver<'static, AnyIOPin, Output>;
@@ -7,7 +8,7 @@ pub struct BoardLed(LedDriver, bool);
 
 impl BoardLed {
     pub fn new(pin: AnyIOPin, invert: bool) -> OsResult<Self> {
-        let mut i = Self(PinDriver::output(pin)?, invert);
+        let mut i = Self(re_esp!(PinDriver::output(pin), GpioInit)?, invert);
         i.on();
 
         Ok(i)
