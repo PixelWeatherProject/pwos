@@ -1,8 +1,7 @@
 //! A driver for reading the battery supply voltage using the node's ADC.
 
-use crate::re_esp;
-
 use super::OsResult;
+use crate::re_esp;
 use esp_idf_svc::{
     hal::{
         adc::{
