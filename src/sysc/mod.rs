@@ -9,6 +9,7 @@ mod macros;
 pub mod net;
 pub mod nvs;
 pub mod ota;
+pub mod panic;
 pub mod periph;
 pub mod power;
 pub mod usbctl;

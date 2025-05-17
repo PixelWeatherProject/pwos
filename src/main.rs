@@ -8,7 +8,7 @@ use esp_idf_svc::hal::{
     i2c::{config::Config, I2cDriver},
     units::FromValueType,
 };
-use std::{panic::PanicHookInfo, time::Instant};
+use std::time::Instant;
 use sysc::{
     battery::Battery,
     ledctl::BoardLed,
@@ -66,7 +66,7 @@ fn main() {
     .expect("Failed to set up onboard LED");
 
     os_debug!("Setting panic handle");
-    std::panic::set_hook(Box::new(handle_panic));
+    sysc::panic::setup();
 
     os_debug!("Initializing OTA system");
     let mut ota = Ota::new().expect("Failed to initialize OTA");
@@ -153,18 +153,4 @@ fn main() {
     } else {
         deep_sleep(Some(appcfg.sleep_time()));
     }
-}
-
-fn handle_panic(info: &PanicHookInfo) {
-    let payload = info.payload_as_str().unwrap_or("N/A");
-
-    os_error!("====================[PANIC]====================");
-    os_error!("Firmware paniced!");
-    os_error!("Message: {payload}");
-    os_error!(
-        "Location: {}",
-        info.location()
-            .map_or_else(|| "N/A".to_string(), ToString::to_string)
-    );
-    os_error!("====================[PANIC]====================");
 }
