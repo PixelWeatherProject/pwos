@@ -1,6 +1,6 @@
 use crate::{
-    config::{STATIC_IP_CONFIG, WIFI_COUNTRY_CODE},
-    null_check, os_debug, re_esp,
+    config::WIFI_COUNTRY_CODE,
+    os_debug, re_esp,
     sysc::{OsError, OsResult},
 };
 use esp_idf_svc::{
@@ -38,11 +38,7 @@ pub struct WiFi {
 impl WiFi {
     pub fn new(modem: Modem, sys_loop: EspSystemEventLoop) -> OsResult<Self> {
         let wifi = re_esp!(WifiDriver::new(modem, sys_loop.clone(), None), WifiInit)?;
-        let ip_config = if STATIC_IP_CONFIG.is_some() {
-            Self::generate_static_ip_config()
-        } else {
-            Self::generate_dhcp_config(&wifi)
-        }?;
+        let ip_config = Self::generate_dhcp_config(&wifi)?;
 
         re_esp!(
             esp!(unsafe { esp_wifi_set_storage(wifi_storage_t_WIFI_STORAGE_RAM) }),
@@ -113,11 +109,6 @@ impl WiFi {
             timeout,
         )?;
 
-        if STATIC_IP_CONFIG.is_some() {
-            os_debug!("Static IP configuration detected, skipping wait for IP address");
-            return Ok(());
-        }
-
         os_debug!("Waiting for IP address");
         // wait until we get an IP
         self.await_event::<IpEvent, _, _>(|| self.driver.is_up(), OsError::EventTimeout, timeout)?;
@@ -154,16 +145,6 @@ impl WiFi {
                     hostname: Some(Self::generate_hostname(wifi_driver)?),
                 },
             ))),
-            ..NetifConfiguration::wifi_default_client()
-        })
-    }
-
-    fn generate_static_ip_config() -> OsResult<NetifConfiguration> {
-        Ok(NetifConfiguration {
-            ip_configuration: Some(IpConfiguration::Client(IpClientConfiguration::Fixed(
-                null_check!(STATIC_IP_CONFIG),
-            ))),
-
             ..NetifConfiguration::wifi_default_client()
         })
     }
