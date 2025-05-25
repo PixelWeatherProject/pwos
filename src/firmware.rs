@@ -1,5 +1,5 @@
 use crate::{
-    config::{AppConfig, PWMP_SERVER, WIFI_NETWORKS, WIFI_TIMEOUT},
+    config::{PWMP_SERVER, WIFI_NETWORKS, WIFI_TIMEOUT},
     null_check, os_debug, os_error, os_info, os_warn, re_esp,
     sysc::{
         battery::{Battery, CRITICAL_VOLTAGE},
@@ -20,7 +20,7 @@ use esp_idf_svc::{
 };
 use pwmp_client::{
     ota::UpdateStatus,
-    pwmp_msg::{version::Version, MsgId},
+    pwmp_msg::{settings::NodeSettings, version::Version, MsgId},
     PwmpClient,
 };
 
@@ -33,7 +33,7 @@ pub fn fw_main(
     mut led: BoardLed,
     nvs: &mut NonVolatileStorage,
     ota: &mut Ota,
-    cfg: &mut AppConfig,
+    cfg: &mut NodeSettings,
 ) -> OsResult<()> {
     if !ota.current_verified()? {
         os_warn!("Running unverified firmware");
@@ -201,11 +201,11 @@ fn setup_wifi(modem: Modem, sys_loop: EspSystemEventLoop) -> OsResult<(WiFi, Acc
     Err(OsError::NoInternet)
 }
 
-fn read_appcfg(pws: &mut PwmpClient, appcfg: &mut AppConfig) -> OsResult<()> {
+fn read_appcfg(pws: &mut PwmpClient, appcfg: &mut NodeSettings) -> OsResult<()> {
     os_debug!("Reading settings");
 
     if let Some(settings) = pws.get_settings()? {
-        **appcfg = settings;
+        *appcfg = settings;
     } else {
         os_warn!("Got empty node settings, using defaults");
     }

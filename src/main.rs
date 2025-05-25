@@ -2,12 +2,12 @@
 #![deny(unused_must_use)]
 #![feature(panic_payload_as_str)]
 
-use crate::config::AppConfig;
 use esp_idf_svc::hal::{
     gpio::IOPin,
     i2c::{config::Config, I2cDriver},
     units::FromValueType,
 };
+use pwmp_client::pwmp_msg::settings::NodeSettings;
 use std::time::Instant;
 use sysc::{
     battery::Battery,
@@ -106,7 +106,7 @@ fn main() {
     .expect("Failed to initialize I2C");
 
     os_debug!("Initializing app configuration");
-    let mut appcfg = AppConfig::default();
+    let mut appcfg = NodeSettings::default();
 
     os_info!("Staring main");
 
