@@ -326,12 +326,12 @@ This section contains information about the current and possible limitations of 
 - Hidden WiFi networks are **not** supported.
 - Unencrypted WiFi networks are **not** supported.
 - It's recommended to ensure that the RSSI (signal strength) is no less than *-70dBm*. Some boards can handle worse scenarios, but others may experience connectivity issues.
-- WiFi credentials are stored in code, instead of NVS because it's design is way too simple to store the kind of configuration PWOS needs (SSID, password, IP configuration). This would require extensive work, and would make it very hard to update these settings using OTA updates.
-- When scanning for APs, the firmware uses a custom scan algorithm that severely limits the maximum scan duration to preserve as much power as possible. However, this comes at a cost - you AP/s might not be detected fast enough. If this is a problem for you, you can either:
-  1. Edit the [`CHANNEL_SCAN_WAIT_TIME`](src/sysc/net/wifi.rs). The maximum scan duration is derived from this.
-  2. Lower the [*Beacon Interval*](https://www.7signal.com/news/blog/controlling-beacons-boosts-wi-fi-performance) in your AP's settings. This is usually set to 100(ms), but you can lower this to (for e.g.) 50. **Don't mess with these settings if you don't know what you're doing!**
+- WiFi credentials are stored in code, instead of NVS because it's design is way too simple and limited to properly store the kind of configuration PWOS needs. This would require some hacky workarounds, and adjusting the OTA system to allow updating the credentials.
+- When scanning for APs, the firmware uses the default scan configuration if ESP-IDF. This configuration has minimal enough to severely limit the maximum scan duration to preserve as much power as possible. However, this comes at a cost - you AP/s might not be detected fast enough. If this is a problem for you, you can try the following:
+  1. Lower the [*Beacon Interval*](https://www.7signal.com/news/blog/controlling-beacons-boosts-wi-fi-performance) in your AP's settings. This is usually set to 100(ms), but you can lower this to (for e.g.) 50. **Don't mess with these settings if you don't know what you're doing!**
      - In OpenWRT you can find this under *Network* > *Wireless* > *Edit* (your AP) > *Advanced Settings*
      - In AsusWRT/Merlin you can find this under *Advanced Settings* > *Wireless* > *Professional* > (select 2.4GHz band if needed)
+- Support for *Management Frame Protection* (*IEEE 802.11w-2009*) is disabled to improve connection times.
 
 ## Terms
 - *node* - A station that consists of PWOS-compatible hardware and runs PWOS. It collects weather information and sends it over PWMP to a remote server.
