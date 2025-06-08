@@ -491,7 +491,7 @@ dependencies = [
 [[package]]
 name = "embedded-svc"
 version = "0.28.1"
-source = "git+ssh://git@github.com/PixelWeatherProject/embedded-svc.git?rev=29afd95#29afd9591ebc3efe0fe4c193709a396214d45374"
+source = "git+https://github.com/PixelWeatherProject/embedded-svc.git?rev=29afd95#29afd9591ebc3efe0fe4c193709a396214d45374"
 dependencies = [
  "defmt 0.3.100",
  "embedded-io 0.6.1",
