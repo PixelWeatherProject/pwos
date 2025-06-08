@@ -206,6 +206,7 @@ fn read_appcfg(pws: &mut PwmpClient, appcfg: &mut NodeSettings) -> OsResult<()> 
 
     if let Some(settings) = pws.get_settings()? {
         *appcfg = settings;
+        crate::config::save_settings(appcfg);
     } else {
         os_warn!("Got empty node settings, using defaults");
     }

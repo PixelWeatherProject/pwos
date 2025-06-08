@@ -7,7 +7,6 @@ use esp_idf_svc::hal::{
     i2c::{config::Config, I2cDriver},
     units::FromValueType,
 };
-use pwmp_client::pwmp_msg::settings::NodeSettings;
 use std::time::Instant;
 use sysc::{
     battery::Battery, ledctl::BoardLed, logging::OsLogger, ota::Ota, periph::SystemPeripherals,
@@ -101,7 +100,7 @@ fn main() {
     .expect("Failed to initialize I2C");
 
     os_debug!("Initializing app configuration");
-    let mut appcfg = NodeSettings::default();
+    let mut appcfg = config::get_settings();
 
     os_info!("Staring main");
 
