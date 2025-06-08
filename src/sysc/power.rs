@@ -1,3 +1,4 @@
+use crate::os_debug;
 pub use esp_idf_svc::hal::reset::ResetReason;
 use esp_idf_svc::{
     hal::reset::restart,
@@ -7,7 +8,19 @@ use std::time::Duration;
 
 const INFINITE_SLEEP_TIME: Duration = Duration::from_micros(2_629_746_000_000); /* 1 month */
 
-pub fn deep_sleep(time: Option<Duration>) -> ! {
+/// Puts the node into sleep mode, while automatically selecting the proper
+/// sleep type (*deep*/*fake*) depending on whether the node is powered trough USB
+/// or battery.
+pub fn mcu_sleep(time: Option<Duration>) -> ! {
+    if super::usbctl::is_connected() {
+        os_debug!("Using fake sleep instead of deep sleep");
+        fake_sleep(time)
+    } else {
+        deep_sleep(time)
+    }
+}
+
+fn deep_sleep(time: Option<Duration>) -> ! {
     let us = u64::try_from(time.unwrap_or(INFINITE_SLEEP_TIME).as_micros())
         .expect("Deep sleep duration is too long");
 
@@ -16,7 +29,7 @@ pub fn deep_sleep(time: Option<Duration>) -> ! {
     }
 }
 
-pub fn fake_sleep(time: Option<Duration>) -> ! {
+fn fake_sleep(time: Option<Duration>) -> ! {
     std::thread::sleep(time.unwrap_or(INFINITE_SLEEP_TIME));
     restart();
 }

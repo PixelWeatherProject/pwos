@@ -8,7 +8,7 @@ use crate::{
         net::wifi::{WiFi, RSSI_THRESHOLD},
         nvs::NonVolatileStorage,
         ota::{Ota, OtaHandle},
-        power::{deep_sleep, get_reset_reason, ResetReasonExt},
+        power::{get_reset_reason, mcu_sleep, ResetReasonExt},
         usbctl, OsError, OsResult, ReportableError,
     },
 };
@@ -63,7 +63,7 @@ pub fn fw_main(
         pws.send_notification("Battery voltage too low, activating sBOP")
             .report("Failed to send sBOP notification");
 
-        deep_sleep(None);
+        mcu_sleep(None);
     }
 
     let env_sensor = setup_envsensor(i2c)?;

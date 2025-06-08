@@ -10,13 +10,8 @@ use esp_idf_svc::hal::{
 use pwmp_client::pwmp_msg::settings::NodeSettings;
 use std::time::Instant;
 use sysc::{
-    battery::Battery,
-    ledctl::BoardLed,
-    logging::OsLogger,
-    ota::Ota,
-    periph::SystemPeripherals,
-    power::{deep_sleep, fake_sleep},
-    usbctl, OsError,
+    battery::Battery, ledctl::BoardLed, logging::OsLogger, ota::Ota, periph::SystemPeripherals,
+    power::mcu_sleep, usbctl, OsError,
 };
 
 mod config;
@@ -135,7 +130,7 @@ fn main() {
 
             if !why.recoverable() {
                 os_error!("System will now halt");
-                deep_sleep(None);
+                mcu_sleep(None);
             }
 
             ota.inc_failiures()
@@ -145,12 +140,5 @@ fn main() {
     os_info!("Tasks completed in {runtime:.02?}");
 
     os_debug!("Sleeping for {:?}", appcfg.sleep_time());
-
-    if usbctl::is_connected() {
-        // Simulate sleep instead, to keep the serial connection alive
-        os_debug!("Using fake sleep instead of deep sleep");
-        fake_sleep(Some(appcfg.sleep_time()));
-    } else {
-        deep_sleep(Some(appcfg.sleep_time()));
-    }
+    mcu_sleep(Some(appcfg.sleep_time()));
 }
