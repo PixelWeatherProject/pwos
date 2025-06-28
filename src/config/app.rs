@@ -22,7 +22,7 @@ pub fn get_settings() -> NodeSettings {
     unsafe { SETTINGS }
 }
 
-pub fn save_settings(settings: NodeSettings) {
+pub fn save_settings(settings: &NodeSettings) {
     // SAFETY: The static is not available directly, and can be only retrieved using get_settings(), which returns only a copy.
     unsafe {
         SETTINGS.battery_ignore = settings.battery_ignore;
