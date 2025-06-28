@@ -223,7 +223,7 @@ Debug builds may be slower and contain a lot of debug messages. As such they are
 Some parts of the flash memory are reserved for other data than PWOS itself. 16KB are reserved for [NVS](https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-reference/storage/nvs_flash.html?highlight=nvs) storage. Read more [here](https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-guides/partition-tables.html#built-in-partition-tables).
 
 ## Stability
-__Latest verified stable version: N/A__
+__Latest verified stable version: `2.0.8`__
 
 A version is deemed "stable" if it runs without interruptions/buggy behaviour for at least 1 month.
 
