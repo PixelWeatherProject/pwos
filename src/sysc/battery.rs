@@ -15,7 +15,7 @@ use esp_idf_svc::{
     },
     sys::adc_atten_t,
 };
-use std::{rc::Rc, thread::sleep, time::Duration};
+use std::rc::Rc;
 
 /// GPIO pin where the output of the voltage divider is connected
 type BatteryGpio = Gpio2;
@@ -83,7 +83,6 @@ impl Battery {
 
         for _ in 0..samples {
             avg += f32::from(self.read_raw()?);
-            sleep(Duration::from_millis(1));
         }
 
         avg /= f32::from(samples);
