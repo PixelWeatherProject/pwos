@@ -22,6 +22,7 @@ pub fn get_settings() -> NodeSettings {
     unsafe { SETTINGS }
 }
 
+#[allow(clippy::trivially_copy_pass_by_ref)]
 pub fn save_settings(settings: &NodeSettings) {
     // SAFETY: The static is not available directly, and can be only retrieved using get_settings(), which returns only a copy.
     unsafe {
