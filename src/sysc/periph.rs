@@ -41,7 +41,7 @@ pub struct WifiPeripherals {
     /* default to this implementation if no board-specific configuration is selected */
     not(any(feature = "lilygo-t7s3", feature = "xiao-s3", feature = "arduino-nano-esp32"))
 ))]
-impl SystemPeripherals<I2C1, Gpio8, Gpio5, ADC1, Gpio2, Gpio17> {
+impl SystemPeripherals<I2C1, Gpio8, Gpio5, ADC1, Gpio3, Gpio17> {
     pub fn take() -> Self {
         let (peripherals, sys_loop) = initialize_base_parts();
 
@@ -53,7 +53,7 @@ impl SystemPeripherals<I2C1, Gpio8, Gpio5, ADC1, Gpio2, Gpio17> {
             },
             battery: BatteryPeripherals {
                 adc: peripherals.adc1,
-                pin: peripherals.pins.gpio2,
+                pin: peripherals.pins.gpio3,
             },
             onboard_led: OnboardLedPeripherals {
                 pin: peripherals.pins.gpio17,
@@ -68,7 +68,7 @@ impl SystemPeripherals<I2C1, Gpio8, Gpio5, ADC1, Gpio2, Gpio17> {
 }
 
 #[cfg(feature = "xiao-s3")]
-impl SystemPeripherals<I2C1, Gpio8, Gpio5, ADC1, Gpio2, Gpio21> {
+impl SystemPeripherals<I2C1, Gpio8, Gpio5, ADC1, Gpio3, Gpio21> {
     pub fn take() -> Self {
         let (peripherals, sys_loop) = initialize_base_parts();
 
@@ -80,7 +80,7 @@ impl SystemPeripherals<I2C1, Gpio8, Gpio5, ADC1, Gpio2, Gpio21> {
             },
             battery: BatteryPeripherals {
                 adc: peripherals.adc1,
-                pin: peripherals.pins.gpio2,
+                pin: peripherals.pins.gpio3,
             },
             onboard_led: OnboardLedPeripherals {
                 pin: peripherals.pins.gpio21,
@@ -95,7 +95,7 @@ impl SystemPeripherals<I2C1, Gpio8, Gpio5, ADC1, Gpio2, Gpio21> {
 }
 
 #[cfg(feature = "arduino-nano-esp32")]
-impl SystemPeripherals<I2C1, Gpio8, Gpio5, ADC1, Gpio2, Gpio48> {
+impl SystemPeripherals<I2C1, Gpio8, Gpio5, ADC1, Gpio3, Gpio48> {
     pub fn take() -> Self {
         let (peripherals, sys_loop) = initialize_base_parts();
 
@@ -107,7 +107,7 @@ impl SystemPeripherals<I2C1, Gpio8, Gpio5, ADC1, Gpio2, Gpio48> {
             },
             battery: BatteryPeripherals {
                 adc: peripherals.adc1,
-                pin: peripherals.pins.gpio2,
+                pin: peripherals.pins.gpio3,
             },
             onboard_led: OnboardLedPeripherals {
                 pin: peripherals.pins.gpio48,

@@ -11,14 +11,14 @@ use esp_idf_svc::{
             },
             Resolution, ADC1,
         },
-        gpio::Gpio2,
+        gpio::Gpio3,
     },
     sys::adc_atten_t,
 };
 use std::rc::Rc;
 
 /// GPIO pin where the output of the voltage divider is connected
-type BatteryGpio = Gpio2;
+type BatteryGpio = Gpio3;
 /// The ADC hardware
 type BatteryAdc = ADC1;
 /// Alias for the ADC driver
