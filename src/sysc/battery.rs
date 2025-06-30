@@ -9,22 +9,20 @@ use esp_idf_svc::{
                 config::{AdcChannelConfig, Calibration},
                 AdcChannelDriver, AdcDriver,
             },
-            Resolution, ADC1,
+            Resolution,
         },
-        gpio::Gpio3,
+        gpio::ADCPin,
+        peripheral::Peripheral,
     },
     sys::adc_atten_t,
 };
 use std::rc::Rc;
 
-/// GPIO pin where the output of the voltage divider is connected
-type BatteryGpio = Gpio3;
-/// The ADC hardware
-type BatteryAdc = ADC1;
 /// Alias for the ADC driver
-type BatteryAdcDriver = AdcDriver<'static, BatteryAdc>;
+type BatteryAdcDriver<Gpio: ADCPin> = Rc<AdcDriver<'static, Gpio::Adc>>;
 /// Alias for the ADC channel driver
-type BatteryAdcChannelDriver = AdcChannelDriver<'static, BatteryGpio, Rc<BatteryAdcDriver>>;
+type BatteryAdcChannelDriver<Gpio: ADCPin> =
+    AdcChannelDriver<'static, Gpio, BatteryAdcDriver<Gpio>>;
 
 /// Input signal attenuation level
 /// See the attenuation table [here](https://docs.espressif.com/projects/esp-idf/en/v4.4/esp32s3/api-reference/peripherals/adc.html#adc-attenuation).
@@ -47,24 +45,34 @@ const CONFIG: AdcChannelConfig = AdcChannelConfig {
 pub const CRITICAL_VOLTAGE: f32 = 3.22;
 
 /// Battery voltage measurement driver.
-pub struct Battery {
+pub struct Battery<Gpio: ADCPin> {
     /// ADC driver handle
-    adc: Rc<BatteryAdcDriver>,
+    adc: BatteryAdcDriver<Gpio>,
 
     /// ADC channel driver handle
-    ch: BatteryAdcChannelDriver,
+    ch: BatteryAdcChannelDriver<Gpio>,
 }
 
-impl Battery {
+impl<Gpio: ADCPin> Battery<Gpio> {
     /// Initiliaze a new instance of this driver using the given peripheral handles.
-    pub fn new(adc: BatteryAdc, gpio: BatteryGpio) -> OsResult<Self> {
-        let adc = Rc::new(re_esp!(BatteryAdcDriver::new(adc), AdcInit)?);
+    pub fn new(adc: Gpio::Adc, gpio: Gpio) -> OsResult<Self>
+    where
+        Gpio::Adc: Peripheral<P = Gpio::Adc>,
+    {
+        let adc_driver = Rc::new(re_esp!(AdcDriver::new(adc), AdcInit)?);
         let ch = re_esp!(
-            BatteryAdcChannelDriver::new(Rc::clone(&adc), gpio, &CONFIG),
+            AdcChannelDriver::<Gpio, Rc<AdcDriver<'static, Gpio::Adc>>>::new(
+                Rc::clone(&adc_driver),
+                gpio,
+                &CONFIG,
+            ),
             AdcInit
         )?;
 
-        Ok(Self { adc, ch })
+        Ok(Self {
+            adc: adc_driver,
+            ch,
+        })
     }
 
     /// Read the ADC value and calculate the voltage.
