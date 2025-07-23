@@ -13,6 +13,9 @@ use esp_idf_svc::hal::i2c::I2cDriver;
 use pwmp_client::pwmp_msg::aliases::{AirPressure, Humidity, Temperature};
 use std::{thread::sleep, time::Duration};
 
+// CRC polynomial for SI7021
+const POLYNOMIAL: u8 = 0x31;
+
 /// Commands for HTU21D (and similar) sensors.
 #[derive(PartialEq, Clone, Copy)]
 #[repr(u8)]
@@ -22,6 +25,18 @@ enum Command {
 
     /// Request humidity reading
     ReadHumidity = 0xE5,
+
+    /// First part of the request to read the first 4 bytes of the hardware serial number
+    ReadHwSerialBeginFirst = 0xFA,
+
+    /// Second part of the request to read the first 4 bytes of the hardware serial number
+    HeadHwSerialEndFirst = 0x0F,
+
+    /// First part of the request to read the last 4 bytes of the hardware serial number
+    ReadHwSerialBeginLast = 0xFC,
+
+    /// Second part of the request to read the last 4 bytes of the hardware serial number
+    HeadHwSerialEndLast = 0xC9,
 
     /// Reset the device
     Reset = 0xFE,
@@ -101,4 +116,112 @@ impl EnvironmentSensor for Htu<'_> {
         crate::os_warn!("Air pressure is not supported");
         Ok(None)
     }
+
+    fn get_hw_serial(&mut self) -> OsResult<u64> {
+        // datasheet: https://www.silabs.com/documents/public/data-sheets/Si7021-A20.pdf
+        // page: 23
+
+        /*
+         * The CRC byte is the checksum for the data bytes that have been received since the first response byte.
+         *
+         * Example response:
+         * 0x0D 0x0E 0x0A 0x0D 0x0B 0x0E 0x0A 0x0F
+         * ^^^^ ^^^^ ^^^^ ^^^^ ^^^^ ^^^^      ^^^^
+         *   |    |    |    |    |    |         |-> crc for [0x0D, 0x0A, 0x0B, 0x0A]
+         *   |    |    |    |    |   ...
+         *   |    |    |    |    -> data
+         *   |    |    |    -> crc for [0x0D, 0x0A]
+         *   |    |    -> data
+         *   |    -> crc for [0x0D]
+         *   -> data
+         *
+         * So when checking the resulting CRC, we only need the last CRC byte and compare it
+         * to the CRC of all the data bytes. So in the above example, we need to calculate the CRC
+         * of [0x0D, 0x0A, 0x0B, 0x0A] and compare it to 0x0F (last CRC byte).
+         */
+
+        // SNA_3, CRC, SNA_2, CRC, SNA_1, CRC, SNA_0, CRC
+        let mut first_bytes = [0; 8];
+        // SNB_3, SNB_2, CRC, SNB_1, SNB_0, CRC
+        let mut second_bytes = [0; 6];
+
+        // read the first 8 bytes
+        re_esp!(
+            self.0.write_read(
+                Self::DEV_ADDR,
+                &[
+                    Command::ReadHwSerialBeginFirst as _,
+                    Command::HeadHwSerialEndFirst as _,
+                ],
+                &mut first_bytes,
+                Self::BUS_TIMEOUT,
+            ),
+            I2cRead
+        )?;
+
+        // read the last 6 bytes
+        re_esp!(
+            self.0.write_read(
+                Self::DEV_ADDR,
+                &[
+                    Command::ReadHwSerialBeginLast as _,
+                    Command::HeadHwSerialEndLast as _,
+                ],
+                &mut second_bytes,
+                Self::BUS_TIMEOUT,
+            ),
+            I2cRead
+        )?;
+
+        let first_crc = calculate_crc8_checksum(&[
+            first_bytes[0],
+            first_bytes[2],
+            first_bytes[4],
+            first_bytes[6],
+        ]);
+        let last_crc = calculate_crc8_checksum(&[
+            second_bytes[0],
+            second_bytes[1],
+            second_bytes[3],
+            second_bytes[4],
+        ]);
+
+        if first_crc != first_bytes[7] {
+            panic!("crc error");
+        }
+        if last_crc != second_bytes[5] {
+            panic!("crc error");
+        }
+
+        let serial = u64::from_ne_bytes([
+            first_bytes[0],  // SNA_3
+            first_bytes[2],  // SNA_2
+            first_bytes[4],  // SNA_1
+            first_bytes[6],  // SNA_0
+            second_bytes[0], // SNB_3
+            second_bytes[1], // SNB_2
+            second_bytes[3], // SNB_1
+            second_bytes[4], // SNB_0
+        ]);
+
+        Ok(serial)
+    }
+}
+
+pub fn calculate_crc8_checksum(data: &[u8]) -> u8 {
+    let mut crc: u8 = 0x00; // Initialization value
+
+    for &byte in data {
+        crc ^= byte;
+
+        for _ in 0..8 {
+            if crc & 0x80 != 0 {
+                crc = (crc << 1) ^ POLYNOMIAL;
+            } else {
+                crc <<= 1;
+            }
+        }
+    }
+
+    crc
 }

@@ -27,4 +27,10 @@ pub trait EnvironmentSensor {
     /// # Errors
     /// Upon a connection or communication error, an `Err(..)` value will be returned.
     fn read_air_pressure(&mut self) -> OsResult<Option<AirPressure>>;
+
+    /// Get the serial number of the sensor.
+    ///
+    /// # Errors
+    /// Upon a connection or communication error, an `Err(..)` value will be returned.
+    fn get_hw_serial(&mut self) -> OsResult<u64>;
 }

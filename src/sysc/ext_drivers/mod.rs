@@ -51,4 +51,10 @@ impl EnvironmentSensor for AnySensor<'_> {
             Self::HtuCompatible(dev) => dev.read_air_pressure(),
         }
     }
+
+    fn get_hw_serial(&mut self) -> OsResult<u64> {
+        match self {
+            Self::HtuCompatible(dev) => dev.get_hw_serial(),
+        }
+    }
 }
