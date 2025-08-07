@@ -20,6 +20,8 @@ use std::{thread::sleep, time::Duration};
 const POLYNOMIAL: u8 = 0x31;
 
 /// Commands for HTU21D (and similar) sensors.
+///
+/// Source: https://www.silabs.com/documents/public/data-sheets/Si7021-A20.pdf
 #[derive(PartialEq, Clone, Copy)]
 #[repr(u8)]
 enum Command {
