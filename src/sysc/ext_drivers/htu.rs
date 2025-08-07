@@ -68,6 +68,10 @@ impl<'s> Htu<'s> {
 
         dev.command(Command::Reset)?;
 
+        let serial = dev.get_hw_serial()?;
+        let fw_ver = dev.get_fw_revision()?;
+        os_debug!("Firmware rev.: {fw_ver}, serial: {serial:X}");
+
         Ok(dev)
     }
 
