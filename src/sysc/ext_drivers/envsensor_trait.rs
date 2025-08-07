@@ -1,5 +1,8 @@
 use crate::sysc::OsResult;
-use pwmp_client::pwmp_msg::aliases::{AirPressure, Humidity, Temperature};
+use pwmp_client::pwmp_msg::{
+    aliases::{AirPressure, Humidity, Temperature},
+    version::Version,
+};
 
 /// Contains functionality that an environment sensor must be able to do.
 pub trait EnvironmentSensor {
@@ -33,4 +36,10 @@ pub trait EnvironmentSensor {
     /// # Errors
     /// Upon a connection or communication error, an `Err(..)` value will be returned.
     fn get_hw_serial(&mut self) -> OsResult<u64>;
+
+    /// Get the sensor's firmware version.
+    ///
+    /// # Errors
+    /// Upon a connection or communication error, an `Err(..)` value will be returned.
+    fn get_fw_revision(&mut self) -> OsResult<Version>;
 }

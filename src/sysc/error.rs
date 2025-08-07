@@ -132,6 +132,10 @@ pub enum OsError {
     /// Key not found in NVS storage.
     #[error("NVS key does not exist")]
     InvalidNvsKey,
+
+    /// Sensor firmware version is invalid.
+    #[error("Sensor firmware revision is invalid or unknown: {0}")]
+    IllegalEnvSensorFirmwareRevision(u8),
 }
 
 /// Trait for non-fatal error types that can be "reported" to the console.

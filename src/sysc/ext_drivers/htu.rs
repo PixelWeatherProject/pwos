@@ -10,7 +10,10 @@ use crate::{
     sysc::{OsError, OsResult},
 };
 use esp_idf_svc::hal::i2c::I2cDriver;
-use pwmp_client::pwmp_msg::aliases::{AirPressure, Humidity, Temperature};
+use pwmp_client::pwmp_msg::{
+    aliases::{AirPressure, Humidity, Temperature},
+    version::Version,
+};
 use std::{thread::sleep, time::Duration};
 
 // CRC polynomial for SI7021
@@ -37,6 +40,12 @@ enum Command {
 
     /// Second part of the request to read the last 4 bytes of the hardware serial number
     HeadHwSerialEndLast = 0xC9,
+
+    /// First part of the firmware revision
+    ReadFwRevisionFirst = 0x84,
+
+    /// Second part of the firmware revision
+    ReadFwRevisionLast = 0xB8,
 
     /// Reset the device
     Reset = 0xFE,
@@ -205,6 +214,29 @@ impl EnvironmentSensor for Htu<'_> {
         ]);
 
         Ok(serial)
+    }
+
+    fn get_fw_revision(&mut self) -> OsResult<Version> {
+        let mut buffer = [0; 1];
+
+        re_esp!(
+            self.0.write_read(
+                Self::DEV_ADDR,
+                &[
+                    Command::ReadFwRevisionFirst as _,
+                    Command::ReadFwRevisionLast as _,
+                ],
+                &mut buffer,
+                Self::BUS_TIMEOUT,
+            ),
+            I2cRead
+        );
+
+        match buffer[0] {
+            0xFF => Ok(Version::new(1, 0, 0)),
+            0x20 => Ok(Version::new(2, 0, 0)),
+            other => Err(OsError::IllegalEnvSensorFirmwareRevision(other)),
+        }
     }
 }
 

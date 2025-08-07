@@ -4,7 +4,10 @@ mod htu;
 use super::OsResult;
 pub use envsensor_trait::EnvironmentSensor;
 pub use htu::Htu;
-use pwmp_client::pwmp_msg::aliases::{AirPressure, Humidity, Temperature};
+use pwmp_client::pwmp_msg::{
+    aliases::{AirPressure, Humidity, Temperature},
+    version::Version,
+};
 
 /// A wrapper that allows abstracting the underlying sensor driver without the use of generics.
 pub enum AnySensor<'s> {
@@ -55,6 +58,12 @@ impl EnvironmentSensor for AnySensor<'_> {
     fn get_hw_serial(&mut self) -> OsResult<u64> {
         match self {
             Self::HtuCompatible(dev) => dev.get_hw_serial(),
+        }
+    }
+
+    fn get_fw_revision(&mut self) -> OsResult<Version> {
+        match self {
+            Self::HtuCompatible(dev) => dev.get_fw_revision(),
         }
     }
 }
