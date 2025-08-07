@@ -23,38 +23,43 @@ const POLYNOMIAL: u8 = 0x31;
 ///
 /// Source: https://www.silabs.com/documents/public/data-sheets/Si7021-A20.pdf
 #[derive(PartialEq, Clone, Copy)]
-#[repr(u8)]
 enum Command {
     /// Request temperature reading
-    ReadTemperature = 0xE3,
+    ReadTemperature,
 
     /// Request humidity reading
-    ReadHumidity = 0xE5,
+    ReadHumidity,
 
-    /// First part of the request to read the first 4 bytes of the hardware serial number
-    ReadHwSerialBeginFirst = 0xFA,
+    /// Request the first 8 bytes of the serial number
+    ReadHwSerialFirst,
 
-    /// Second part of the request to read the first 4 bytes of the hardware serial number
-    HeadHwSerialEndFirst = 0x0F,
+    /// Request the last 6 bytes of the serial number
+    ReadHwSerialLast,
 
-    /// First part of the request to read the last 4 bytes of the hardware serial number
-    ReadHwSerialBeginLast = 0xFC,
-
-    /// Second part of the request to read the last 4 bytes of the hardware serial number
-    HeadHwSerialEndLast = 0xC9,
-
-    /// First part of the firmware revision
-    ReadFwRevisionFirst = 0x84,
-
-    /// Second part of the firmware revision
-    ReadFwRevisionLast = 0xB8,
+    /// Request the firmware revision number
+    ReadFwRevision,
 
     /// Reset the device
-    Reset = 0xFE,
+    Reset,
 }
 
 /// Driver handle for HTU21D (and similar) sensors.
 pub struct Htu<'s>(I2cDriver<'s>);
+
+impl AsRef<[u8]> for Command {
+    fn as_ref(&self) -> &[u8] {
+        // Source: https://www.silabs.com/documents/public/data-sheets/Si7021-A20.pdf
+
+        match self {
+            Self::ReadTemperature => &[0xE3],         // page 18
+            Self::ReadHumidity => &[0xE5],            // page 18
+            Self::ReadHwSerialFirst => &[0xFA, 0x0F], // pages 23-24
+            Self::ReadHwSerialLast => &[0xFC, 0xC9],  // pages 23-24
+            Self::ReadFwRevision => &[0x84, 0xB8],    // page 24
+            Self::Reset => &[0xFE],                   // page 18
+        }
+    }
+}
 
 impl<'s> Htu<'s> {
     /// Known default address
@@ -83,7 +88,7 @@ impl<'s> Htu<'s> {
 
         re_esp!(
             self.0
-                .write(Self::DEV_ADDR, &[cmd as u8], Self::BUS_TIMEOUT),
+                .write(Self::DEV_ADDR, cmd.as_ref(), Self::BUS_TIMEOUT),
             I2cWrite
         )?;
         sleep(Duration::from_millis(Self::CMD_WAIT_TIME));
@@ -164,10 +169,7 @@ impl EnvironmentSensor for Htu<'_> {
         re_esp!(
             self.0.write_read(
                 Self::DEV_ADDR,
-                &[
-                    Command::ReadHwSerialBeginFirst as _,
-                    Command::HeadHwSerialEndFirst as _,
-                ],
+                Command::ReadHwSerialFirst.as_ref(),
                 &mut first_bytes,
                 Self::BUS_TIMEOUT,
             ),
@@ -178,10 +180,7 @@ impl EnvironmentSensor for Htu<'_> {
         re_esp!(
             self.0.write_read(
                 Self::DEV_ADDR,
-                &[
-                    Command::ReadHwSerialBeginLast as _,
-                    Command::HeadHwSerialEndLast as _,
-                ],
+                Command::ReadHwSerialLast.as_ref(),
                 &mut second_bytes,
                 Self::BUS_TIMEOUT,
             ),
@@ -228,10 +227,7 @@ impl EnvironmentSensor for Htu<'_> {
         re_esp!(
             self.0.write_read(
                 Self::DEV_ADDR,
-                &[
-                    Command::ReadFwRevisionFirst as _,
-                    Command::ReadFwRevisionLast as _,
-                ],
+                Command::ReadFwRevision.as_ref(),
                 &mut buffer,
                 Self::BUS_TIMEOUT,
             ),
