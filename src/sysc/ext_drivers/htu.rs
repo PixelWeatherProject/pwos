@@ -234,7 +234,7 @@ impl EnvironmentSensor for Htu<'_> {
                 Self::BUS_TIMEOUT,
             ),
             I2cRead
-        );
+        )?;
 
         match buffer[0] {
             0xFF => Ok(Version::new(1, 0, 0)),
