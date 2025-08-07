@@ -125,7 +125,7 @@ fn main() {
             os_debug!("Saving error into NVS");
             if let Err(why) = nvs.store_last_os_error(&why) {
                 os_error!("Failed to store error in NVS: {why}");
-            };
+            }
 
             if !why.recoverable() {
                 os_error!("System will now halt");

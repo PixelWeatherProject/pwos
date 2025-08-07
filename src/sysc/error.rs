@@ -136,6 +136,10 @@ pub enum OsError {
     /// Sensor firmware version is invalid.
     #[error("Sensor firmware revision is invalid or unknown: {0}")]
     IllegalEnvSensorFirmwareRevision(u8),
+
+    /// Sensor CRC check failed.
+    #[error("Environment sensor data CRC failed")]
+    EnvSensorCrcFail,
 }
 
 /// Trait for non-fatal error types that can be "reported" to the console.

@@ -21,7 +21,7 @@ const POLYNOMIAL: u8 = 0x31;
 
 /// Commands for HTU21D (and similar) sensors.
 ///
-/// Source: https://www.silabs.com/documents/public/data-sheets/Si7021-A20.pdf
+/// Source: <https://www.silabs.com/documents/public/data-sheets/Si7021-A20.pdf>
 #[derive(PartialEq, Clone, Copy)]
 enum Command {
     /// Request temperature reading
@@ -200,11 +200,9 @@ impl EnvironmentSensor for Htu<'_> {
             second_bytes[4],
         ]);
 
-        if first_crc != first_bytes[7] {
-            panic!("crc error");
-        }
-        if last_crc != second_bytes[5] {
-            panic!("crc error");
+        // compare the expected CRC to the one given by the sensor
+        if first_crc != first_bytes[7] || last_crc != second_bytes[5] {
+            return Err(OsError::EnvSensorCrcFail);
         }
 
         let serial = u64::from_ne_bytes([

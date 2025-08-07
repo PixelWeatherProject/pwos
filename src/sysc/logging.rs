@@ -26,7 +26,7 @@ impl OsLogger {
         Self { enabled: true }
     }
 
-    pub fn disable(&mut self) {
+    pub const fn disable(&mut self) {
         self.enabled = false;
     }
 
