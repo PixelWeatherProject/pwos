@@ -3,8 +3,6 @@ This is a universal firmware for all PixelWeather nodes. It was created using th
 
 PixelWeather is a weather station network that collects environment data using "nodes" (a collection of microcontrollers and sensors). This repository contains the firware for said nodes _(PWOS)_.
 
-**⚠️ Note that this project is under development. While it is decently stable, is not complete!**
-
 ### Hardware requirements:
 - Espressif ESP32-S3 microcontroller
     - Classic ESP32 and ESP32-C3 series are **no longer supported**!
