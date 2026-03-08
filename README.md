@@ -113,12 +113,12 @@ The default battery voltage measurement configuration has a measured inaccuracy 
 
 If you just want to build the image, use the following command (for example):
 ```sh
-cargo espflash save-image --features $BOARD -T partitions.csv --frozen --locked --release --chip esp32s3 --merge image.bin 
+cargo espflash save-image --features $BOARD --partition-table partitions.csv --frozen --locked --release --chip esp32s3 --merge -s 16mb image.bin
 ```
 
 To directly flash the firmware, use the command below. **Remember to change the serial port for your machine.**
 ```sh
-cargo espflash flash --features $BOARD -T partitions.csv --frozen --locked --release -c esp32s3 --noverify --erase-data-parts otadata -B 921600 -p /dev/ttyXXXX
+cargo espflash flash --features $BOARD --partition-table partitions.csv --frozen --locked --release -c esp32s3 -s 16mb--noverify --erase-data-parts otadata -B 921600 -p /dev/ttyXXXX
 ```
 
 If you notice weird/buggy bevaiour, you can erase the entire flash like so:
@@ -160,9 +160,9 @@ To build a debug image (or flash it) remove the `--release` flag from the above 
   
   ### `espflash` commands
   - For saving as image:
-    - `cargo espflash save-image --features lilygo-t7s3 --frozen --locked --release -T partitions.csv -s 16mb --chip esp32s3 image.bin`
+    - `cargo espflash save-image --features lilygo-t7s3 --frozen --locked --release --partition-table partitions.csv -s 16mb --chip esp32s3 image.bin`
   - For flashing:
-    - `cargo espflash flash --features lilygo-t7s3 --frozen --locked --release -T partitions.csv -s 16mb -c esp32s3 -B 921600 -p /dev/ttyXXXX -M --no-verify --erase-data-parts ota`
+    - `cargo espflash flash --features lilygo-t7s3 --frozen --locked --release --partition-table partitions.csv -s 16mb -c esp32s3 -B 921600 -p /dev/ttyXXXX -M --no-verify --erase-data-parts ota`
 </details>
 
 <details>
@@ -183,9 +183,9 @@ To build a debug image (or flash it) remove the `--release` flag from the above 
   
   ### `espflash` commands
   - For saving as image:
-    - `cargo espflash save-image --features arduino-nano-esp32 --frozen --locked --release -T partitions.csv -s 16mb --chip esp32s3 image.bin`
+    - `cargo espflash save-image --features arduino-nano-esp32 --frozen --locked --release --partition-table partitions.csv -s 16mb --chip esp32s3 image.bin`
   - For flashing:
-    - `cargo espflash flash --features arduino-nano-esp32 --frozen --locked --release -T partitions.csv -s 16mb -c esp32s3 -B 921600 -p /dev/ttyXXXX -M --no-verify --erase-data-parts ota`
+    - `cargo espflash flash --features arduino-nano-esp32 --frozen --locked --release --partition-table partitions.csv -s 16mb -c esp32s3 -B 921600 -p /dev/ttyXXXX -M --no-verify --erase-data-parts ota`
 </details>
 
 <details>
@@ -208,9 +208,9 @@ To build a debug image (or flash it) remove the `--release` flag from the above 
   
   ### `espflash` commands
   - For saving as image:
-    - `cargo espflash save-image --features xiao-s3 --frozen --locked --release -T partitions.csv -s 8mb --chip esp32s3 image.bin`
+    - `cargo espflash save-image --features xiao-s3 --frozen --locked --release --partition-table partitions.csv -s 8mb --chip esp32s3 image.bin`
   - For flashing:
-    - `cargo espflash flash --features xiao-s3 --frozen --locked --release -T partitions.csv -s 8mb -c esp32s3 -B 921600 -p /dev/ttyXXXX -M --no-verify --erase-data-parts ota`
+    - `cargo espflash flash --features xiao-s3 --frozen --locked --release --partition-table partitions.csv -s 8mb -c esp32s3 -B 921600 -p /dev/ttyXXXX -M --no-verify --erase-data-parts ota`
 </details>
 
 ## Build variants
@@ -314,7 +314,7 @@ This section contains information about the current and possible limitations of 
 ### Building/Compilation/Deployment
 - If you're planning to flash the firmware and use it "in production", you should always use release builds. Just pass `--release` to `cargo build` **and** `cargo espflash`.
 - For troubleshooting, you should use debug builds, as they have more verbose logging.
-- Make sure to use the given partition layout ([`partitions.csv`](partitions.csv)) by passing `-T partitions.csv` to `cargo espflash`. The default partition layout has a way too small `app` partition.
+- Make sure to use the given partition layout ([`partitions.csv`](partitions.csv)) by passing `--partition-table partitions.csv` to `cargo espflash`. The default partition layout has a way too small `app` partition.
 - Some lower-quality USB cables may require a lower baud rate. Use `115200` if `921600` does not work for you.
 
 ### General
