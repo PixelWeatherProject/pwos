@@ -28,12 +28,6 @@ pub struct MeasurementResults {
 }
 
 impl EnvironmentSensor for AnySensor<'_> {
-    fn connected(&mut self) -> OsResult<bool> {
-        match self {
-            Self::HtuCompatible(dev) => dev.connected(),
-        }
-    }
-
     fn read_temperature(&mut self) -> OsResult<Temperature> {
         match self {
             Self::HtuCompatible(dev) => dev.read_temperature(),
