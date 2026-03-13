@@ -1,5 +1,5 @@
 use super::OsResult;
-use crate::{null_check, os_debug, os_error, os_info, os_warn, re_esp, sysc::OsError};
+use crate::{null_check, re_esp, sysc::OsError};
 use esp_idf_svc::ota::{EspOta, EspOtaUpdate, FirmwareInfo, SlotState};
 use pwmp_client::pwmp_msg::version::Version;
 use std::{
@@ -41,7 +41,7 @@ impl Ota {
     pub fn report_needed(&self) -> OsResult<bool> {
         // The current firmware might be verified, but it could be a previous version.
         if self.current_verified()? && !self.rollback_detected()? {
-            os_debug!("Skipping report check on verified firmware");
+            log::debug!("Skipping report check on verified firmware");
             return Ok(false);
         }
 
@@ -53,7 +53,7 @@ impl Ota {
     }
 
     pub fn begin_update(&mut self) -> OsResult<OtaHandle<'_>> {
-        os_debug!("Initializing update");
+        log::debug!("Initializing update");
         Ok(OtaHandle(Some(re_esp!(self.0.initiate_update(), OtaInit)?)))
     }
 
@@ -63,7 +63,7 @@ impl Ota {
         }
 
         if FAILIURES.load(Ordering::SeqCst) >= MAX_FAILIURES {
-            os_info!("Rolling back to previous version");
+            log::info!("Rolling back to previous version");
             self.0.mark_running_slot_invalid_and_reboot();
         }
 
@@ -76,7 +76,7 @@ impl Ota {
         }
 
         let counter = FAILIURES.fetch_add(1, Ordering::SeqCst) /* returns old value */ + 1;
-        os_warn!("Firmware has failed {}/{} times", counter, MAX_FAILIURES);
+        log::warn!("Firmware has failed {counter}/{MAX_FAILIURES} times");
 
         Ok(())
     }
@@ -90,7 +90,7 @@ impl Ota {
         };
 
         let Some(version) = Self::parse_info_version(&info) else {
-            os_error!("Current firmware has an invalid version string");
+            log::error!("Current firmware has an invalid version string");
             return Err(OsError::IllegalFirmwareVersion);
         };
 
@@ -107,7 +107,7 @@ impl Ota {
         };
 
         let Some(version) = Self::parse_info_version(&info) else {
-            os_error!("Previous firmware has an invalid version string");
+            log::error!("Previous firmware has an invalid version string");
             return Err(OsError::IllegalFirmwareVersion);
         };
 
@@ -168,7 +168,7 @@ impl Drop for OtaHandle<'_> {
             return;
         };
 
-        os_debug!("Finalizing update");
+        log::error!("Finalizing update");
 
         handle.flush().expect("Failed to flush OTA write");
         handle.complete().expect("Failed to complete update");

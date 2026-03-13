@@ -1,6 +1,5 @@
 //! Error types for the firmware.
 
-use crate::os_warn;
 use esp_idf_svc::sys::EspError;
 use std::{fmt::Display, string::FromUtf8Error};
 use thiserror::Error;
@@ -145,7 +144,7 @@ pub trait ReportableError {
 impl<T, E: Display> ReportableError for Result<T, E> {
     fn report(self, desc: &str) {
         if let Err(why) = self {
-            os_warn!("{desc}: {why}");
+            log::warn!("{desc}: {why}");
         }
     }
 }

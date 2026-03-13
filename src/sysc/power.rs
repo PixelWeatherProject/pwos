@@ -1,4 +1,3 @@
-use crate::os_debug;
 pub use esp_idf_svc::hal::reset::ResetReason;
 use esp_idf_svc::{
     hal::reset::restart,
@@ -13,7 +12,7 @@ const INFINITE_SLEEP_TIME: Duration = Duration::from_micros(2_629_746_000_000); 
 /// or battery.
 pub fn mcu_sleep(time: Option<Duration>) -> ! {
     if super::usbctl::is_connected() {
-        os_debug!("Using fake sleep instead of deep sleep");
+        log::debug!("Using fake sleep instead of deep sleep");
         fake_sleep(time)
     } else {
         deep_sleep(time)

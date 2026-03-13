@@ -1,6 +1,5 @@
 //! System peripherals.
 
-use crate::os_debug;
 use esp_idf_svc::{
     eventloop::EspSystemEventLoop,
     hal::{modem::Modem, prelude::Peripherals},
@@ -35,9 +34,9 @@ pub struct WifiPeripherals {
 }
 
 fn initialize_base_parts() -> (Peripherals, EspSystemEventLoop) {
-    os_debug!("Initializing base peripherals");
+    log::debug!("Initializing base peripherals");
     let peripherals = Peripherals::take().expect("Failed to initialize peripherals");
-    os_debug!("Initializing System Event Loop");
+    log::debug!("Initializing System Event Loop");
     let sys_loop = EspSystemEventLoop::take().expect("SEL init error");
 
     (peripherals, sys_loop /* add more when needed */)

@@ -1,6 +1,6 @@
 use crate::{
     config::WIFI_COUNTRY_CODE,
-    os_debug, re_esp,
+    re_esp,
     sysc::{OsError, OsResult},
 };
 use esp_idf_svc::{
@@ -45,7 +45,7 @@ impl WiFi {
             WifiParam
         )?;
 
-        os_debug!("Configuring WiFi interface");
+        log::debug!("Configuring WiFi interface");
         let sta_netif = re_esp!(EspNetif::new_with_conf(&ip_config), WifiInit)?;
         let mut wifi = re_esp!(EspWifi::wrap_all(wifi, sta_netif), WifiInit)?;
         re_esp!(
@@ -53,10 +53,10 @@ impl WiFi {
             WifiConfig
         )?;
 
-        os_debug!("Starting WiFi interface");
+        log::debug!("Starting WiFi interface");
         re_esp!(wifi.start(), WifiStart)?;
 
-        os_debug!("Setting country code");
+        log::debug!("Setting country code");
         re_esp!(
             esp!(unsafe { esp_wifi_set_country_code(WIFI_COUNTRY_CODE.as_ptr().cast(), true) }),
             WifiParam
@@ -98,10 +98,10 @@ impl WiFi {
                 })),
             WifiConfig
         )?;
-        os_debug!("Starting connection to AP");
+        log::debug!("Starting connection to AP");
         self.driver.connect().map_err(OsError::WifiConnect)?;
 
-        os_debug!("Waiting for connection result");
+        log::debug!("Waiting for connection result");
         // wait until connected
         self.await_event::<WifiEvent, _, _>(
             || self.driver.is_connected(),
@@ -109,7 +109,7 @@ impl WiFi {
             timeout,
         )?;
 
-        os_debug!("Waiting for IP address");
+        log::debug!("Waiting for IP address");
         // wait until we get an IP
         self.await_event::<IpEvent, _, _>(|| self.driver.is_up(), OsError::EventTimeout, timeout)?;
 

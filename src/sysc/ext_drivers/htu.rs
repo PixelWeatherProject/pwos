@@ -6,7 +6,7 @@
 
 use super::EnvironmentSensor;
 use crate::{
-    os_debug, re_esp,
+    re_esp,
     sysc::{OsError, OsResult},
 };
 use esp_idf_svc::hal::i2c::I2cDriver;
@@ -39,7 +39,7 @@ impl<'s> Htu<'s> {
 
     /// Initialize the driver with the given I2C driver handle.
     pub fn new_with_driver(driver: I2cDriver<'s>) -> Result<Self, OsError> {
-        os_debug!("Loading driver");
+        log::debug!("Loading driver");
         let mut dev = Self(driver);
 
         dev.command(Command::Reset)?;
@@ -93,7 +93,7 @@ impl EnvironmentSensor for Htu<'_> {
 
     fn read_air_pressure(&mut self) -> OsResult<Option<AirPressure>> {
         #[cfg(debug_assertions)]
-        crate::os_warn!("Air pressure is not supported");
+        log::warn!("Air pressure is not supported");
         Ok(None)
     }
 }
