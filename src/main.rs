@@ -1,6 +1,7 @@
 #![warn(clippy::unwrap_used)]
 #![deny(unused_must_use)]
 
+use crate::sysc::ReportableError;
 use esp_idf_svc::hal::{
     gpio::IOPin,
     i2c::{config::Config, I2cDriver},
@@ -11,8 +12,6 @@ use sysc::{
     battery::Battery, ledctl::BoardLed, logging::OsLogger, ota::Ota, periph::SystemPeripherals,
     power::mcu_sleep, usbctl, OsError,
 };
-
-use crate::sysc::ReportableError;
 
 mod config;
 mod firmware;
