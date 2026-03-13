@@ -71,6 +71,7 @@ impl Ota {
     }
 
     pub fn inc_failiures(&self) -> OsResult<()> {
+        // if the current firmware is verified, we don't need to increment anything
         if self.current_verified()? {
             return Ok(());
         }
