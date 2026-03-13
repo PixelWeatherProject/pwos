@@ -63,13 +63,13 @@ As of now, this firmware has been tested with:
 - [`src/config/`](src/config/) - Contains configuration definitions for the firmware.
 
 ## Drivers
-All drivers for external hardware are in [`src/sysc/drivers`](src/sysc/drivers).
+All drivers for external hardware are in [`src/sysc/ext_drivers`](src/sysc/ext_drivers).
 
 The firmware includes one universal driver that should be compatible with any HTU21-like sensor. It works with:
 - [HTU21D from SparkFun](https://www.sparkfun.com/products/retired/12064)
 - [Adafruit Si7021 Temperature & Humidity Sensor](https://www.adafruit.com/product/3251)
 
-You could also implement your own driver, however the sensor must support temperature **and** humidity measuring at minimum. Your driver then must implement the [`EnvironmentSensor`](src/sysc/drivers/envsensor_trait.rs) trait.
+You could also implement your own driver, however the sensor must support temperature **and** humidity measuring at minimum. Your driver then must implement the [`EnvironmentSensor`](src/sysc/ext_drivers/envsensor_trait.rs) trait.
 
 Using multiple environment sensors is **not** supported. The firmware will use the first sensor it finds (which is typically the one with the lowest I2C address). This also means that every I2C hardware must use a different address.
 
