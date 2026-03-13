@@ -12,6 +12,8 @@ use sysc::{
     power::mcu_sleep, usbctl, OsError,
 };
 
+use crate::sysc::ReportableError;
+
 mod config;
 mod firmware;
 mod sysc;
@@ -121,10 +123,8 @@ fn main() {
         Err(why) => {
             log::error!("OS Error: {why}");
 
-            log::debug!("Saving error into NVS");
-            if let Err(why) = nvs.store_last_os_error(&why) {
-                log::error!("Failed to store error in NVS: {why}");
-            }
+            nvs.store_last_os_error(&why)
+                .report("Failed to store error in NVS");
 
             if !why.recoverable() {
                 log::error!("System will now halt");
