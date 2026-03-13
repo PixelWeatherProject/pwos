@@ -39,7 +39,6 @@ pub fn fw_main(
         log::warn!("Running unverified firmware");
     }
 
-    log::debug!("Starting WiFi setup");
     let (wifi, ap) = setup_wifi(modem, sys_loop)?;
     log::debug!("Connecting to PWMP");
     let mut pws = PwmpClient::new(PWMP_SERVER, &pwmp_msg_id_rng, None, None, None)?;
@@ -80,11 +79,8 @@ pub fn fw_main(
     if reset_reason.is_abnormal() {
         log::warn!("Detected abnormal reset reason: {reset_reason:?}");
 
-        pws.send_notification(format!(
-            "Detected abnormal reset reason: {:?}",
-            get_reset_reason()
-        ))
-        .report("Failed to report abnormal reset reason");
+        pws.send_notification(format!("Detected abnormal reset reason: {reset_reason:?}"))
+            .report("Failed to report abnormal reset reason");
     } else {
         log::debug!("Reset reason ({reset_reason:?}) is normal");
     }
@@ -144,7 +140,7 @@ pub fn fw_main(
 }
 
 fn setup_wifi(modem: Modem, sys_loop: EspSystemEventLoop) -> OsResult<(WiFi, AccessPointInfo)> {
-    log::debug!("Initializing WiFi");
+    log::debug!("Starting WiFi setup");
     let mut wifi = WiFi::new(modem, sys_loop)?;
 
     log::debug!("Starting WiFi scan");
