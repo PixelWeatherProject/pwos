@@ -2,11 +2,17 @@ use esp_idf_svc::sys::const_format::concatcp;
 use log::{Level, LevelFilter, Log};
 use std::io::{stdout, Write};
 
+/// Modules whose logs should be ignored.
 const BLACKLISTED_MODULES: [&str; 1] = ["esp_idf_svc"];
+/// Color code for an info message.
 const COLOR_INFO: &str = "\x1b[1;94m";
+/// Color code for a warning message.
 const COLOR_WARN: &str = "\x1b[1;33m";
+/// Color code for an error message.
 const COLOR_ERROR: &str = "\x1b[1;91m";
+/// Color code for a debug message.
 const COLOR_DEBUG: &str = "\x1b[1;95m";
+/// Code for resetting a previously set color.
 const RESET_COLOR: &str = "\x1b[0m";
 
 // We can pre-define these as they don't change during the entire firmware, and this
@@ -17,19 +23,37 @@ const ERROR_HEADER: &str = concatcp!(COLOR_ERROR, "ERROR", RESET_COLOR, " [");
 const DEBUG_HEADER: &str = concatcp!(COLOR_DEBUG, "DEBUG", RESET_COLOR, " [");
 const TRACE_HEADER: &str = "TRACE [";
 
+/// The firmware-wide logging backend.
+///
+/// It integrates with the [`log`] crate.
 pub struct OsLogger {
+    /// Whether the logger is enabled.
     enabled: bool,
 }
 
 impl OsLogger {
+    /// Create the logger.
     pub const fn new() -> Self {
         Self { enabled: true }
     }
 
+    /// Disable the logger.
+    ///
+    /// When disabled, it will not print any messages *regardless of their level*.
     pub const fn disable(&mut self) {
         self.enabled = false;
     }
 
+    /// Initialize the logger.
+    ///
+    /// Initialization consists of two steps:
+    /// - Setting maximum log level.
+    ///     - [`LevelFilter::Debug`] for debug builds, [`LevelFilter::Info`] for release builds
+    /// - Setting the global logger by calling [`log::set_boxed_logger`].
+    ///
+    /// # Panics
+    /// This will panic if [`log::set_boxed_logger`] returns an error. This should never happen if
+    /// this method was never called before.
     pub fn init(self) {
         #[cfg(debug_assertions)]
         log::set_max_level(LevelFilter::Debug);

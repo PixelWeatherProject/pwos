@@ -1,5 +1,6 @@
 use std::panic::PanicHookInfo;
 
+/// Sets a custom panic hook as the global one.
 pub fn setup() {
     std::panic::set_hook(Box::new(handle_panic));
 }

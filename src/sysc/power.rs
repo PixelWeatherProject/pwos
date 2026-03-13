@@ -19,6 +19,7 @@ pub fn mcu_sleep(time: Option<Duration>) -> ! {
     }
 }
 
+/// Puts the device into deep sleep for the specified amount of time, or indefinetly, if the duration is [None].
 fn deep_sleep(time: Option<Duration>) -> ! {
     let us = u64::try_from(time.unwrap_or(INFINITE_SLEEP_TIME).as_micros())
         .expect("Deep sleep duration is too long");
@@ -28,16 +29,25 @@ fn deep_sleep(time: Option<Duration>) -> ! {
     }
 }
 
+/// Simulates a sleep using [`std::thread::sleep`] for the specified amount of time, or
+/// indefinetly, if the duration is [None] and then performs a software reset.
+///
+/// Useful for when debugging over USB where deep sleep causes the USB controller
+/// to shut down and therefore disconnect from the computer.
 fn fake_sleep(time: Option<Duration>) -> ! {
     std::thread::sleep(time.unwrap_or(INFINITE_SLEEP_TIME));
     restart();
 }
 
+/// Returns the reset reason.
 pub fn get_reset_reason() -> ResetReason {
+    // SAFETY: Calling a safe C function.
     unsafe { esp_reset_reason() }.into()
 }
 
+/// A trait for extending [`ResetReason`].
 pub trait ResetReasonExt {
+    /// Returns whether the reset reason is abnormal (caused by a crash/error).
     fn is_abnormal(&self) -> bool;
 }
 
