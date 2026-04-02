@@ -89,11 +89,11 @@ pub enum OsError {
     GpioInit(EspError),
 
     /// Failed to initialize ADC.
-    #[error("Failed to initialize a GPIO pin ({0})")]
+    #[error("Failed to initialize ADC ({0})")]
     AdcInit(EspError),
 
     /// Failed to read from the ADC.
-    #[error("Failed to initialize a GPIO pin ({0})")]
+    #[error("Failed to read ADC ({0})")]
     AdcRead(EspError),
 
     /// Error while reading from I2C.
