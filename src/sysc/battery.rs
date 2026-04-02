@@ -79,15 +79,18 @@ impl Battery {
     /// Read the raw ADC value.
     #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
     fn read_raw_avg(&mut self, samples: u8) -> OsResult<u16> {
-        let mut avg = 0.;
+        let mut sum = 0;
 
         for _ in 0..samples {
-            avg += f32::from(self.read_raw()?);
+            sum += u32::from(self.read_raw()?);
         }
 
-        avg /= f32::from(samples);
-        avg = avg.clamp(0., 4095.);
-        Ok(avg as u16)
+        // With N samples, the max sum is N * 4095 = X.
+        // Therefore X / N = 4095.
+        // We don't need to handle u32->u16 conversion.
+        let avg = (sum / u32::from(samples)) as u16;
+
+        Ok(avg)
     }
 
     fn raw_to_mv(&self, raw: u16) -> OsResult<u16> {
