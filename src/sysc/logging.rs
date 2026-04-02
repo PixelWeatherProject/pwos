@@ -1,6 +1,9 @@
 use esp_idf_svc::sys::const_format::concatcp;
 use log::{Level, LevelFilter, Log};
-use std::io::{stdout, Write};
+use std::{
+    io::{stdout, Write},
+    sync::atomic::{AtomicBool, Ordering},
+};
 
 /// Modules whose logs should be ignored.
 const BLACKLISTED_MODULES: [&str; 1] = ["esp_idf_svc"];
@@ -23,28 +26,33 @@ const ERROR_HEADER: &str = concatcp!(COLOR_ERROR, "ERROR", RESET_COLOR, " [");
 const DEBUG_HEADER: &str = concatcp!(COLOR_DEBUG, "DEBUG", RESET_COLOR, " [");
 const TRACE_HEADER: &str = "TRACE [";
 
+/// The global instance of the logger.
+pub static LOGGER: OsLogger = OsLogger::new();
+
 /// The firmware-wide logging backend.
 ///
 /// It integrates with the [`log`] crate.
 pub struct OsLogger {
     /// Whether the logger is enabled.
-    enabled: bool,
+    enabled: AtomicBool,
 }
 
 impl OsLogger {
     /// Create the logger.
     pub const fn new() -> Self {
-        Self { enabled: true }
+        Self {
+            enabled: AtomicBool::new(true),
+        }
     }
 
-    /// Disable the logger.
+    /// Disable the global logger.
     ///
     /// When disabled, it will not print any messages *regardless of their level*.
-    pub const fn disable(&mut self) {
-        self.enabled = false;
+    pub fn disable() {
+        LOGGER.enabled.store(false, Ordering::SeqCst);
     }
 
-    /// Initialize the logger.
+    /// Initialize the global logger.
     ///
     /// Initialization consists of two steps:
     /// - Setting maximum log level.
@@ -54,14 +62,14 @@ impl OsLogger {
     /// # Panics
     /// This will panic if [`log::set_boxed_logger`] returns an error. This should never happen if
     /// this method was never called before.
-    pub fn init(self) {
+    pub fn init() {
         #[cfg(debug_assertions)]
         log::set_max_level(LevelFilter::Debug);
 
         #[cfg(not(debug_assertions))]
         log::set_max_level(LevelFilter::Info);
 
-        log::set_boxed_logger(Box::new(self)).expect("Failed to initialize logger");
+        log::set_logger(&LOGGER).expect("Failed to initialize logger");
     }
 }
 
@@ -75,7 +83,7 @@ impl Log for OsLogger {
     }
 
     fn log(&self, record: &log::Record) {
-        if !self.enabled {
+        if !self.enabled.load(Ordering::Relaxed) {
             return;
         }
 

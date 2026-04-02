@@ -1,7 +1,7 @@
 #![warn(clippy::unwrap_used)]
 #![deny(unused_must_use)]
 
-use crate::sysc::ReportableError;
+use crate::sysc::{logging::OsLogger, ReportableError};
 use esp_idf_svc::hal::{
     gpio::IOPin,
     i2c::{config::Config, I2cDriver},
@@ -9,8 +9,8 @@ use esp_idf_svc::hal::{
 };
 use std::time::Instant;
 use sysc::{
-    battery::Battery, ledctl::BoardLed, logging::OsLogger, ota::Ota, periph::SystemPeripherals,
-    power::mcu_sleep, usbctl, OsError,
+    battery::Battery, ledctl::BoardLed, ota::Ota, periph::SystemPeripherals, power::mcu_sleep,
+    usbctl, OsError,
 };
 
 mod config;
@@ -21,14 +21,12 @@ mod sysc;
 fn main() {
     esp_idf_svc::sys::link_patches();
 
-    let mut logger = OsLogger::new();
-
     // Turn off logging when USB is not connected
     if !usbctl::is_connected() {
-        logger.disable();
+        OsLogger::disable();
     }
 
-    logger.init();
+    OsLogger::init();
 
     log::info!(
         "PixelWeatherOS v{}-{}{} ({})",
