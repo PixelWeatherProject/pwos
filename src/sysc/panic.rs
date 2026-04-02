@@ -11,10 +11,9 @@ fn handle_panic(info: &PanicHookInfo) {
     log::error!("====================[PANIC]====================");
     log::error!("Firmware paniced!");
     log::error!("Message: {payload}");
-    log::error!(
-        "Location: {}",
-        info.location()
-            .map_or_else(|| "N/A".to_string(), ToString::to_string)
-    );
+    match info.location() {
+        Some(loc) => log::error!("Location: {loc}"),
+        None => log::error!("Location: N/A"),
+    }
     log::error!("====================[PANIC]====================");
 }
