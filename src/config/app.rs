@@ -25,11 +25,5 @@ pub fn get_settings() -> NodeSettings {
 #[allow(clippy::trivially_copy_pass_by_ref)]
 pub fn save_settings(settings: &NodeSettings) {
     // SAFETY: The static is not available directly, and can be only retrieved using get_settings(), which returns only a copy.
-    unsafe {
-        SETTINGS.battery_ignore = settings.battery_ignore;
-        SETTINGS.mute_notifications = settings.mute_notifications;
-        SETTINGS.ota = settings.ota;
-        SETTINGS.sbop = settings.sbop;
-        SETTINGS.sleep_time = settings.sleep_time;
-    }
+    unsafe { SETTINGS = *settings };
 }
