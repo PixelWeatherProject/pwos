@@ -8,7 +8,16 @@ use esp_idf_svc::hal::{
     i2c::I2C1,
 };
 
-impl SystemPeripherals<I2C1, Gpio8, Gpio5, ADC1, Gpio3, Gpio17> {
+impl
+    SystemPeripherals<
+        I2C1<'static>,
+        Gpio8<'static>,
+        Gpio5<'static>,
+        ADC1<'static>,
+        Gpio3<'static>,
+        Gpio17<'static>,
+    >
+{
     pub fn take() -> Self {
         let (peripherals, sys_loop) = initialize_base_parts();
 

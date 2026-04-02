@@ -28,10 +28,10 @@ use pwmp_client::{
 pub fn fw_main(
     mut battery: Battery,
     i2c: I2cDriver,
-    modem: Modem,
+    modem: Modem<'static>,
     sys_loop: EspSystemEventLoop,
     mut led: BoardLed,
-    nvs: &mut NonVolatileStorage,
+    nvs: &NonVolatileStorage,
     ota: &mut Ota,
     cfg: &mut NodeSettings,
 ) -> OsResult<()> {
@@ -138,7 +138,10 @@ pub fn fw_main(
     Ok(())
 }
 
-fn setup_wifi(modem: Modem, sys_loop: EspSystemEventLoop) -> OsResult<(WiFi, AccessPointInfo)> {
+fn setup_wifi(
+    modem: Modem<'static>,
+    sys_loop: EspSystemEventLoop,
+) -> OsResult<(WiFi, AccessPointInfo)> {
     log::debug!("Starting WiFi setup");
     let mut wifi = WiFi::new(modem, sys_loop)?;
 

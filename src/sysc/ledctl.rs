@@ -1,8 +1,8 @@
 use super::OsResult;
 use crate::re_esp;
-use esp_idf_svc::hal::gpio::{AnyIOPin, Output, PinDriver};
+use esp_idf_svc::hal::gpio::{AnyOutputPin, Output, PinDriver};
 
-type LedDriver = PinDriver<'static, AnyIOPin, Output>;
+type LedDriver = PinDriver<'static, Output>;
 
 /// A simple LED driver for the onboard LED.
 pub struct BoardLed(LedDriver, bool);
@@ -15,7 +15,7 @@ impl BoardLed {
     ///
     /// # Errors
     /// Returns an error if [`PinDriver::output`] fails.
-    pub fn new(pin: AnyIOPin, invert: bool) -> OsResult<Self> {
+    pub fn new(pin: AnyOutputPin<'static>, invert: bool) -> OsResult<Self> {
         let mut i = Self(re_esp!(PinDriver::output(pin), GpioInit)?, invert);
         i.on();
 

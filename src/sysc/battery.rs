@@ -9,7 +9,7 @@ use esp_idf_svc::{
                 config::{AdcChannelConfig, Calibration},
                 AdcChannelDriver, AdcDriver,
             },
-            Resolution, ADC1,
+            Resolution, ADC1, ADCCH2, ADCU1,
         },
         gpio::Gpio3,
     },
@@ -18,13 +18,17 @@ use esp_idf_svc::{
 use std::rc::Rc;
 
 /// GPIO pin where the output of the voltage divider is connected
-type BatteryGpio = Gpio3;
+type BatteryGpio = Gpio3<'static>;
 /// The ADC hardware
-type BatteryAdc = ADC1;
+type BatteryAdc = ADC1<'static>;
+/// The ADC unit
+type BatteryAdcUnit = ADCU1;
+/// ADC1 channel type for GPIO3
+type BatteryChannel = ADCCH2<BatteryAdcUnit>;
 /// Alias for the ADC driver
-type BatteryAdcDriver = AdcDriver<'static, BatteryAdc>;
+type BatteryAdcDriver = AdcDriver<'static, BatteryAdcUnit>;
 /// Alias for the ADC channel driver
-type BatteryAdcChannelDriver = AdcChannelDriver<'static, BatteryGpio, Rc<BatteryAdcDriver>>;
+type BatteryAdcChannelDriver = AdcChannelDriver<'static, BatteryChannel, Rc<BatteryAdcDriver>>;
 
 /// Input signal attenuation level
 /// See the attenuation table [here](https://docs.espressif.com/projects/esp-idf/en/v4.4/esp32s3/api-reference/peripherals/adc.html#adc-attenuation).

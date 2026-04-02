@@ -2,7 +2,7 @@
 
 use esp_idf_svc::{
     eventloop::EspSystemEventLoop,
-    hal::{modem::Modem, prelude::Peripherals},
+    hal::{modem::Modem, peripherals::Peripherals},
 };
 
 pub struct SystemPeripherals<I2C, SclPin, SdaPin, ADC, ADCPin, LedPin> {
@@ -29,7 +29,7 @@ pub struct OnboardLedPeripherals<LedPin> {
 }
 
 pub struct WifiPeripherals {
-    pub modem: Modem,
+    pub modem: Modem<'static>,
     pub sys_loop: EspSystemEventLoop,
 }
 

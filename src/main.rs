@@ -3,7 +3,6 @@
 
 use crate::sysc::{logging::OsLogger, ReportableError};
 use esp_idf_svc::hal::{
-    gpio::IOPin,
     i2c::{config::Config, I2cDriver},
     units::FromValueType,
 };
@@ -52,7 +51,7 @@ fn main() {
 
     log::debug!("Initializing system LED");
     let led = BoardLed::new(
-        peripherals.onboard_led.pin.downgrade(),
+        peripherals.onboard_led.pin.degrade_output(),
         peripherals.onboard_led.invert,
     )
     .expect("Failed to set up onboard LED");
@@ -78,7 +77,7 @@ fn main() {
     );
 
     log::debug!("Initializing NVS");
-    let mut nvs = sysc::nvs::NonVolatileStorage::new().expect("Failed to initialize NVS");
+    let nvs = sysc::nvs::NonVolatileStorage::new().expect("Failed to initialize NVS");
 
     log::debug!("Initializing system Battery");
     let battery = Battery::new(peripherals.battery.adc, peripherals.battery.pin)
@@ -105,7 +104,7 @@ fn main() {
         peripherals.wifi.modem,
         peripherals.wifi.sys_loop,
         led,
-        &mut nvs,
+        &nvs,
         &mut ota,
         &mut appcfg,
     );

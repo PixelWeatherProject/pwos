@@ -36,7 +36,7 @@ pub struct WiFi {
 
 #[allow(clippy::unused_self)]
 impl WiFi {
-    pub fn new(modem: Modem, sys_loop: EspSystemEventLoop) -> OsResult<Self> {
+    pub fn new(modem: Modem<'static>, sys_loop: EspSystemEventLoop) -> OsResult<Self> {
         let wifi = re_esp!(WifiDriver::new(modem, sys_loop.clone(), None), WifiInit)?;
         let ip_config = Self::generate_dhcp_config(&wifi)?;
 
@@ -88,7 +88,8 @@ impl WiFi {
             self.driver
                 .set_configuration(&Configuration::Client(ClientConfiguration {
                     ssid: ap.ssid.clone(),
-                    password: psk.try_into().map_err(|()| OsError::ArgumentTooLong)?,
+                    password: heapless::String::<64>::try_from(psk)
+                        .map_err(|_| OsError::ArgumentTooLong)?,
                     auth_method: ap.auth_method.unwrap_or_default(),
                     scan_method: ScanMethod::FastScan, // https://github.com/espressif/esp-idf/tree/master/examples/wifi/fast_scan
                     /* the following parameters may improve connection times */
