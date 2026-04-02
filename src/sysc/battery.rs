@@ -45,6 +45,8 @@ const CONFIG: AdcChannelConfig = AdcChannelConfig {
 };
 /// Critical voltage value that's still higher than the minimum supply voltage for the ESP32
 pub const CRITICAL_VOLTAGE: f32 = 3.22;
+/// Amount of samples to read when reading ADC value.
+pub const SAMPLES: u16 = 16;
 
 /// Battery voltage measurement driver.
 pub struct Battery {
@@ -68,8 +70,8 @@ impl Battery {
     }
 
     /// Read the ADC value and calculate the voltage.
-    pub fn read(&mut self, samples: u8) -> OsResult<f32> {
-        let raw = self.read_raw_avg(samples)?;
+    pub fn read(&mut self) -> OsResult<f32> {
+        let raw = self.read_raw_avg()?;
         let volts = f32::from(self.raw_to_mv(raw)?) / 1000.;
         let result = (volts * (R1 + R2)) / R2;
 
@@ -78,18 +80,19 @@ impl Battery {
 
     /// Read the raw ADC value.
     #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
-    fn read_raw_avg(&mut self, samples: u8) -> OsResult<u16> {
-        let mut sum = 0;
+    fn read_raw_avg(&mut self) -> OsResult<u16> {
+        let mut avg = 0;
 
-        for _ in 0..samples {
-            sum += u32::from(self.read_raw()?);
+        // NOTE: If `SAMPLES` is changed in the future, `u32` or higher
+        // must be used.
+
+        // 16 * 4095 = 65520 => within u16 range, so no need to convert to u32
+
+        for _ in 0..SAMPLES {
+            avg += self.read_raw()?;
         }
 
-        // With N samples, the max sum is N * 4095 = X.
-        // Therefore X / N = 4095.
-        // We don't need to handle u32->u16 conversion.
-        let avg = (sum / u32::from(samples)) as u16;
-
+        avg /= SAMPLES;
         Ok(avg)
     }
 
