@@ -127,7 +127,6 @@ impl WiFi {
             .map_err(err_map)
     }
 
-    #[cfg(debug_assertions)]
     pub fn get_ip_info(&self) -> OsResult<esp_idf_svc::ipv4::IpInfo> {
         Ok(re_esp!(self.driver.sta_netif().get_ip_info(), WifiInfo)?)
     }

@@ -68,7 +68,6 @@ fn main() {
     ota.rollback_if_needed()
         .expect("Failed to check/perform rollback");
 
-    #[cfg(debug_assertions)]
     log::debug!(
         "Reported current version: {}",
         ota.current_version()

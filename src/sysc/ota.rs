@@ -127,13 +127,12 @@ impl Ota {
 
     /// Returns the version of the currently running firmware.
     ///
-    /// *This method is only available in debug builds.*
+    /// *This method should only be used in debug builds.*
     ///
     /// If the version number is not available, [`Option::None`] is returned.
     ///
     /// # Errors
     /// Returns an error if the underlying OTA driver fails.
-    #[cfg(debug_assertions)]
     pub fn current_version(&self) -> OsResult<Option<Version>> {
         let slot = crate::re_esp!(self.0.get_running_slot(), OtaSlot)?;
 

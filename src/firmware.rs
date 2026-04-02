@@ -182,15 +182,11 @@ fn setup_wifi(modem: Modem, sys_loop: EspSystemEventLoop) -> OsResult<(WiFi, Acc
             .find(|entry| entry.0 == ap.ssid)
             .map(|e| e.1));
 
-        #[cfg(debug_assertions)]
         let start = std::time::Instant::now();
         match wifi.connect(&ap, psk, WIFI_TIMEOUT) {
             Ok(()) => {
-                #[cfg(debug_assertions)]
-                {
-                    log::debug!("Connected in {:.02?}", start.elapsed());
-                    log::debug!("IP: {}", wifi.get_ip_info()?.ip);
-                }
+                log::debug!("Connected in {:.02?}", start.elapsed());
+                log::debug!("IP: {}", wifi.get_ip_info()?.ip);
                 return Ok((wifi, ap));
             }
             Err(why) => log::error!("Failed to connect: {why}"),
