@@ -71,16 +71,12 @@ fn main() {
     log::debug!(
         "Reported current version: {}",
         ota.current_version()
-            .ok()
-            .flatten()
-            .map_or_else(|| "?".to_string(), |v| v.to_string())
+            .map_or_else(|_| "?".to_string(), |v| v.to_string())
     );
     log::debug!(
         "Previous installed version: {}",
         ota.previous_version()
-            .ok()
-            .flatten()
-            .map_or_else(|| "?".to_string(), |v| v.to_string())
+            .map_or_else(|_| "?".to_string(), |v| v.to_string())
     );
 
     log::debug!("Initializing NVS");

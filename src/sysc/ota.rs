@@ -133,7 +133,7 @@ impl Ota {
     ///
     /// # Errors
     /// Returns an error if the underlying OTA driver fails.
-    pub fn current_version(&self) -> OsResult<Option<Version>> {
+    pub fn current_version(&self) -> OsResult<Version> {
         let slot = crate::re_esp!(self.0.get_running_slot(), OtaSlot)?;
 
         let Some(info) = slot.firmware else {
@@ -145,7 +145,7 @@ impl Ota {
             return Err(OsError::IllegalFirmwareVersion);
         };
 
-        Ok(Some(version))
+        Ok(version)
     }
 
     /// Returns the version of the previous firmware from the flash.
@@ -154,10 +154,8 @@ impl Ota {
     ///
     /// # Errors
     /// Returns an error if the underlying OTA driver fails.
-    pub fn previous_version(&self) -> OsResult<Option<Version>> {
-        let Some(slot) = re_esp!(self.0.get_last_invalid_slot(), OtaSlot)? else {
-            return Ok(None);
-        };
+    pub fn previous_version(&self) -> OsResult<Version> {
+        let slot = crate::re_esp!(self.0.get_running_slot(), OtaSlot)?;
 
         let Some(info) = slot.firmware else {
             return Err(OsError::MissingPartitionMetadata);
@@ -168,7 +166,7 @@ impl Ota {
             return Err(OsError::IllegalFirmwareVersion);
         };
 
-        Ok(Some(version))
+        Ok(version)
     }
 
     /// Parses the raw version string of a firmware on flash.

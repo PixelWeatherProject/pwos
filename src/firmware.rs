@@ -111,8 +111,7 @@ pub fn fw_main(
             if success {
                 env!("CARGO_PKG_VERSION").to_string()
             } else {
-                ota.previous_version()?
-                    .map_or_else(|| "unknown".to_string(), |v| v.to_string())
+                ota.previous_version()?.to_string()
             },
             if success { "succeeded" } else { "failed" }
         ))?;
