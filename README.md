@@ -24,8 +24,16 @@ PixelWeather is a weather station network that collects environment data using "
 ### Software requirements (for building):
 - [Rust](https://rustlang.org/)
 - [ESP32 Rust toolchain](https://esp-rs.github.io/book/)
+- [espflash](https://github.com/esp-rs/espflash)
+  - You will need both `espflash` and `cargo-espflash`.
+- [ESP-IDF](https://docs.espressif.com/projects/esp-idf/en/v5.5.4/esp32s3/get-started/linux-macos-setup.html#get-started-prerequisites)
+  - The project currently is version locked to `v5.3.2`.
 - An instance of the PixelWeather Messaging Protocol (PWMP) server.
   - Repository [here](https://github.com/PixelWeatherProject/pwmp-server).
+
+Building on Windows has not been tested, nor is it supported. Please use macOS or Linux.
+
+Compilation time depends on your machine and internet connection. On an older machine it can take 5-10 minutes, while on a newer one it can be as low as 1-2 minutes.
 
 ### Recommended hardware
 For a generally stable, safe and reliable experience, you should stick to reputable a higher-quality brands. Below are the listed recommendations for all categories of hardware.
