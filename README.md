@@ -27,13 +27,18 @@ PixelWeather is a weather station network that collects environment data using "
 - [espflash](https://github.com/esp-rs/espflash)
   - You will need both `espflash` and `cargo-espflash`.
 - [ESP-IDF](https://docs.espressif.com/projects/esp-idf/en/v5.5.4/esp32s3/get-started/linux-macos-setup.html#get-started-prerequisites)
-  - The project currently is version locked to `v5.3.2`.
+  - The project currently is version locked to `v5.5.3`.
 - An instance of the PixelWeather Messaging Protocol (PWMP) server.
   - Repository [here](https://github.com/PixelWeatherProject/pwmp-server).
 
-Building on Windows has not been tested, nor is it supported. Please use macOS or Linux.
+### Building info
+Building was tested on Linux and macOS. Windows has not been tested, and is not supported. You can use a VM or WSL (better) as an alternative.
 
-Compilation time depends on your machine and internet connection. On an older machine it can take 5-10 minutes, while on a newer one it can be as low as 1-2 minutes.
+Compilation time can be quite long, depending on your machine and internet connection. On an older machine it can take 5-10 minutes, while on a newer one it can be as low as 2-3 minutes.
+
+A minimum of 10GB of free disk space is recommended. A fresh copy of the project with a debug and release build can take up to 7GB of space.
+During development and after several incremental builds, this can grow up to 10-12GB.
+To fully clean the project use `cargo clean` and `rm -rf .embuild`.
 
 ### Recommended hardware
 For a generally stable, safe and reliable experience, you should stick to reputable a higher-quality brands. Below are the listed recommendations for all categories of hardware.
