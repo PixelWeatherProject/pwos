@@ -3,7 +3,7 @@ use crate::{
     null_check, re_esp,
     sysc::{
         battery::{Battery, CRITICAL_VOLTAGE},
-        ext_drivers::{AnySensor, EnvironmentSensor, Htu, MeasurementResults},
+        ext_drivers::Htu,
         ledctl::BoardLed,
         net::wifi::{WiFi, RSSI_THRESHOLD},
         nvs::NonVolatileStorage,
@@ -20,7 +20,12 @@ use esp_idf_svc::{
 };
 use pwmp_client::{
     ota::UpdateStatus,
-    pwmp_msg::{settings::NodeSettings, version::Version, MsgId},
+    pwmp_msg::{
+        aliases::{AirPressure, Humidity, Temperature},
+        settings::NodeSettings,
+        version::Version,
+        MsgId,
+    },
     PwmpClient,
 };
 
@@ -65,12 +70,12 @@ pub fn fw_main(
         mcu_sleep(None);
     }
 
-    let env_sensor = setup_envsensor(i2c)?;
+    let env_sensor = Htu::new_with_driver(i2c)?;
 
-    let results = read_environment(env_sensor)?;
-    log::info!("{:.02}*C / {}%", results.temperature, results.humidity);
+    let (temperature, humidity, air_pressure) = read_environment(env_sensor)?;
+    log::info!("{temperature:.02}*C / {humidity}%");
     log::debug!("Posting measurements");
-    pws.post_measurements(results.temperature, results.humidity, results.air_pressure)?;
+    pws.post_measurements(temperature, humidity, air_pressure)?;
 
     log::debug!("Posting stats");
     pws.post_stats(bat_voltage, &ap.ssid, ap.signal_strength)?;
@@ -212,39 +217,12 @@ fn read_appcfg(pws: &mut PwmpClient, appcfg: &mut NodeSettings) -> OsResult<()> 
     Ok(())
 }
 
-fn setup_envsensor(mut i2c_driver: I2cDriver<'_>) -> OsResult<AnySensor<'_>> {
-    let mut working = None;
-
-    for addr in 1..128 {
-        if i2c_driver.write(addr, &[], 1000).is_ok() {
-            log::debug!("Found device @ I2C/0x{addr:X}");
-            working = Some(addr);
-
-            /* We expect only ONE device, so the loop can be broken here. */
-            break;
-        }
-    }
-
-    match working {
-        Some(Htu::DEV_ADDR) => {
-            log::debug!("Detected HTU-compatible sensor");
-            return Ok(AnySensor::HtuCompatible(Htu::new_with_driver(i2c_driver)?));
-        }
-        Some(other) => {
-            log::warn!("Unrecognised device @ I2C/0x{other:X}");
-        }
-        None => (),
-    }
-
-    Err(OsError::NoEnvSensor)
-}
-
-fn read_environment(mut env: AnySensor) -> OsResult<MeasurementResults> {
-    Ok(MeasurementResults {
-        temperature: env.read_temperature()?,
-        humidity: env.read_humidity()?,
-        air_pressure: env.read_air_pressure()?,
-    })
+fn read_environment(mut sensor: Htu) -> OsResult<(Temperature, Humidity, Option<AirPressure>)> {
+    Ok((
+        sensor.read_temperature()?,
+        sensor.read_humidity()?,
+        sensor.read_air_pressure()?,
+    ))
 }
 
 fn check_ota(pws: &mut PwmpClient) -> OsResult<bool> {

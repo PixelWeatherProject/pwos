@@ -52,10 +52,6 @@ pub enum OsError {
     #[error("pwmp: {0}")]
     PwmpError(#[from] pwmp_client::error::Error),
 
-    /// No environment sensor detected.
-    #[error("environment sensor")]
-    NoEnvSensor,
-
     /// OTA module or update initialization has failed.
     #[error("Failed to initialize an OTA update ({0})")]
     OtaInit(EspError),

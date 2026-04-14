@@ -4,7 +4,6 @@
 //!
 //! These sensors work over the I2C protocol.
 
-use super::EnvironmentSensor;
 use crate::{
     re_esp,
     sysc::{OsError, OsResult},
@@ -47,6 +46,31 @@ impl<'s> Htu<'s> {
         Ok(dev)
     }
 
+    pub fn read_temperature(&mut self) -> OsResult<Temperature> {
+        let raw = self.command(Command::ReadTemperature)?;
+
+        Ok(Self::calc_temperature(raw))
+    }
+
+    #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
+    pub fn read_humidity(&mut self) -> OsResult<Humidity> {
+        let raw = self.command(Command::ReadHumidity)?;
+        let hum = ((125.0 * f32::from(raw)) / 65536.0) - 6.0;
+        let percentage = hum.floor().clamp(0., 100.);
+
+        Ok(percentage as u8)
+    }
+
+    #[allow(
+        clippy::unnecessary_wraps,
+        clippy::unused_self,
+        clippy::needless_pass_by_ref_mut
+    )]
+    pub fn read_air_pressure(&mut self) -> OsResult<Option<AirPressure>> {
+        log::warn!("Air pressure is not supported");
+        Ok(None)
+    }
+
     /// Send a command to the device.
     fn command(&mut self, cmd: Command) -> OsResult<u16> {
         let mut buffer = [0u8; 2];
@@ -72,28 +96,5 @@ impl<'s> Htu<'s> {
     fn calc_temperature(raw: u16) -> Temperature {
         // ((175.72 * raw) / 65536.0) - 46.85
         ((175.72 * f32::from(raw)) / 65536.0) - 46.85
-    }
-}
-
-impl EnvironmentSensor for Htu<'_> {
-    fn read_temperature(&mut self) -> OsResult<Temperature> {
-        let raw = self.command(Command::ReadTemperature)?;
-
-        Ok(Self::calc_temperature(raw))
-    }
-
-    #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
-    fn read_humidity(&mut self) -> OsResult<Humidity> {
-        let raw = self.command(Command::ReadHumidity)?;
-        let hum = ((125.0 * f32::from(raw)) / 65536.0) - 6.0;
-        let percentage = hum.floor().clamp(0., 100.);
-
-        Ok(percentage as u8)
-    }
-
-    fn read_air_pressure(&mut self) -> OsResult<Option<AirPressure>> {
-        #[cfg(debug_assertions)]
-        log::warn!("Air pressure is not supported");
-        Ok(None)
     }
 }
