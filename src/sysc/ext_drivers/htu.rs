@@ -9,7 +9,7 @@ use crate::{
     sysc::{OsError, OsResult},
 };
 use esp_idf_svc::hal::i2c::I2cDriver;
-use pwmp_client::pwmp_msg::aliases::{AirPressure, Humidity, Temperature};
+use pwmp_client::pwmp_msg::aliases::{Humidity, Temperature};
 use std::{thread::sleep, time::Duration};
 
 /// Commands for HTU21D (and similar) sensors.
@@ -59,16 +59,6 @@ impl<'s> Htu<'s> {
         let percentage = hum.floor().clamp(0., 100.);
 
         Ok(percentage as u8)
-    }
-
-    #[allow(
-        clippy::unnecessary_wraps,
-        clippy::unused_self,
-        clippy::needless_pass_by_ref_mut
-    )]
-    pub fn read_air_pressure(&mut self) -> OsResult<Option<AirPressure>> {
-        log::warn!("Air pressure is not supported");
-        Ok(None)
     }
 
     /// Send a command to the device.

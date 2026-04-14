@@ -21,7 +21,7 @@ use esp_idf_svc::{
 use pwmp_client::{
     ota::UpdateStatus,
     pwmp_msg::{
-        aliases::{AirPressure, Humidity, Temperature},
+        aliases::{Humidity, Temperature},
         settings::NodeSettings,
         version::Version,
         MsgId,
@@ -72,10 +72,10 @@ pub fn fw_main(
 
     let env_sensor = Htu::new_with_driver(i2c)?;
 
-    let (temperature, humidity, air_pressure) = read_environment(env_sensor)?;
+    let (temperature, humidity) = read_environment(env_sensor)?;
     log::info!("{temperature:.02}*C / {humidity}%");
     log::debug!("Posting measurements");
-    pws.post_measurements(temperature, humidity, air_pressure)?;
+    pws.post_measurements(temperature, humidity, None)?;
 
     log::debug!("Posting stats");
     pws.post_stats(bat_voltage, &ap.ssid, ap.signal_strength)?;
@@ -217,12 +217,8 @@ fn read_appcfg(pws: &mut PwmpClient, appcfg: &mut NodeSettings) -> OsResult<()> 
     Ok(())
 }
 
-fn read_environment(mut sensor: Htu) -> OsResult<(Temperature, Humidity, Option<AirPressure>)> {
-    Ok((
-        sensor.read_temperature()?,
-        sensor.read_humidity()?,
-        sensor.read_air_pressure()?,
-    ))
+fn read_environment(mut sensor: Htu) -> OsResult<(Temperature, Humidity)> {
+    Ok((sensor.read_temperature()?, sensor.read_humidity()?))
 }
 
 fn check_ota(pws: &mut PwmpClient) -> OsResult<bool> {
