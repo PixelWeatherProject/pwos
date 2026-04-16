@@ -157,15 +157,14 @@ fn setup_wifi(
 
     #[cfg(debug_assertions)]
     {
-        use crate::sysc::net::wifi::MAX_NET_SCAN;
-
-        let network_names = networks
+        let formatted_network_names = networks
             .iter()
-            .map(|net| net.ssid.as_str())
-            .collect::<heapless::Vec<&str, { MAX_NET_SCAN }>>();
+            .map(|ap| format!("{} ({}dBm)", ap.ssid, ap.signal_strength))
+            .collect::<Vec<String>>()
+            .join(", ");
 
         log::debug!(
-            "Found networks: {network_names:?} in {:.02?}",
+            "Found networks: {formatted_network_names} in {:.02?}",
             scan_start.elapsed()
         );
     }
