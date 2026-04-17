@@ -10,8 +10,11 @@ use crate::{
     sysc::{OsError, OsResult},
 };
 use esp_idf_svc::hal::i2c::I2cDriver;
-use pwmp_client::pwmp_msg::aliases::{AirPressure, Humidity, Temperature};
-use std::{thread::sleep, time::Duration};
+use pwmp_client::pwmp_msg::{
+    aliases::{AirPressure, Humidity, Temperature},
+    version::Version,
+};
+use std::{fmt::Display, thread::sleep, time::Duration};
 
 /// Commands for HTU21D (and similar) sensors.
 #[derive(Clone, Copy)]
@@ -24,6 +27,20 @@ enum Command {
 
     /// Reset the device
     Reset,
+
+    /// Read the first part of the device serial number
+    ReadSerial1,
+
+    /// Read the firmware version of the device
+    ReadFirmwareVersion,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Model {
+    Si7021,
+    HTU21D,
+    Si7020,
+    Si7013,
 }
 
 /// Driver handle for HTU21D (and similar) sensors.
@@ -43,13 +60,49 @@ impl<'s> Htu<'s> {
 
         dev.reset()?;
 
+        let model = dev.model()?;
+        match model {
+            Some(model) => {
+                log::debug!(
+                    "Detected '{model}', firmware '{}'",
+                    dev.firmware_version()?
+                        .map_or_else(|| "?".to_string(), |v| v.to_string())
+                );
+            }
+            None => {
+                log::warn!("Device model is unknown and may not be supported");
+            }
+        }
+
         Ok(dev)
     }
 
-    /// Calculate temperature in Celsius from the result measured by the sensor.
-    fn calc_temperature(raw: u16) -> Temperature {
-        // ((175.72 * raw) / 65536.0) - 46.85
-        ((175.72 * f32::from(raw)) / 65536.0) - 46.85
+    fn model(&mut self) -> OsResult<Option<Model>> {
+        let snb3 = self.write_read_u8(Command::ReadSerial1)?;
+
+        match snb3 {
+            0x15 => Ok(Some(Model::Si7021)),
+            0x32 => Ok(Some(Model::HTU21D)),
+            0x14 => Ok(Some(Model::Si7020)),
+            0x0D => Ok(Some(Model::Si7013)),
+            _ => Ok(None),
+        }
+    }
+
+    fn firmware_version(&mut self) -> OsResult<Option<Version>> {
+        if self.model()?.is_none_or(|m| m == Model::HTU21D) {
+            // HTU21D does not support reading it's firmware version
+            // if the I/O error was ignored, it would lock up the I2C bus
+            return Ok(None);
+        }
+
+        let ver = self.write_read_u8(Command::ReadFirmwareVersion)?;
+
+        match ver {
+            0xFF => Ok(Some(Version::new(1, 0, 0))),
+            0x20 => Ok(Some(Version::new(2, 0, 0))),
+            _ => Ok(None),
+        }
     }
 
     fn reset(&mut self) -> OsResult<()> {
@@ -78,6 +131,14 @@ impl<'s> Htu<'s> {
         )
     }
 
+    fn write_read_u8(&mut self, command: Command) -> OsResult<u8> {
+        let mut buffer = [0; 1];
+        self.write_read(command, &mut buffer)?;
+
+        let raw = u8::from_be_bytes(buffer);
+        Ok(raw)
+    }
+
     fn write_read_u16(&mut self, command: Command) -> OsResult<u16> {
         let mut buffer = [0; 2];
         self.write_read(command, &mut buffer)?;
@@ -90,8 +151,8 @@ impl<'s> Htu<'s> {
 impl EnvironmentSensor for Htu<'_> {
     fn read_temperature(&mut self) -> OsResult<Temperature> {
         let raw = self.write_read_u16(Command::ReadTemperature)?;
-
-        Ok(Self::calc_temperature(raw))
+        let temp = ((175.72 * f32::from(raw)) / 65536.0) - 46.85;
+        Ok(temp)
     }
 
     #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
@@ -116,6 +177,14 @@ impl Command {
             Self::ReadTemperature => &[0xE3],
             Self::ReadHumidity => &[0xE5],
             Self::Reset => &[0xFE],
+            Self::ReadSerial1 => &[0xFC, 0xC9],
+            Self::ReadFirmwareVersion => &[0x84, 0xB8],
         }
+    }
+}
+
+impl Display for Model {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{self:?}")
     }
 }
