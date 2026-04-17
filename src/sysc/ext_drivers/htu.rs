@@ -14,17 +14,16 @@ use pwmp_client::pwmp_msg::aliases::{AirPressure, Humidity, Temperature};
 use std::{thread::sleep, time::Duration};
 
 /// Commands for HTU21D (and similar) sensors.
-#[derive(PartialEq, Clone, Copy)]
-#[repr(u8)]
+#[derive(Clone, Copy)]
 enum Command {
     /// Request temperature reading
-    ReadTemperature = 0xE3,
+    ReadTemperature,
 
     /// Request humidity reading
-    ReadHumidity = 0xE5,
+    ReadHumidity,
 
     /// Reset the device
-    Reset = 0xFE,
+    Reset,
 }
 
 /// Driver handle for HTU21D (and similar) sensors.
@@ -42,30 +41,9 @@ impl<'s> Htu<'s> {
         log::debug!("Loading driver");
         let mut dev = Self(driver);
 
-        dev.command(Command::Reset)?;
+        dev.reset()?;
 
         Ok(dev)
-    }
-
-    /// Send a command to the device.
-    fn command(&mut self, cmd: Command) -> OsResult<u16> {
-        let mut buffer = [0u8; 2];
-
-        re_esp!(
-            self.0
-                .write(Self::DEV_ADDR, &[cmd as u8], Self::BUS_TIMEOUT),
-            I2cWrite
-        )?;
-        sleep(Duration::from_millis(Self::CMD_WAIT_TIME));
-
-        if cmd != Command::Reset {
-            re_esp!(
-                self.0.read(Self::DEV_ADDR, &mut buffer, Self::BUS_TIMEOUT),
-                I2cRead
-            )?;
-        }
-
-        Ok(((u16::from(buffer[0])) << 8) | (u16::from(buffer[1])))
     }
 
     /// Calculate temperature in Celsius from the result measured by the sensor.
@@ -73,18 +51,52 @@ impl<'s> Htu<'s> {
         // ((175.72 * raw) / 65536.0) - 46.85
         ((175.72 * f32::from(raw)) / 65536.0) - 46.85
     }
+
+    fn reset(&mut self) -> OsResult<()> {
+        self.write(Command::Reset)?;
+        sleep(Duration::from_millis(Self::CMD_WAIT_TIME));
+        Ok(())
+    }
+
+    fn write(&mut self, command: Command) -> OsResult<()> {
+        re_esp!(
+            self.0
+                .write(Self::DEV_ADDR, command.as_bytes(), Self::BUS_TIMEOUT),
+            I2c
+        )
+    }
+
+    fn write_read(&mut self, command: Command, buffer: &mut [u8]) -> OsResult<()> {
+        re_esp!(
+            self.0.write_read(
+                Self::DEV_ADDR,
+                command.as_bytes(),
+                buffer,
+                Self::BUS_TIMEOUT,
+            ),
+            I2c
+        )
+    }
+
+    fn write_read_u16(&mut self, command: Command) -> OsResult<u16> {
+        let mut buffer = [0; 2];
+        self.write_read(command, &mut buffer)?;
+
+        let raw = u16::from_be_bytes(buffer);
+        Ok(raw)
+    }
 }
 
 impl EnvironmentSensor for Htu<'_> {
     fn read_temperature(&mut self) -> OsResult<Temperature> {
-        let raw = self.command(Command::ReadTemperature)?;
+        let raw = self.write_read_u16(Command::ReadTemperature)?;
 
         Ok(Self::calc_temperature(raw))
     }
 
     #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
     fn read_humidity(&mut self) -> OsResult<Humidity> {
-        let raw = self.command(Command::ReadHumidity)?;
+        let raw = self.write_read_u16(Command::ReadHumidity)?;
         let hum = ((125.0 * f32::from(raw)) / 65536.0) - 6.0;
         let percentage = hum.floor().clamp(0., 100.);
 
@@ -92,8 +104,18 @@ impl EnvironmentSensor for Htu<'_> {
     }
 
     fn read_air_pressure(&mut self) -> OsResult<Option<AirPressure>> {
-        #[cfg(debug_assertions)]
         log::warn!("Air pressure is not supported");
         Ok(None)
+    }
+}
+
+impl Command {
+    /// Get the command as a byte array for I2C transmission.
+    const fn as_bytes(self) -> &'static [u8] {
+        match self {
+            Self::ReadTemperature => &[0xE3],
+            Self::ReadHumidity => &[0xE5],
+            Self::Reset => &[0xFE],
+        }
     }
 }
