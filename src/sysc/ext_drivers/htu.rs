@@ -10,7 +10,7 @@ use crate::{
     sysc::{OsError, OsResult},
 };
 use esp_idf_svc::hal::i2c::I2cDriver;
-use pwmp_client::pwmp_msg::aliases::{Humidity, Temperature};
+use pwmp_client::pwmp_msg::aliases::{AirPressure, Humidity, Temperature};
 use std::{thread::sleep, time::Duration};
 
 /// Commands for HTU21D (and similar) sensors.
