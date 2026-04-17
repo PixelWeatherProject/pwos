@@ -65,9 +65,9 @@ pub fn fw_main(
         mcu_sleep(None);
     }
 
-    let env_sensor = setup_envsensor(i2c)?;
+    let mut env_sensor = setup_envsensor(i2c)?;
 
-    let results = read_environment(env_sensor)?;
+    let results = read_environment(&mut env_sensor)?;
     log::info!("{:.02}*C / {}%", results.temperature, results.humidity);
     log::debug!("Posting measurements");
     pws.post_measurements(results.temperature, results.humidity, results.air_pressure)?;
@@ -133,6 +133,16 @@ pub fn fw_main(
 
         log::info!("Update installed successfully");
     } // Handle will be dropped and the update should finalize
+
+    wifi.shutdown();
+
+    log::debug!("Checking if heater should be enabled");
+    if results.humidity >= 80 && env_sensor.heater_supported() {
+        log::info!("Enabling heater");
+        env_sensor.set_heater(true)?;
+
+        // TODO
+    }
 
     led.off();
     Ok(())
@@ -238,7 +248,7 @@ fn setup_envsensor(mut i2c_driver: I2cDriver<'_>) -> OsResult<AnySensor<'_>> {
     Err(OsError::NoEnvSensor)
 }
 
-fn read_environment(mut env: AnySensor) -> OsResult<MeasurementResults> {
+fn read_environment(env: &mut AnySensor) -> OsResult<MeasurementResults> {
     Ok(MeasurementResults {
         temperature: env.read_temperature()?,
         humidity: env.read_humidity()?,

@@ -96,13 +96,13 @@ pub enum OsError {
     #[error("Failed to read ADC ({0})")]
     AdcRead(EspError),
 
-    /// Error while reading from I2C.
-    #[error("Failed to read from I2C ({0})")]
-    I2cRead(EspError),
+    /// Error while performing an I/O operation on I2C.
+    #[error("Failed to perform I/O operation on I2C ({0})")]
+    I2c(EspError),
 
-    /// Error while writing to I2C.
-    #[error("Failed to write to I2C ({0})")]
-    I2cWrite(EspError),
+    /// Unsupported operation attempted.
+    #[error("Unsupported operation")]
+    UnsupportedOperation,
 
     /// Specified parameter was too long.
     #[error("Argument too long")]

@@ -45,4 +45,16 @@ impl EnvironmentSensor for AnySensor<'_> {
             Self::HtuCompatible(dev) => dev.read_air_pressure(),
         }
     }
+
+    fn heater_supported(&self) -> bool {
+        match self {
+            Self::HtuCompatible(dev) => dev.heater_supported(),
+        }
+    }
+
+    fn set_heater(&mut self, enabled: bool) -> OsResult<()> {
+        match self {
+            Self::HtuCompatible(dev) => dev.set_heater(enabled),
+        }
+    }
 }

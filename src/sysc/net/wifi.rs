@@ -1,7 +1,7 @@
 use crate::{
     config::WIFI_COUNTRY_CODE,
     re_esp,
-    sysc::{OsError, OsResult},
+    sysc::{OsError, OsResult, ReportableError},
 };
 use esp_idf_svc::{
     eventloop::{EspEventLoop, EspEventSource, EspSystemEventLoop, System, Wait},
@@ -115,6 +115,11 @@ impl WiFi {
         self.await_event::<IpEvent, _, _>(|| self.driver.is_up(), OsError::EventTimeout, timeout)?;
 
         Ok(())
+    }
+
+    pub fn shutdown(mut self) {
+        log::debug!("Shutting down WiFi interface");
+        self.driver.stop().report("Failed to shut down WiFi");
     }
 
     fn await_event<S, F, U>(&self, matcher: F, err_map: U, timeout: Duration) -> OsResult<()>
