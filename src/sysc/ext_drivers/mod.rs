@@ -1,7 +1,9 @@
+mod bme280;
 mod envsensor_trait;
 mod htu;
 
 use super::OsResult;
+pub use bme280::BoschME280;
 pub use envsensor_trait::EnvironmentSensor;
 pub use htu::Htu;
 use pwmp_client::pwmp_msg::aliases::{AirPressure, Humidity, Temperature};
@@ -9,6 +11,7 @@ use pwmp_client::pwmp_msg::aliases::{AirPressure, Humidity, Temperature};
 /// A wrapper that allows abstracting the underlying sensor driver without the use of generics.
 pub enum AnySensor<'s> {
     HtuCompatible(Htu<'s>),
+    Bme280(BoschME280<'s>),
     // add future sensors here...
 }
 
@@ -31,18 +34,21 @@ impl EnvironmentSensor for AnySensor<'_> {
     fn read_temperature(&mut self) -> OsResult<Temperature> {
         match self {
             Self::HtuCompatible(dev) => dev.read_temperature(),
+            Self::Bme280(dev) => dev.read_temperature(),
         }
     }
 
     fn read_humidity(&mut self) -> OsResult<Humidity> {
         match self {
             Self::HtuCompatible(dev) => dev.read_humidity(),
+            Self::Bme280(dev) => dev.read_humidity(),
         }
     }
 
     fn read_air_pressure(&mut self) -> OsResult<Option<AirPressure>> {
         match self {
             Self::HtuCompatible(dev) => dev.read_air_pressure(),
+            Self::Bme280(dev) => dev.read_air_pressure(),
         }
     }
 }

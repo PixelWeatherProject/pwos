@@ -3,7 +3,7 @@ use crate::{
     null_check, re_esp,
     sysc::{
         battery::{Battery, CRITICAL_VOLTAGE},
-        ext_drivers::{AnySensor, EnvironmentSensor, Htu, MeasurementResults},
+        ext_drivers::{AnySensor, BoschME280, EnvironmentSensor, Htu, MeasurementResults},
         ledctl::BoardLed,
         net::wifi::{WiFi, RSSI_THRESHOLD},
         nvs::NonVolatileStorage,
@@ -228,6 +228,12 @@ fn setup_envsensor(mut i2c_driver: I2cDriver<'_>) -> OsResult<AnySensor<'_>> {
         Some(Htu::DEV_ADDR) => {
             log::debug!("Detected HTU-compatible sensor");
             return Ok(AnySensor::HtuCompatible(Htu::new_with_driver(i2c_driver)?));
+        }
+        Some(bosch_addr) if BoschME280::DEV_ADDRS.contains(&bosch_addr) => {
+            log::debug!("Deteched Bosch sensor");
+            return Ok(AnySensor::Bme280(BoschME280::new_with_driver(
+                i2c_driver, bosch_addr,
+            )?));
         }
         Some(other) => {
             log::warn!("Unrecognised device @ I2C/0x{other:X}");
