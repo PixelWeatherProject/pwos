@@ -10,11 +10,8 @@ use crate::{
     sysc::{OsError, OsResult},
 };
 use esp_idf_svc::hal::i2c::I2cDriver;
-use pwmp_client::pwmp_msg::{
-    aliases::{AirPressure, Humidity, Temperature},
-    version::Version,
-};
-use std::{fmt::Display, thread::sleep, time::Duration};
+use pwmp_client::pwmp_msg::aliases::{AirPressure, Humidity, Temperature};
+use std::{thread::sleep, time::Duration};
 
 /// Commands for HTU21D (and similar) sensors.
 #[derive(Clone, Copy)]
@@ -30,17 +27,6 @@ enum Command {
 
     /// Read the first part of the device serial number
     ReadSerial1,
-
-    /// Read the firmware version of the device
-    ReadFirmwareVersion,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum Model {
-    Si7021,
-    HTU21D,
-    Si7020,
-    Si7013,
 }
 
 /// Driver handle for HTU21D (and similar) sensors.
@@ -60,47 +46,22 @@ impl<'s> Htu<'s> {
 
         dev.reset()?;
 
-        let model = dev.model()?;
-        match model {
-            Some(model) => {
-                log::debug!(
-                    "Detected '{model}', firmware '{}'",
-                    dev.firmware_version()?
-                        .map_or_else(|| "?".to_string(), |v| v.to_string())
-                );
-            }
-            None => {
-                log::warn!("Device model is unknown and may not be supported");
-            }
+        match dev.model()? {
+            Some(model) => log::debug!("Detected '{model}'"),
+            None => log::warn!("Device model is unknown and may not be supported"),
         }
 
         Ok(dev)
     }
 
-    fn model(&mut self) -> OsResult<Option<Model>> {
+    fn model(&mut self) -> OsResult<Option<&'static str>> {
         let snb3 = self.write_read_u8(Command::ReadSerial1)?;
 
         match snb3 {
-            0x15 => Ok(Some(Model::Si7021)),
-            0x32 => Ok(Some(Model::HTU21D)),
-            0x14 => Ok(Some(Model::Si7020)),
-            0x0D => Ok(Some(Model::Si7013)),
-            _ => Ok(None),
-        }
-    }
-
-    fn firmware_version(&mut self) -> OsResult<Option<Version>> {
-        if self.model()?.is_none_or(|m| m == Model::HTU21D) {
-            // HTU21D does not support reading it's firmware version
-            // if the I/O error was ignored, it would lock up the I2C bus
-            return Ok(None);
-        }
-
-        let ver = self.write_read_u8(Command::ReadFirmwareVersion)?;
-
-        match ver {
-            0xFF => Ok(Some(Version::new(1, 0, 0))),
-            0x20 => Ok(Some(Version::new(2, 0, 0))),
+            0x15 => Ok(Some("Si7021")),
+            0x32 => Ok(Some("HTU21D")),
+            0x14 => Ok(Some("Si7020")),
+            0x0D => Ok(Some("Si7013")),
             _ => Ok(None),
         }
     }
@@ -178,13 +139,6 @@ impl Command {
             Self::ReadHumidity => &[0xE5],
             Self::Reset => &[0xFE],
             Self::ReadSerial1 => &[0xFC, 0xC9],
-            Self::ReadFirmwareVersion => &[0x84, 0xB8],
         }
-    }
-}
-
-impl Display for Model {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{self:?}")
     }
 }
