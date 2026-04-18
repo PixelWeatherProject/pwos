@@ -62,6 +62,7 @@ It's recommended to use hardware from reputable brands such as Adafruit, SparkFu
 As of now, this firmware has been tested with:
 - [Adafruit Si7021 Temperature & Humidity Sensor](https://www.adafruit.com/product/3251)
 - [HTU21D from SparkFun](https://www.sparkfun.com/products/retired/12064)
+- [BME280 from Bosch](https://www.bosch-sensortec.com/en/products/environmental-sensors/humidity-sensors-bme280)
 
 #### Recommended batteries
 > **⚠️WARNING⚠️**
@@ -83,11 +84,13 @@ As of now, this firmware has been tested with:
 ## Drivers
 All drivers for external hardware are in [`src/sysc/ext_drivers`](src/sysc/ext_drivers).
 
-The firmware includes one universal driver that should be compatible with any HTU21-like sensor. It works with:
-- [HTU21D from SparkFun](https://www.sparkfun.com/products/retired/12064)
-- [Adafruit Si7021 Temperature & Humidity Sensor](https://www.adafruit.com/product/3251)
+Currently, the following drivers are implemented:
+- [HTU-compatible driver](src/sysc/ext_drivers/htu.rs) - Supports HTU21D, Si7021 and similar sensors. Expects address `0x40`.
+- [BME280 driver](src/sysc/ext_drivers/bme280.rs) - Supports the BME280 sensor only. Expects addresses `0x77` or `0x76`.
 
 You could also implement your own driver, however the sensor must support temperature **and** humidity measuring at minimum. Your driver then must implement the [`EnvironmentSensor`](src/sysc/ext_drivers/envsensor_trait.rs) trait.
+
+When implementing a driver, it is recommended to also implement model detection, so that the firmware can warn the user if they have a potentially incompatible sensor.
 
 Using multiple environment sensors is **not** supported. The firmware will use the first sensor it finds (which is typically the one with the lowest I2C address). This also means that every I2C hardware must use a different address.
 
