@@ -17,7 +17,7 @@ use pwmp_client::pwmp_msg::aliases::{AirPressure, Humidity, Temperature};
 pub struct BoschME280<'s> {
     i2c: I2cDriver<'s>,
     addr: u8,
-    calibration: CalibrationData,
+    cal: CalibrationData,
 }
 
 /// Commands for BME280 sensors
@@ -88,7 +88,7 @@ impl<'s> BoschME280<'s> {
         let mut dev = Self {
             i2c: driver,
             addr,
-            calibration: CalibrationData::default(),
+            cal: CalibrationData::default(),
         };
 
         /*
@@ -132,7 +132,7 @@ impl<'s> BoschME280<'s> {
         let mut calib_buf_2 = [0u8; 7]; // 0xE1 to 0xE7
         self.write_read(Command::ReadCalibrationPart2, &mut calib_buf_2)?;
 
-        self.calibration = CalibrationData {
+        self.cal = CalibrationData {
             t1: f32::from(u16::from_le_bytes([calib_buf_1[0], calib_buf_1[1]])),
             t2: f32::from(i16::from_le_bytes([calib_buf_1[2], calib_buf_1[3]])),
             t3: f32::from(i16::from_le_bytes([calib_buf_1[4], calib_buf_1[5]])),
@@ -179,6 +179,15 @@ impl<'s> BoschME280<'s> {
         Ok((raw_t, raw_h, raw_p))
     }
 
+    /// Calculate the `t_fine` value from the raw temperature measurement, which is used for compensation of all measurements.
+    const fn calc_t_fine(&self, raw_t: f32) -> f32 {
+        let var1 = (raw_t / 16384.0 - self.cal.t1 / 1024.0) * self.cal.t2;
+        let var2 = ((raw_t / 131_072.0 - self.cal.t1 / 8192.0)
+            * (raw_t / 131_072.0 - self.cal.t1 / 8192.0))
+            * self.cal.t3;
+        var1 + var2
+    }
+
     /// Send a non-returning command to the sensor.
     ///
     /// If the command returns data, use [`write_read()`](Self::write_read) instead.
@@ -210,11 +219,7 @@ impl EnvironmentSensor for BoschME280<'_> {
         let raw_t = self.read_raw_measurements()?.0;
 
         // temperature compensation
-        let var1 = (raw_t / 16384.0 - self.calibration.t1 / 1024.0) * self.calibration.t2;
-        let var2 = ((raw_t / 131_072.0 - self.calibration.t1 / 8192.0)
-            * (raw_t / 131_072.0 - self.calibration.t1 / 8192.0))
-            * self.calibration.t3;
-        let t_fine = var1 + var2;
+        let t_fine = self.calc_t_fine(raw_t);
         let temperature_c = t_fine / 5120.0;
 
         Ok(temperature_c)
@@ -225,24 +230,15 @@ impl EnvironmentSensor for BoschME280<'_> {
         let (raw_t, raw_h, _) = self.read_raw_measurements()?;
 
         // humidity compensation
-        let var1 = (raw_t / 16384.0 - self.calibration.t1 / 1024.0) * self.calibration.t2;
-        let var2 = ((raw_t / 131_072.0 - self.calibration.t1 / 8192.0)
-            * (raw_t / 131_072.0 - self.calibration.t1 / 8192.0))
-            * self.calibration.t3;
-        let t_fine = var1 + var2;
-
+        let t_fine = self.calc_t_fine(raw_t);
         let mut h = t_fine - 76800.0;
 
-        h = (raw_h
-            - self
-                .calibration
-                .h4
-                .mul_add(64.0, self.calibration.h5 / 16384.0 * h))
-            * (self.calibration.h2 / 65536.0
-                * (self.calibration.h6 / 67_108_864.0 * h)
-                    .mul_add((self.calibration.h3 / 67_108_864.0).mul_add(h, 1.0), 1.0));
+        h = (raw_h - self.cal.h4.mul_add(64.0, self.cal.h5 / 16384.0 * h))
+            * (self.cal.h2 / 65536.0
+                * (self.cal.h6 / 67_108_864.0 * h)
+                    .mul_add((self.cal.h3 / 67_108_864.0).mul_add(h, 1.0), 1.0));
 
-        h = h * (1.0 - self.calibration.h1 * h / 524_288.0);
+        h = h * (1.0 - self.cal.h1 * h / 524_288.0);
         h = h.floor().clamp(0., 100.);
 
         Ok(h as u8)
@@ -253,29 +249,25 @@ impl EnvironmentSensor for BoschME280<'_> {
         let (raw_t, _, raw_p) = self.read_raw_measurements()?;
 
         // pressure compensation
-        let var1 = (raw_t / 16384.0 - self.calibration.t1 / 1024.0) * self.calibration.t2;
-        let var2 = ((raw_t / 131_072.0 - self.calibration.t1 / 8192.0)
-            * (raw_t / 131_072.0 - self.calibration.t1 / 8192.0))
-            * self.calibration.t3;
-        let t_fine = var1 + var2;
+        let t_fine = self.calc_t_fine(raw_t);
 
         let mut p_var1 = (t_fine / 2.0) - 64000.0;
-        let mut p_var2 = p_var1 * p_var1 * self.calibration.p6 / 32768.0;
-        p_var2 += p_var1 * self.calibration.p5 * 2.0;
-        p_var2 = self.calibration.p4.mul_add(65536.0, p_var2 / 4.0);
+        let mut p_var2 = p_var1 * p_var1 * self.cal.p6 / 32768.0;
+        p_var2 += p_var1 * self.cal.p5 * 2.0;
+        p_var2 = self.cal.p4.mul_add(65536.0, p_var2 / 4.0);
         p_var1 = self
-            .calibration
+            .cal
             .p2
-            .mul_add(p_var1, self.calibration.p3 * p_var1 * p_var1 / 524_288.0)
+            .mul_add(p_var1, self.cal.p3 * p_var1 * p_var1 / 524_288.0)
             / 524_288.0;
-        p_var1 = (1.0 + p_var1 / 32768.0) * self.calibration.p1;
+        p_var1 = (1.0 + p_var1 / 32768.0) * self.cal.p1;
 
         let pressure_pa = if p_var1 > 0.0 {
             let mut p = 1_048_576.0 - raw_p;
             p = (p - (p_var2 / 4096.0)) * 6250.0 / p_var1;
-            p_var1 = self.calibration.p9 * p * p / 2_147_483_648.0;
-            p_var2 = p * self.calibration.p8 / 32768.0;
-            p + (p_var1 + p_var2 + self.calibration.p7) / 16.0
+            p_var1 = self.cal.p9 * p * p / 2_147_483_648.0;
+            p_var2 = p * self.cal.p8 / 32768.0;
+            p + (p_var1 + p_var2 + self.cal.p7) / 16.0
         } else {
             0.0
         };
