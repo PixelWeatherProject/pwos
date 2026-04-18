@@ -28,7 +28,7 @@ fn main() {
 
     println!(
         "cargo:rustc-env=PWOS_REL_OR_DEV=-{}",
-        if git_is_tagged { "release" } else { "devel" }
+        if git_is_tagged { "rel" } else { "dev" }
     );
     println!("cargo:rustc-env=PWOS_COMMIT={git_hash}");
     println!("cargo:rustc-env=BUILD_DATE_TIME={current_date_time}");
