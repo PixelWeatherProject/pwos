@@ -15,8 +15,13 @@ use pwmp_client::pwmp_msg::aliases::{AirPressure, Humidity, Temperature};
 
 /// Driver handle for Bosch BME280 sensors.
 pub struct BoschME280<'s> {
+    /// I2C driver handle for communication with the sensor.
     i2c: I2cDriver<'s>,
+
+    /// I2C address of the sensor.
     addr: u8,
+
+    /// Factory calibration data read from the sensor.
     cal: CalibrationData,
 }
 
