@@ -115,9 +115,10 @@ impl<'s> BoschME280<'s> {
 
     /// Detect the sensor model by reading the device ID register.
     fn model(&mut self) -> OsResult<Option<&'static str>> {
-        let model = self.write_read_u8(Command::ReadIdRegister)?;
+        let mut buffer = [0u8; 1];
+        self.write_read(Command::ReadIdRegister, &mut buffer)?;
 
-        match model {
+        match buffer[0] {
             0x60 => Ok(Some("BME280")),
             _ => Ok(None),
         }
@@ -201,22 +202,6 @@ impl<'s> BoschME280<'s> {
                 .write_read(self.addr, &cmd[..len], buffer, Self::BUS_TIMEOUT,),
             I2c
         )
-    }
-
-    /// Send a command to the sensor and read a single byte response.
-    ///
-    /// This is a shorthand for:
-    /// ```rust
-    /// let mut buffer = [0; 1];
-    /// self.write_read(command, &mut buffer)?;
-    /// let raw = u8::from_be_bytes(buffer);
-    /// ```
-    fn write_read_u8(&mut self, command: Command) -> OsResult<u8> {
-        let mut buffer = [0; 1];
-        self.write_read(command, &mut buffer)?;
-
-        let raw = u8::from_be_bytes(buffer);
-        Ok(raw)
     }
 }
 
