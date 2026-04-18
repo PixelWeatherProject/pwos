@@ -42,6 +42,13 @@ enum Command {
     ReadMeasurementsStartRegister,
 }
 
+/// Sensor calibration data.
+///
+/// Since every sensor has a slightly different accuracy, a calibration step is performed at the factory.
+/// The calibration data is them stored in the sensor's memory after calibration.
+///
+/// The values are used to compensate the raw measurements read from the sensor, which results in more accurate readings.
+/// The compensation formulas are provided in the BME280 datasheet.
 #[derive(Default)]
 struct CalibrationData {
     // Temperature
@@ -106,6 +113,7 @@ impl<'s> BoschME280<'s> {
         Ok(dev)
     }
 
+    /// Detect the sensor model by reading the device ID register.
     fn model(&mut self) -> OsResult<Option<&'static str>> {
         let model = self.write_read_u8(Command::ReadIdRegister)?;
 
@@ -115,6 +123,7 @@ impl<'s> BoschME280<'s> {
         }
     }
 
+    /// Read the factory calibration data from the sensor.
     fn read_calibration_data(&mut self) -> OsResult<()> {
         let mut calib_buf_1 = [0u8; 26]; // 0x88 to 0xA1
         self.write_read(Command::ReadCalibrationPart1, &mut calib_buf_1)?;
@@ -148,6 +157,9 @@ impl<'s> BoschME280<'s> {
         Ok(())
     }
 
+    /// Read the raw measurements from the sensor.
+    ///
+    /// These are not final and need to be compensated using the calibration data to get accurate readings.
     #[allow(clippy::cast_precision_loss)]
     fn read_raw_measurements(&mut self) -> OsResult<(f32, f32, f32)> {
         let mut buffer = [0; 8];
@@ -166,6 +178,9 @@ impl<'s> BoschME280<'s> {
         Ok((raw_t, raw_h, raw_p))
     }
 
+    /// Send a non-returning command to the sensor.
+    ///
+    /// If the command returns data, use [`write_read()`](Self::write_read) instead.
     fn write(&mut self, command: Command) -> OsResult<()> {
         let (cmd, len) = command.serialize();
 
@@ -175,6 +190,9 @@ impl<'s> BoschME280<'s> {
         )
     }
 
+    /// Send a command to the sensor and read the response into the provided buffer.
+    ///
+    /// If the command does not return data, use [`write()`](Self::write) instead.
     fn write_read(&mut self, command: Command, buffer: &mut [u8]) -> OsResult<()> {
         let (cmd, len) = command.serialize();
 
@@ -185,6 +203,14 @@ impl<'s> BoschME280<'s> {
         )
     }
 
+    /// Send a command to the sensor and read a single byte response.
+    ///
+    /// This is a shorthand for:
+    /// ```rust
+    /// let mut buffer = [0; 1];
+    /// self.write_read(command, &mut buffer)?;
+    /// let raw = u8::from_be_bytes(buffer);
+    /// ```
     fn write_read_u8(&mut self, command: Command) -> OsResult<u8> {
         let mut buffer = [0; 1];
         self.write_read(command, &mut buffer)?;
