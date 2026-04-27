@@ -1131,8 +1131,8 @@ dependencies = [
 
 [[package]]
 name = "pwmp-client"
-version = "2.2.1"
-source = "git+https://github.com/PixelWeatherProject/pwmp-client?tag=v2.2.1#7c431a2e9c4b0b82b0299da035b75a6715999599"
+version = "2.2.5"
+source = "git+https://github.com/PixelWeatherProject/pwmp-client?tag=v2.2.5#9c9bb7c73efddc0d0667f89b1ef4c4613ce1b30a"
 dependencies = [
  "libc",
  "pwmp-msg",
@@ -1141,8 +1141,8 @@ dependencies = [
 
 [[package]]
 name = "pwmp-msg"
-version = "2.1.9"
-source = "git+https://github.com/PixelWeatherProject/pwmp-msg?tag=v2.1.9#51abaabc05c8e83f10e149c1a5e12c597bce1daa"
+version = "2.1.12"
+source = "git+https://github.com/PixelWeatherProject/pwmp-msg?tag=v2.1.12#2405f2e2973e1470a313d61499220015161304a0"
 dependencies = [
  "derive_more",
  "postcard",
@@ -1151,7 +1151,7 @@ dependencies = [
 
 [[package]]
 name = "pwos"
-version = "2.1.0"
+version = "2.1.1"
 dependencies = [
  "embuild",
  "esp-idf-svc",
