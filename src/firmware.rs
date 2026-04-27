@@ -269,17 +269,14 @@ fn check_ota(pws: &mut PwmpClient) -> OsResult<bool> {
 }
 
 fn begin_update(pws: &mut PwmpClient, handle: &mut OtaHandle) -> OsResult<()> {
-    let mut maybe_chunk = pws.next_update_chunk(Some(1024))?;
-    let mut i = 1;
+    const CHUNK_SIZE: u32 = 4096;
+    let mut maybe_chunk = pws.next_update_chunk(Some(CHUNK_SIZE))?;
 
     while let Some(chunk) = maybe_chunk {
-        if i % 128 == 0 {
-            log::debug!("Writing OTA update chunk #{i}");
-        }
+        log::debug!("Writing next OTA update chunk");
 
         re_esp!(handle.write(&chunk), OtaWrite)?;
-        maybe_chunk = pws.next_update_chunk(Some(1024))?;
-        i += 1;
+        maybe_chunk = pws.next_update_chunk(Some(CHUNK_SIZE))?;
     }
 
     Ok(())
