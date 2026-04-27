@@ -5,7 +5,7 @@ use esp_idf_svc::{
 };
 use std::time::Duration;
 
-const INFINITE_SLEEP_TIME: Duration = Duration::from_micros(2_629_746_000_000); /* 1 month */
+const INFINITE_SLEEP_TIME: Duration = Duration::from_secs(2_629_746); /* 1 month */
 
 /// Puts the node into sleep mode, while automatically selecting the proper
 /// sleep type (*deep*/*fake*) depending on whether the node is powered trough USB
