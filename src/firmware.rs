@@ -1,6 +1,6 @@
 use crate::{
     config::{PWMP_SERVER, WIFI_NETWORKS, WIFI_TIMEOUT},
-    null_check, re_esp,
+    re_esp,
     sysc::{
         battery::{Battery, CRITICAL_VOLTAGE},
         ext_drivers::{AnySensor, BoschME280, EnvironmentSensor, Htu, MeasurementResults},
@@ -164,12 +164,10 @@ fn setup_wifi(
         );
     }
 
-    // filter out unknown APs
-    networks.retain(|ap| WIFI_NETWORKS.iter().any(|entry| entry.0 == ap.ssid));
-    // sort by signal strength
-    networks.sort_by_key(|b| std::cmp::Reverse(b.signal_strength));
     // filter out APs with RSSI >= RSSI_THRESHOLD
     networks.retain(|ap| ap.signal_strength >= RSSI_THRESHOLD);
+    // sort by signal strength
+    networks.sort_by_key(|b| std::cmp::Reverse(b.signal_strength));
 
     if networks.is_empty() {
         log::warn!("No usable networks found");
@@ -177,11 +175,15 @@ fn setup_wifi(
     }
 
     for ap in networks {
-        log::debug!("Connecting to {} ({}dBm)", ap.ssid, ap.signal_strength);
-        let psk = null_check!(WIFI_NETWORKS
+        let Some(psk) = WIFI_NETWORKS
             .iter()
-            .find(|entry| entry.0 == ap.ssid)
-            .map(|e| e.1));
+            .find(|candidate| candidate.0 == ap.ssid)
+            .map(|candidate| candidate.1)
+        else {
+            continue;
+        };
+
+        log::debug!("Connecting to {} ({}dBm)", ap.ssid, ap.signal_strength);
 
         let start = std::time::Instant::now();
         match wifi.connect(&ap, psk, WIFI_TIMEOUT) {
