@@ -167,7 +167,7 @@ fn setup_wifi(
     // filter out unknown APs
     networks.retain(|ap| WIFI_NETWORKS.iter().any(|entry| entry.0 == ap.ssid));
     // sort by signal strength
-    networks.sort_by(|a, b| b.signal_strength.cmp(&a.signal_strength));
+    networks.sort_by_key(|b| std::cmp::Reverse(b.signal_strength));
     // filter out APs with RSSI >= RSSI_THRESHOLD
     networks.retain(|ap| ap.signal_strength >= RSSI_THRESHOLD);
 
