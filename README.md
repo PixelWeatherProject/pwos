@@ -343,7 +343,12 @@ This section contains information about the current and possible limitations of 
 - Hidden WiFi networks are **not** supported.
 - Unencrypted WiFi networks are **not** supported.
 - It's recommended to ensure that the RSSI (signal strength) is no less than *-70dBm*. Some boards can handle worse scenarios, but others may experience connectivity issues.
-- WiFi credentials are stored in code, instead of NVS because it's design is way too simple and limited to properly store the kind of configuration PWOS needs. This would require some hacky workarounds, and adjusting the OTA system to allow updating the credentials.
+- The WiFi credentials are stored in code ([`src/config/app.rs`](src/config/app.rs))
+  - While this is not the best approach, for now it is the best one.
+  - A much better approach would be to store them in NVS on a separate partition.
+  - Due to the NVS design being way too simple and limited, this would require adding some parsing (possibly with extra libraries) which would increase the firmware size and complexity.
+  - Also if a new version of PWOS has breaking changes in the configuration, this would require additonal logic to handle migrating or updating the configuration, further increasing the firmware size and complexity.
+  - For now, this solution will stay, but I might change it to use a separate config and generate the source code from it.
 - When scanning for APs, the firmware uses the default scan configuration if ESP-IDF. This configuration has minimal enough to severely limit the maximum scan duration to preserve as much power as possible. However, this comes at a cost - you AP/s might not be detected fast enough. If this is a problem for you, you can try the following:
   1. Lower the [*Beacon Interval*](https://www.7signal.com/news/blog/controlling-beacons-boosts-wi-fi-performance) in your AP's settings. This is usually set to 100(ms), but you can lower this to (for e.g.) 50. **Don't mess with these settings if you don't know what you're doing!**
      - In OpenWRT you can find this under *Network* > *Wireless* > *Edit* (your AP) > *Advanced Settings*
