@@ -69,11 +69,16 @@ pub fn fw_main(
 
     let results = read_environment(env_sensor)?;
     log::info!("{:.02}*C / {}%", results.temperature, results.humidity);
-    log::debug!("Posting measurements");
-    pws.post_measurements(results.temperature, results.humidity, results.air_pressure)?;
-
-    log::debug!("Posting stats");
-    pws.post_stats(bat_voltage, &ap.ssid, ap.signal_strength)?;
+    log::debug!("Posting results");
+    pws.post_measurements(
+        results.temperature,
+        results.humidity,
+        results.air_pressure,
+        cpu_temp, // TODO
+        bat_voltage,
+        &ap.ssid,
+        ap.signal_strength,
+    )?;
 
     let reset_reason = get_reset_reason();
     if reset_reason.is_abnormal() {
