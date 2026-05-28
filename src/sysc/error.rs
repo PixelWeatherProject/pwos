@@ -131,7 +131,7 @@ pub enum OsError {
 
 /// Trait for non-fatal error types that can be "reported" to the console.
 ///
-/// This trait is meant to be implemented for [`Result`](Result)s.
+/// This trait is meant to be implemented for [`Result`]s.
 pub trait ReportableError {
     /// Log a warning to the console if the [`Result`] variant is an [`Err`], or do nothing if it's [`Ok`].
     fn report(self, desc: &str);
