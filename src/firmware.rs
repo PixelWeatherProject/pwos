@@ -80,8 +80,8 @@ pub fn fw_main(
         results.temperature,
         results.humidity,
         results.air_pressure,
-        cpu_die_temp,
         bat_voltage,
+        cpu_die_temp,
         &ap.ssid,
         ap.signal_strength,
     )?;
