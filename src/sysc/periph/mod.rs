@@ -2,7 +2,7 @@
 
 use esp_idf_svc::{
     eventloop::EspSystemEventLoop,
-    hal::{modem::Modem, peripherals::Peripherals},
+    hal::{modem::Modem, peripherals::Peripherals, temp_sensor::TempSensor},
 };
 
 pub struct SystemPeripherals<I2C, SclPin, SdaPin, ADC, ADCPin, LedPin> {
@@ -10,6 +10,7 @@ pub struct SystemPeripherals<I2C, SclPin, SdaPin, ADC, ADCPin, LedPin> {
     pub battery: BatteryPeripherals<ADC, ADCPin>,
     pub onboard_led: OnboardLedPeripherals<LedPin>,
     pub wifi: WifiPeripherals,
+    pub temp_sensor: TempSensor<'static>,
 }
 
 pub struct I2cPeripherals<I2C, SclPin, SdaPin> {

@@ -39,6 +39,7 @@ impl
                 modem: peripherals.modem,
                 sys_loop,
             },
+            temp_sensor: peripherals.temp_sensor,
         }
     }
 }

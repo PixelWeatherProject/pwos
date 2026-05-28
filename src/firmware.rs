@@ -14,7 +14,9 @@ use crate::{
 };
 use esp_idf_svc::{
     eventloop::EspSystemEventLoop,
-    hal::{i2c::I2cDriver, modem::Modem},
+    hal::{
+        i2c::I2cDriver, modem::Modem, temp_sensor::TempSensorDriver as InternalTempSensorDriver,
+    },
     sys::esp_random,
     wifi::AccessPointInfo,
 };
@@ -30,6 +32,7 @@ pub fn fw_main(
     i2c: I2cDriver,
     modem: Modem<'static>,
     sys_loop: EspSystemEventLoop,
+    temp_sensor: InternalTempSensorDriver<'static>,
     mut led: BoardLed,
     nvs: &NonVolatileStorage,
     ota: &mut Ota,
@@ -66,6 +69,7 @@ pub fn fw_main(
     }
 
     let env_sensor = setup_envsensor(i2c)?;
+    let cpu_die_temp = re_esp!(temp_sensor.get_celsius(), InternalTempSensorRead)?;
 
     let results = read_environment(env_sensor)?;
     log::info!("{:.02}*C / {}%", results.temperature, results.humidity);
@@ -74,7 +78,7 @@ pub fn fw_main(
         results.temperature,
         results.humidity,
         results.air_pressure,
-        cpu_temp, // TODO
+        cpu_die_temp,
         bat_voltage,
         &ap.ssid,
         ap.signal_strength,

@@ -30,6 +30,7 @@ impl SystemPeripherals<I2C1, Gpio8, Gpio5, ADC1, Gpio3, Gpio21> {
                 modem: peripherals.modem,
                 sys_loop,
             },
+            temp_sensor: peripherals.temp_sensor,
         }
     }
 }

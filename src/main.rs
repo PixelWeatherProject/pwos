@@ -4,6 +4,7 @@
 use crate::sysc::{logging::OsLogger, ReportableError};
 use esp_idf_svc::hal::{
     i2c::{config::Config, I2cDriver},
+    temp_sensor::TempSensorDriver,
     units::FromValueType,
 };
 use std::time::Instant;
@@ -92,6 +93,13 @@ fn main() {
     )
     .expect("Failed to initialize I2C");
 
+    log::debug!("Initializing internal temperature sensor");
+    let mut temp_sensor = TempSensorDriver::new(&Default::default(), peripherals.temp_sensor)
+        .expect("Failed to initialize internal temperature sensor driver");
+    temp_sensor
+        .enable()
+        .expect("Failed to enable internal temperature sensor driver");
+
     log::debug!("Initializing app configuration");
     let mut appcfg = config::get_settings();
 
@@ -103,6 +111,7 @@ fn main() {
         i2c,
         peripherals.wifi.modem,
         peripherals.wifi.sys_loop,
+        temp_sensor,
         led,
         &nvs,
         &mut ota,

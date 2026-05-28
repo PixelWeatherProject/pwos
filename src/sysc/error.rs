@@ -127,6 +127,10 @@ pub enum OsError {
     /// Key not found in NVS storage.
     #[error("NVS key does not exist")]
     InvalidNvsKey,
+
+    /// Failed to read data from internal temperature sensor.
+    #[error("Failed to read internal temperature sensor")]
+    InternalTempSensorRead(EspError),
 }
 
 /// Trait for non-fatal error types that can be "reported" to the console.
