@@ -1,6 +1,6 @@
 use crate::{
-    config::{PWMP_SERVER, WIFI_NETWORKS, WIFI_TIMEOUT},
-    re_esp,
+    config::{self, PWMP_SERVER, WIFI_NETWORKS, WIFI_TIMEOUT},
+    null_check, re_esp,
     sysc::{
         battery::{Battery, CRITICAL_VOLTAGE},
         ext_drivers::{AnySensor, BoschME280, EnvironmentSensor, Htu, MeasurementResults},
@@ -156,6 +156,20 @@ fn setup_wifi(
     log::debug!("Starting WiFi setup");
     let mut wifi = WiFi::new(modem, sys_loop)?;
 
+    if let Some(ap) = wifi.last_used_ap() {
+        log::debug!("Attempting previously used AP '{}'", ap.ssid);
+
+        let psk = null_check!(config::wifi_get_ap_psk(&ap.ssid));
+        match wifi.connect(&ap, psk, WIFI_TIMEOUT) {
+            Ok(()) => {
+                return Ok((wifi, ap));
+            }
+            Err(why) => log::error!("Failed to connect: {why}"),
+        }
+    } else {
+        log::debug!("No previously used AP found");
+    }
+
     log::debug!("Starting WiFi scan");
     #[cfg(debug_assertions)]
     let scan_start = std::time::Instant::now();
@@ -194,13 +208,8 @@ fn setup_wifi(
             continue;
         };
 
-        log::debug!("Connecting to {} ({}dBm)", ap.ssid, ap.signal_strength);
-
-        let start = std::time::Instant::now();
         match wifi.connect(&ap, psk, WIFI_TIMEOUT) {
             Ok(()) => {
-                log::debug!("Connected in {:.02?}", start.elapsed());
-                log::debug!("IP: {}", wifi.get_ip_info()?.ip);
                 return Ok((wifi, ap));
             }
             Err(why) => log::error!("Failed to connect: {why}"),

@@ -29,6 +29,12 @@ pub const MAX_NET_SCAN: usize = 2;
 /// Maximum acceptable signal strength
 pub const RSSI_THRESHOLD: Rssi = -85;
 
+/// Storage for the previous access point that was used.
+/// This makes connections faster by reusing the last working network
+/// instead of having to do a full scan on every boot.
+#[link_section = ".rtc.data"]
+static mut LAST_USED_AP: Option<AccessPointInfo> = None;
+
 pub struct WiFi {
     driver: EspWifi<'static>,
     event_loop: EspEventLoop<System>,
@@ -68,6 +74,10 @@ impl WiFi {
         })
     }
 
+    pub fn last_used_ap(&self) -> Option<AccessPointInfo> {
+        unsafe { LAST_USED_AP.clone() }
+    }
+
     pub fn scan(&mut self) -> OsResult<heapless::Vec<AccessPointInfo, MAX_NET_SCAN>> {
         // Due to a bug in `esp-idf-svc` causing `ScanModes` to not be properly converted
         // to `wifi_scan_type_t_*` this alternative is faster.
@@ -84,6 +94,11 @@ impl WiFi {
     }
 
     pub fn connect(&mut self, ap: &AccessPointInfo, psk: &str, timeout: Duration) -> OsResult<()> {
+        log::debug!("Connecting to {} ({}dBm)", ap.ssid, ap.signal_strength);
+
+        #[cfg(debug_assertions)]
+        let start = std::time::Instant::now();
+
         re_esp!(
             self.driver
                 .set_configuration(&Configuration::Client(ClientConfiguration {
@@ -114,7 +129,18 @@ impl WiFi {
         // wait until we get an IP
         self.await_event::<IpEvent, _, _>(|| self.driver.is_up(), OsError::EventTimeout, timeout)?;
 
+        #[cfg(debug_assertions)]
+        log::debug!("Connected in {:.02?}", start.elapsed());
+        log::debug!("IP: {}", self.get_ip_info()?.ip);
+
+        log::debug!("Saving AP");
+        self.save_ap(ap);
+
         Ok(())
+    }
+
+    fn save_ap(&self, ap: &AccessPointInfo) {
+        unsafe { LAST_USED_AP = Some(ap.clone()) };
     }
 
     fn await_event<S, F, U>(&self, matcher: F, err_map: U, timeout: Duration) -> OsResult<()>
