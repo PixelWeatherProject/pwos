@@ -12,12 +12,12 @@ use crate::{
         usbctl, OsError, OsResult, ReportableError,
     },
 };
+use core::sync::atomic::{AtomicU8, Ordering};
 use esp_idf_svc::{
     eventloop::EspSystemEventLoop,
     hal::{
         i2c::I2cDriver, modem::Modem, temp_sensor::TempSensorDriver as InternalTempSensorDriver,
     },
-    sys::esp_random,
     wifi::AccessPointInfo,
 };
 use pwmp_client::{
@@ -26,13 +26,15 @@ use pwmp_client::{
     PwmpClient,
 };
 
+static PWMP_MSG_ID: AtomicU8 = AtomicU8::new(0);
+
 #[allow(clippy::too_many_arguments, clippy::cognitive_complexity)]
 pub fn fw_main(
     mut battery: Battery,
     i2c: I2cDriver,
     modem: Modem<'static>,
     sys_loop: EspSystemEventLoop,
-    temp_sensor: InternalTempSensorDriver<'static>,
+    temp_sensor: &InternalTempSensorDriver<'static>,
     mut led: BoardLed,
     nvs: &NonVolatileStorage,
     ota: &mut Ota,
@@ -44,7 +46,7 @@ pub fn fw_main(
 
     let (wifi, ap) = setup_wifi(modem, sys_loop)?;
     log::debug!("Connecting to PWMP");
-    let mut pws = PwmpClient::new(PWMP_SERVER, &pwmp_msg_id_rng, None, None, None)?;
+    let mut pws = PwmpClient::new(PWMP_SERVER, &pwmp_msg_id_gen, None, None, None)?;
 
     log::debug!("Sending handshake request");
     pws.perform_handshake(wifi.get_mac()?)?;
@@ -293,6 +295,7 @@ fn begin_update(pws: &mut PwmpClient, handle: &mut OtaHandle) -> OsResult<()> {
     Ok(())
 }
 
-fn pwmp_msg_id_rng() -> MsgId {
-    unsafe { esp_random() }
+/// Simple message ID generator for PWMP messages.
+fn pwmp_msg_id_gen() -> MsgId {
+    PWMP_MSG_ID.fetch_add(1, Ordering::Relaxed)
 }
