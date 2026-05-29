@@ -354,6 +354,11 @@ This section contains information about the current and possible limitations of 
      - In OpenWRT you can find this under *Network* > *Wireless* > *Edit* (your AP) > *Advanced Settings*
      - In AsusWRT/Merlin you can find this under *Advanced Settings* > *Wireless* > *Professional* > (select 2.4GHz band if needed)
 - Support for *Management Frame Protection* (*IEEE 802.11w-2009*) is disabled to improve connection times.
+- The firmware does not support storing and reusing the same AP from previous runs. The RTC memory implementation is too unstable to even know whether the data is actually remembered during sleep, so there is no way to test it without implementing some visualisation for it.
+  - A proper RTC memory implementation would require using checksums and the `AccessPointInfo` struct has a way too complicated structure that would require a lot of extra code.
+- Static IP configuration is not supported due to the design of the WiFi wrapper for ESP-IDF. It requires to set an IP before enabling interface and provides no way to change it after the initialization.
+- When configuring with a single AP and expecting to use it only, the firmware will still perform a scan first, even though connecting immediately would be faster. This is because the scan returns an `AccessPointInfo` struct that contains the AP's BSSID, channel, and other information that significantly improves connection times, compared to only giving the `connect()` function just the SSID and password.
+  - Scan duration is also very limited which technically makes it faster to check if the AP is available and stop if not, compared to trying to connect and waiting for a timeout.
 
 ## Terms
 - *node* - A station that consists of PWOS-compatible hardware and runs PWOS. It collects weather information and sends it over PWMP to a remote server.
