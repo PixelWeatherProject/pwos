@@ -6,14 +6,17 @@ use crate::{
 use esp_idf_svc::{
     eventloop::{EspEventLoop, EspEventSource, EspSystemEventLoop, System, Wait},
     hal::modem::Modem,
+    handle::RawHandle,
     ipv4::{
-        ClientConfiguration as IpClientConfiguration, Configuration as IpConfiguration,
-        DHCPClientSettings,
+        ClientConfiguration as IpClientConfiguration, ClientSettings,
+        Configuration as IpConfiguration, DHCPClientSettings,
     },
     netif::{EspNetif, IpEvent, NetifConfiguration},
     sys::{
-        esp, esp_wifi_scan_start, esp_wifi_set_country_code, esp_wifi_set_storage,
-        wifi_storage_t_WIFI_STORAGE_RAM, EspError,
+        esp, esp_netif_dhcp_status_t, esp_netif_dhcp_status_t_ESP_NETIF_DHCP_STATUS_MAX,
+        esp_netif_dhcp_status_t_ESP_NETIF_DHCP_STOPPED, esp_netif_dhcpc_get_status,
+        esp_netif_dhcpc_start, esp_netif_dhcpc_stop, esp_wifi_scan_start,
+        esp_wifi_set_country_code, esp_wifi_set_storage, wifi_storage_t_WIFI_STORAGE_RAM, EspError, esp_netif_ip_info_t
     },
     wifi::{
         AccessPointInfo, ClientConfiguration, Configuration, EspWifi, PmfConfiguration, ScanMethod,
@@ -83,7 +86,15 @@ impl WiFi {
         Ok(re_esp!(self.driver.get_scan_result_n(), WifiScan)?.0)
     }
 
-    pub fn connect(&mut self, ap: &AccessPointInfo, psk: &str, timeout: Duration) -> OsResult<()> {
+    pub fn connect(
+        &mut self,
+        ap: &AccessPointInfo,
+        psk: &str,
+        timeout: Duration,
+        ip_config: Option<ClientSettings>,
+    ) -> OsResult<()> {
+        self.reconfigure_interface(ip_config)?;
+
         re_esp!(
             self.driver
                 .set_configuration(&Configuration::Client(ClientConfiguration {
@@ -136,6 +147,62 @@ impl WiFi {
         let raw = re_esp!(self.driver.get_mac(WifiDeviceId::Sta), WifiInfo)?;
 
         Ok(Mac::new(raw[0], raw[1], raw[2], raw[3], raw[4], raw[5]))
+    }
+
+    fn reconfigure_interface(&mut self, config: Option<ClientSettings>) -> OsResult<()> {
+        match config {
+            Some(ip_config) => {
+                self.stop_dhcp_client()?;
+                self.configure_static_ip(ip_config)?;
+            }
+            None => {
+                // if the DHCP client is already running, return
+                if self.is_dhcp_client_running()? {
+                    return Ok(());
+                }
+
+                self.start_dhcp_client()?;
+            }
+        }
+
+        Ok(())
+    }
+
+    fn configure_static_ip(&mut self, config: ClientSettings) -> OsResult<()> {
+        let mut ip_info = esp_netif_ip_info_t {
+            ip: 0,
+            netmask: 0,
+            gw: 0,
+        };
+
+        todo!()
+    }
+
+    fn start_dhcp_client(&mut self) -> OsResult<()> {
+        re_esp!(
+            esp!(unsafe { esp_netif_dhcpc_start(self.driver.sta_netif_mut().handle()) }),
+            WifiConfig
+        )
+    }
+
+    fn stop_dhcp_client(&mut self) -> OsResult<()> {
+        re_esp!(
+            esp!(unsafe { esp_netif_dhcpc_stop(self.driver.sta_netif_mut().handle()) }),
+            WifiConfig
+        )
+    }
+
+    fn is_dhcp_client_running(&mut self) -> OsResult<bool> {
+        let mut status = esp_netif_dhcp_status_t::default();
+        re_esp!(
+            esp!(unsafe {
+                esp_netif_dhcpc_get_status(self.driver.sta_netif_mut().handle(), &mut status)
+            }),
+            WifiConfig
+        )?;
+
+        Ok(status != esp_netif_dhcp_status_t_ESP_NETIF_DHCP_STATUS_MAX
+            && status != esp_netif_dhcp_status_t_ESP_NETIF_DHCP_STOPPED)
     }
 
     fn generate_dhcp_config(wifi_driver: &WifiDriver) -> OsResult<NetifConfiguration> {
