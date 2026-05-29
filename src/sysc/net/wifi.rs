@@ -74,6 +74,7 @@ impl WiFi {
         })
     }
 
+    #[allow(static_mut_refs)]
     pub fn last_used_ap(&self) -> Option<AccessPointInfo> {
         unsafe { LAST_USED_AP.clone() }
     }
