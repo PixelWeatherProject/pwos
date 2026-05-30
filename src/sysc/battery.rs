@@ -100,10 +100,14 @@ impl Battery {
         Ok(avg)
     }
 
+    /// Convert the raw ADC value into millivolts.
     fn raw_to_mv(&self, raw: u16) -> OsResult<u16> {
         re_esp!(self.adc.raw_to_mv(&self.ch, raw), AdcRead)
     }
 
+    /// Read the ADC.
+    ///
+    /// Retuns an [`OsError`] instead of a raw ESP IDF error.
     fn read_raw(&mut self) -> OsResult<u16> {
         re_esp!(self.adc.read_raw(&mut self.ch), AdcRead)
     }
