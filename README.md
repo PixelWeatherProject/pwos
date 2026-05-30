@@ -29,6 +29,9 @@ See other repositories for more components of the PixelWeather ecosystem:
 ### Software requirements (for building):
 - [Rust](https://rustlang.org/)
 - [ESP32 Rust toolchain](https://esp-rs.github.io/book/)
+  - As of _30.05.2026_ (toolchain `1.95.0.0`) there is a bug with `rust-analyzer`. It's recommended to downgrade to the `1.94.0.0` toolchain
+    - `espup install --toolchain-version 1.94.0.0`
+    - Don't forget to **not** run `espup update`, or your toolchain will be updated.
 - [espflash](https://github.com/esp-rs/espflash)
   - You will need both `espflash` and `cargo-espflash`.
 - [ESP-IDF](https://docs.espressif.com/projects/esp-idf/en/v5.5.4/esp32s3/get-started/linux-macos-setup.html#get-started-prerequisites)
