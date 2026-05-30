@@ -19,12 +19,11 @@ pub type OsResult<T> = ::std::result::Result<T, OsError>;
 
 #[cfg(debug_assertions)]
 /// Try and get the ESP-IDF version.
-pub fn get_idf_version() -> Option<std::borrow::Cow<'static, str>> {
-    use std::{ffi::CStr, ptr::NonNull};
+pub fn get_idf_version() -> std::borrow::Cow<'static, str> {
+    use std::ffi::CStr;
 
-    let version_str_ptr =
-        NonNull::new(unsafe { esp_idf_svc::sys::esp_get_idf_version().cast_mut() })?;
-    let version_str = unsafe { CStr::from_ptr(version_str_ptr.as_ptr().cast_const()) };
+    // SAFETY: This is a static string generated during compilation by the ESP-IDF.
+    let version = unsafe { CStr::from_ptr(esp_idf_svc::sys::esp_get_idf_version()) };
 
-    Some(version_str.to_string_lossy())
+    version.to_string_lossy()
 }

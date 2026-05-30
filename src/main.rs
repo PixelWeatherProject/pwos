@@ -39,10 +39,7 @@ fn main() {
 
     #[cfg(debug_assertions)]
     {
-        log::debug!(
-            "Using ESP-IDF {}",
-            sysc::get_idf_version().as_deref().unwrap_or("?")
-        );
+        log::debug!("Using ESP-IDF {}", sysc::get_idf_version());
         log::debug!("Disabling brownout detector");
         sysc::brownout::disable_brownout_detector();
     }
