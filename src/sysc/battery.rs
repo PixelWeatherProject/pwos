@@ -63,6 +63,10 @@ pub struct Battery {
 
 impl Battery {
     /// Initiliaze a new instance of this driver using the given peripheral handles.
+    ///
+    /// # Errors
+    /// Returns an [`OsError::AdcInit`](crate::sysc::error::OsError::AdcInit) if the initialization of
+    /// [`BatteryAdcDriver`] or [`BatteryAdcChannelDriver`] fails.
     pub fn new(adc: BatteryAdc, gpio: BatteryGpio) -> OsResult<Self> {
         let adc = Rc::new(re_esp!(BatteryAdcDriver::new(adc), AdcInit)?);
         let ch = re_esp!(
@@ -73,7 +77,14 @@ impl Battery {
         Ok(Self { adc, ch })
     }
 
-    /// Read the ADC value and calculate the voltage.
+    /// Returns the voltage measured by the ADC.
+    ///
+    /// This method internally uses multisampling to stabilize the value.
+    /// The number of samples is defined in the constant [`SAMPLES`].
+    ///
+    /// # Errors
+    /// Retuns an [`OsError::AdcRead`](crate::sysc::error::OsError::AdcRead)
+    /// if the ADC read operation fails.
     pub fn read(&mut self) -> OsResult<f32> {
         let raw = self.read_raw_avg()?;
         let volts = f32::from(self.raw_to_mv(raw)?) / 1000.;
@@ -82,7 +93,14 @@ impl Battery {
         Ok(result)
     }
 
-    /// Read the raw ADC value.
+    /// Returns a calculated average value from the ADC.
+    ///
+    /// The returned value is calculated by taking [`SAMPLES`] amount
+    /// of samples and then averaging them.
+    ///
+    /// # Errors
+    /// Retuns an [`OsError::AdcRead`](crate::sysc::error::OsError::AdcRead)
+    /// if the ADC read operation fails.
     #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
     fn read_raw_avg(&mut self) -> OsResult<u16> {
         let mut avg = 0;
@@ -100,14 +118,24 @@ impl Battery {
         Ok(avg)
     }
 
-    /// Convert the raw ADC value into millivolts.
+    /// Converts a raw ADC value into millivolts.
+    ///
+    /// This is a thin wrapper around [`raw_to_mv()`](AdcDriver::raw_to_mv)
+    /// that remaps the error to [`OsError`](crate::sysc::error::OsError).
+    ///
+    /// # Errors
+    /// Retuns an [`OsError::AdcRead`](crate::sysc::error::OsError::AdcRead) if the operation fails.
     fn raw_to_mv(&self, raw: u16) -> OsResult<u16> {
         re_esp!(self.adc.raw_to_mv(&self.ch, raw), AdcRead)
     }
 
     /// Read the ADC.
     ///
-    /// Retuns an [`OsError`] instead of a raw ESP IDF error.
+    /// This is a thin wrapper around [`read_raw()`](AdcDriver::read_raw)
+    /// that remaps the error to [`OsError`](crate::sysc::error::OsError).
+    ///
+    /// # Errors
+    /// Retuns an [`OsError::AdcRead`](crate::sysc::error::OsError::AdcRead) if the operation fails.
     fn read_raw(&mut self) -> OsResult<u16> {
         re_esp!(self.adc.read_raw(&mut self.ch), AdcRead)
     }
