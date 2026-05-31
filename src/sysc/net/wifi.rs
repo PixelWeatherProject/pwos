@@ -32,7 +32,7 @@ pub const RSSI_THRESHOLD: Rssi = -85;
 /// Minimum dwell time on a single Wi-Fi scannel during a scan in milliseconds
 const CHANNEL_SCAN_MIN_TIME: u32 = 20; // ms
 /// Maximum dwell time on a single Wi-Fi scannel during a scan in milliseconds
-const CHANNEL_SCAN_MAX_TIME: u32 = 60; // ms
+const CHANNEL_SCAN_MAX_TIME: u32 = 80; // ms
 
 pub struct WiFi {
     driver: EspWifi<'static>,
