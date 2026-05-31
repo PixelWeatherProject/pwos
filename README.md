@@ -116,10 +116,11 @@ Consumption measurements:
 </details>
 
 Battery life measurements:
-| **Board**        | **Sensor**      | **Battery model** | **Capacity** | **Environment**  | **Sleep time** |  **Time**  |
-| ---------------- | --------------- | ----------------- | ------------ | ---------------- | :------------: | :--------: |
-| LILYGO T7S3 v1.2 | Adafruit Si7021 | XTAR 18650        | 4Ah          | Outdoor (2-21°C) |       1m       | 6d/22h/17m |
-| LILYGO T7S3 v1.2 | Adafruit Si7021 | XTAR 18650        | 4Ah          | Outdoor (2-21°C) |       1m       | 7d/8h/23mi |
+| **Board**        | **Sensor**      | **Battery model** | **Capacity** | **Environment**   | **Sleep time** |  **Time**   |
+| ---------------- | --------------- | ----------------- | ------------ | ----------------- | :------------: | :---------: |
+| LILYGO T7S3 v1.2 | Adafruit Si7021 | XTAR 18650        | 4Ah          | Outdoor (2-21°C)  |       1m       | 6d/22h/17m  |
+| LILYGO T7S3 v1.2 | Adafruit Si7021 | XTAR 18650        | 4Ah          | Outdoor (2-21°C)  |       1m       | 7d/8h/23m   |
+| LILYGO T7S3 v1.2 | Adafruit Si7021 | XTAR 18650        | 4Ah          | Outdoor (-2-33°C) |      10m       | 63d/15h/37m |
 
 The default battery voltage measurement configuration has a measured inaccuracy of ±2-6mV. The inaccuracy is higher at higher input voltages, which is to be expected due to the ESP32S3's ADC not being fully linear.
 
