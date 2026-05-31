@@ -55,7 +55,10 @@ impl<'s> Htu<'s> {
     }
 
     fn model(&mut self) -> OsResult<Option<&'static str>> {
-        let snb3 = self.write_read_u8(Command::ReadSerial1)?;
+        let mut buf = [0u8; 6];
+        self.write_read(Command::ReadSerial1, &mut buf)?;
+
+        let snb3 = buf[0];
 
         match snb3 {
             0x15 => Ok(Some("Si7021")),
@@ -90,14 +93,6 @@ impl<'s> Htu<'s> {
             ),
             I2c
         )
-    }
-
-    fn write_read_u8(&mut self, command: Command) -> OsResult<u8> {
-        let mut buffer = [0; 1];
-        self.write_read(command, &mut buffer)?;
-
-        let raw = u8::from_be_bytes(buffer);
-        Ok(raw)
     }
 
     fn write_read_u16(&mut self, command: Command) -> OsResult<u16> {
