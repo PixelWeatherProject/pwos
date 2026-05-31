@@ -13,7 +13,7 @@ use esp_idf_svc::{
     netif::{EspNetif, IpEvent, NetifConfiguration},
     sys::{
         esp, esp_wifi_scan_start, esp_wifi_set_country_code, esp_wifi_set_storage,
-        wifi_storage_t_WIFI_STORAGE_RAM, EspError,
+        wifi_scan_config_t, wifi_storage_t_WIFI_STORAGE_RAM, EspError,
     },
     wifi::{
         AccessPointInfo, ClientConfiguration, Configuration, EspWifi, PmfConfiguration, ScanMethod,
@@ -21,13 +21,18 @@ use esp_idf_svc::{
     },
 };
 use pwmp_client::pwmp_msg::{aliases::Rssi, mac::Mac};
-use std::{fmt::Write, ptr, time::Duration};
+use std::{fmt::Write, time::Duration};
 
 /// Maximum number of networks to scan
 pub const MAX_NET_SCAN: usize = 2;
 
 /// Maximum acceptable signal strength
 pub const RSSI_THRESHOLD: Rssi = -85;
+
+/// Minimum dwell time on a single Wi-Fi scannel during a scan in milliseconds
+const CHANNEL_SCAN_MIN_TIME: u32 = 20; // ms
+/// Maximum dwell time on a single Wi-Fi scannel during a scan in milliseconds
+const CHANNEL_SCAN_MAX_TIME: u32 = 60; // ms
 
 pub struct WiFi {
     driver: EspWifi<'static>,
@@ -69,13 +74,13 @@ impl WiFi {
     }
 
     pub fn scan(&mut self) -> OsResult<heapless::Vec<AccessPointInfo, MAX_NET_SCAN>> {
-        // Due to a bug in `esp-idf-svc` causing `ScanModes` to not be properly converted
-        // to `wifi_scan_type_t_*` this alternative is faster.
-        // Default scan configuration is documented here: https://docs.espressif.com/projects/esp-idf/en/v5.3.2/esp32/api-reference/network/esp_wifi.html?#_CPPv419esp_wifi_scan_startPK18wifi_scan_config_tb
+        let mut config = wifi_scan_config_t::default();
+        // defaults to active scan because [`WIFI_SCAN_TYPE_ACTIVE`](esp_idf_svc::hal::sys::wifi_scan_type_t_WIFI_SCAN_TYPE_ACTIVE) is `0`.
+        config.scan_time.active.min = CHANNEL_SCAN_MIN_TIME;
+        config.scan_time.active.max = CHANNEL_SCAN_MAX_TIME;
+
         re_esp!(
-            esp!(unsafe {
-                esp_wifi_scan_start(ptr::null() /* intentional */, true)
-            }),
+            esp!(unsafe { esp_wifi_scan_start(&raw const config, true) }),
             WifiScan
         )?;
 
