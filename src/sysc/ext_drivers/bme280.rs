@@ -3,6 +3,10 @@
 //! ## Compatibility
 //! **This driver only supports the BME280**. Other models like the BMP280, BME680 are **not** supported.
 //!
+//! ## Measurement parameters
+//! This driver uses the maximum precision and multisampling (16x).
+//! This cannot be changed and is not intended to be configurable.
+//!
 //! These sensors work over the I2C protocol.
 
 use super::EnvironmentSensor;
@@ -115,6 +119,10 @@ impl<'s> BoschME280<'s> {
             None => log::warn!("Device model is unknown and may not be supported"),
         }
 
+        // quirk: due to the highest quality and sampling settings, measurement takes
+        //        about 112ms, so we block the caller before it can proceed to read the sensor
+        std::thread::sleep(std::time::Duration::from_millis(120));
+
         Ok(dev)
     }
 
@@ -155,8 +163,12 @@ impl<'s> BoschME280<'s> {
             h1: f32::from(calib_buf_1[25]),
             h2: f32::from(i16::from_le_bytes([calib_buf_2[0], calib_buf_2[1]])),
             h3: f32::from(calib_buf_2[2]),
-            h4: f32::from(i16::from(calib_buf_2[3]) << 4 | (i16::from(calib_buf_2[4]) & 0x0F)),
-            h5: f32::from(i16::from(calib_buf_2[5]) << 4 | (i16::from(calib_buf_2[4]) >> 4)),
+            h4: f32::from(sign_extend_12(
+                (i16::from(calib_buf_2[3]) << 4) | (i16::from(calib_buf_2[4]) & 0x0F),
+            )),
+            h5: f32::from(sign_extend_12(
+                (i16::from(calib_buf_2[5]) << 4) | (i16::from(calib_buf_2[4]) >> 4),
+            )),
             h6: f32::from(calib_buf_2[6].cast_signed()),
         };
 
@@ -296,4 +308,9 @@ impl Command {
             Self::ReadMeasurementsStartRegister => ([0xF7, 0], 1),
         }
     }
+}
+
+/// Converts a 12-bit signed integer into a normal [i16].
+const fn sign_extend_12(x: i16) -> i16 {
+    (x << 4) >> 4
 }
