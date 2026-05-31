@@ -36,7 +36,7 @@ impl<'s> Htu<'s> {
     /// Known default address
     pub const DEV_ADDR: u8 = 0x40;
 
-    const BUS_TIMEOUT: u32 = 1000;
+    const BUS_TIMEOUT: u32 = 2000;
     const CMD_WAIT_TIME: u64 = 50;
 
     /// Initialize the driver with the given I2C driver handle.
