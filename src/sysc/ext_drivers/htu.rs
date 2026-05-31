@@ -2,6 +2,9 @@
 //! - HTU21D
 //! - Si7021
 //!
+//! There are similiar models that may work as well but are not officially
+//! tested nor supported.
+//!
 //! These sensors work over the I2C protocol.
 
 use super::EnvironmentSensor;
