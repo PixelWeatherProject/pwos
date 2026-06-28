@@ -251,7 +251,9 @@ fn setup_envsensor(mut i2c_driver: I2cDriver<'_>) -> OsResult<AnySensor<'_>> {
         Some(other) => {
             log::warn!("Unrecognised device @ I2C/0x{other:X}");
         }
-        None => (),
+        None => {
+            log::error!("No I2C device was detected");
+        }
     }
 
     Err(OsError::NoEnvSensor)
