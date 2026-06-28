@@ -10,7 +10,7 @@
 //! These sensors work over the I2C protocol.
 
 use super::EnvironmentSensor;
-use crate::sysc::{OsError, OsResult};
+use crate::sysc::{OsError, OsResult, ReportableError};
 use esp_idf_svc::hal::i2c::I2cDriver;
 use pwmp_client::pwmp_msg::aliases::{AirPressure, Humidity, Temperature};
 
@@ -193,6 +193,22 @@ impl<'s> BoschME280<'s> {
         Ok((raw_t, raw_h, raw_p))
     }
 
+    /// Shuts down the sensor.
+    ///
+    /// This method should only ever be used internally, specifically in the implementation of [`Drop`].
+    /// This is also the reason why it's private.
+    ///
+    /// Due to the use in [`Drop::drop()`], this method needs to take a mutable reference instead of taking
+    /// ownership of the instance.
+    ///
+    /// # Caveats
+    /// - Any operation after this will likely fail.
+    /// - All oversampling and other settings set by [`new_with_driver`](Self::new_with_driver) **will be erased**.
+    ///
+    fn enter_sleep_mode(&mut self) -> OsResult<()> {
+        self.write(Command::SetMeasurementCtlRegister(0))
+    }
+
     /// Calculate the `t_fine` value from the raw temperature measurement, which is used for compensation of all measurements.
     const fn calc_t_fine(&self, raw_t: f32) -> f32 {
         let var1 = (raw_t / 16384.0 - self.cal.t1 / 1024.0) * self.cal.t2;
@@ -229,6 +245,15 @@ impl<'s> BoschME280<'s> {
             &cmd[..len],
             true,
         )
+    }
+}
+
+impl Drop for BoschME280<'_> {
+    fn drop(&mut self) {
+        log::debug!("Attempting to enter sleep mode");
+
+        // Note: if this fails, the next boot will likely fail
+        self.enter_sleep_mode().report("Failed to enter sleep mode");
     }
 }
 
