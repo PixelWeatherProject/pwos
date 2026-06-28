@@ -10,10 +10,7 @@
 //! These sensors work over the I2C protocol.
 
 use super::EnvironmentSensor;
-use crate::{
-    re_esp,
-    sysc::{OsError, OsResult},
-};
+use crate::sysc::{OsError, OsResult};
 use esp_idf_svc::hal::i2c::I2cDriver;
 use pwmp_client::pwmp_msg::aliases::{AirPressure, Humidity, Temperature};
 
@@ -211,9 +208,11 @@ impl<'s> BoschME280<'s> {
     fn write(&mut self, command: Command) -> OsResult<()> {
         let (cmd, len) = command.serialize();
 
-        re_esp!(
+        OsError::from_i2c_writeop(
             self.i2c.write(self.addr, &cmd[..len], Self::BUS_TIMEOUT),
-            I2c
+            self.addr,
+            &cmd[..len],
+            false,
         )
     }
 
@@ -223,10 +222,12 @@ impl<'s> BoschME280<'s> {
     fn write_read(&mut self, command: Command, buffer: &mut [u8]) -> OsResult<()> {
         let (cmd, len) = command.serialize();
 
-        re_esp!(
+        OsError::from_i2c_writeop(
             self.i2c
-                .write_read(self.addr, &cmd[..len], buffer, Self::BUS_TIMEOUT,),
-            I2c
+                .write_read(self.addr, &cmd[..len], buffer, Self::BUS_TIMEOUT),
+            self.addr,
+            &cmd[..len],
+            true,
         )
     }
 }

@@ -96,9 +96,21 @@ pub enum OsError {
     #[error("Failed to read ADC ({0})")]
     AdcRead(EspError),
 
-    /// Error while performing I/O operation on I2C.
-    #[error("Failed to perform I/O on I2C ({0})")]
-    I2c(EspError),
+    /// Error while performing a write-read operation on I2C.
+    #[error("Failed to perform W/R on I2C ({esp_err}): Write {data:?} to addr {addr}")]
+    I2cWr {
+        data: heapless::Vec<u8, 4>,
+        addr: u8,
+        esp_err: EspError,
+    },
+
+    /// Error while performing a write operation on I2C.
+    #[error("Failed to perform write on I2C ({esp_err}): Write {data:?} to addr {addr}")]
+    I2cWrite {
+        data: heapless::Vec<u8, 4>,
+        addr: u8,
+        esp_err: EspError,
+    },
 
     /// Specified parameter was too long.
     #[error("Argument too long")]
@@ -158,5 +170,35 @@ impl OsError {
             self,
             Self::WifiConnect(..) | Self::NoInternet | Self::PwmpError(..)
         )
+    }
+
+    pub fn from_i2c_writeop(
+        result: Result<(), EspError>,
+        addr: u8,
+        data: &[u8],
+        wr: bool,
+    ) -> Result<(), Self> {
+        let Err(why) = result else {
+            return Ok(());
+        };
+
+        let mut data_copy = heapless::Vec::<u8, 4>::new();
+
+        // SAFETY: The copy operation will copy only as much as the vec can hold.
+        unsafe { data_copy.extend_from_slice(data).unwrap_unchecked() };
+
+        if wr {
+            Err(Self::I2cWr {
+                data: data_copy,
+                addr,
+                esp_err: why,
+            })
+        } else {
+            Err(Self::I2cWrite {
+                data: data_copy,
+                addr,
+                esp_err: why,
+            })
+        }
     }
 }

@@ -8,10 +8,7 @@
 //! These sensors work over the I2C protocol.
 
 use super::EnvironmentSensor;
-use crate::{
-    re_esp,
-    sysc::{OsError, OsResult},
-};
+use crate::sysc::{OsError, OsResult};
 use esp_idf_svc::hal::i2c::I2cDriver;
 use pwmp_client::pwmp_msg::aliases::{AirPressure, Humidity, Temperature};
 use std::{thread::sleep, time::Duration};
@@ -79,23 +76,24 @@ impl<'s> Htu<'s> {
     }
 
     fn write(&mut self, command: Command) -> OsResult<()> {
-        re_esp!(
+        OsError::from_i2c_writeop(
             self.0
                 .write(Self::DEV_ADDR, command.as_bytes(), Self::BUS_TIMEOUT),
-            I2c
+            Self::DEV_ADDR,
+            command.as_bytes(),
+            false,
         )
     }
 
     fn write_read(&mut self, command: Command, buffer: &mut [u8]) -> OsResult<()> {
-        re_esp!(
-            self.0.write_read(
-                Self::DEV_ADDR,
-                command.as_bytes(),
-                buffer,
-                Self::BUS_TIMEOUT,
-            ),
-            I2c
-        )
+        let result = self.0.write_read(
+            Self::DEV_ADDR,
+            command.as_bytes(),
+            buffer,
+            Self::BUS_TIMEOUT,
+        );
+
+        OsError::from_i2c_writeop(result, Self::DEV_ADDR, command.as_bytes(), true)
     }
 
     fn write_read_u16(&mut self, command: Command) -> OsResult<u16> {
