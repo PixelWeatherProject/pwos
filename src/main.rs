@@ -22,7 +22,9 @@ fn main() {
     esp_idf_svc::sys::link_patches();
 
     // Turn off logging when USB is not connected
-    if !usbctl::is_connected() {
+    if usbctl::is_connected() {
+        OsLogger::disable_history();
+    } else {
         OsLogger::disable();
     }
 
