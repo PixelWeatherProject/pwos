@@ -13,6 +13,7 @@ use super::EnvironmentSensor;
 use crate::sysc::{OsError, OsResult, ReportableError};
 use esp_idf_svc::hal::i2c::I2cDriver;
 use pwmp_client::pwmp_msg::aliases::{AirPressure, Humidity, Temperature};
+use std::time::{Duration, Instant};
 
 /// Driver handle for Bosch BME280 sensors.
 pub struct BoschME280<'s> {
@@ -24,6 +25,9 @@ pub struct BoschME280<'s> {
 
     /// Factory calibration data read from the sensor.
     cal: CalibrationData,
+
+    /// Time at which the sensor should be initialized.
+    expected_init_time: Instant,
 }
 
 /// Commands for BME280 sensors
@@ -95,6 +99,12 @@ impl<'s> BoschME280<'s> {
             i2c: driver,
             addr,
             cal: CalibrationData::default(),
+            /*
+             * due to the highest quality and sampling settings, measurement takes
+             * about 112ms, so we expect the sensor to be initialized 120ms after
+             * this constructor runs
+             */
+            expected_init_time: Instant::now() + Duration::from_millis(120),
         };
 
         /*
@@ -115,10 +125,6 @@ impl<'s> BoschME280<'s> {
             Some(model) => log::debug!("Detected '{model}'"),
             None => log::warn!("Device model is unknown and may not be supported"),
         }
-
-        // quirk: due to the highest quality and sampling settings, measurement takes
-        //        about 112ms, so we block the caller before it can proceed to read the sensor
-        std::thread::sleep(std::time::Duration::from_millis(120));
 
         Ok(dev)
     }
@@ -222,6 +228,7 @@ impl<'s> BoschME280<'s> {
     ///
     /// If the command returns data, use [`write_read()`](Self::write_read) instead.
     fn write(&mut self, command: Command) -> OsResult<()> {
+        self.wait_until_ready();
         let (cmd, len) = command.serialize();
 
         OsError::from_i2c_writeop(
@@ -236,6 +243,7 @@ impl<'s> BoschME280<'s> {
     ///
     /// If the command does not return data, use [`write()`](Self::write) instead.
     fn write_read(&mut self, command: Command, buffer: &mut [u8]) -> OsResult<()> {
+        self.wait_until_ready();
         let (cmd, len) = command.serialize();
 
         OsError::from_i2c_writeop(
@@ -245,6 +253,21 @@ impl<'s> BoschME280<'s> {
             &cmd[..len],
             true,
         )
+    }
+
+    /// Returns whether the sensor should be ready to receive commands.
+    fn is_ready(&self) -> bool {
+        Instant::now() >= self.expected_init_time
+    }
+
+    /// Blocks the caller until the sensor is ready.
+    fn wait_until_ready(&self) {
+        if !self.is_ready() {
+            log::warn!("Sensor is not ready yet, waiting...");
+
+            let min_wait_time = self.expected_init_time - Instant::now();
+            std::thread::sleep(min_wait_time);
+        }
     }
 }
 
