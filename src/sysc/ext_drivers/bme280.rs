@@ -27,7 +27,7 @@ pub struct BoschME280<'s> {
     cal: CalibrationData,
 
     /// Time at which the sensor should be initialized.
-    expected_init_time: Instant,
+    expected_init_time: Option<Instant>,
 }
 
 /// Commands for BME280 sensors
@@ -99,12 +99,7 @@ impl<'s> BoschME280<'s> {
             i2c: driver,
             addr,
             cal: CalibrationData::default(),
-            /*
-             * due to the highest quality and sampling settings, measurement takes
-             * about 112ms, so we expect the sensor to be initialized 120ms after
-             * this constructor runs
-             */
-            expected_init_time: Instant::now() + Duration::from_millis(120),
+            expected_init_time: None,
         };
 
         /*
@@ -116,15 +111,20 @@ impl<'s> BoschME280<'s> {
         // read the factory calibration data
         dev.read_calibration_data()?;
 
+        match dev.model()? {
+            Some(model) => log::debug!("Detected '{model}'"),
+            None => log::warn!("Device model is unknown and may not be supported"),
+        }
+
         // set temperature and humidity oversampling to 16x
         // also set the reading mode to normal
         dev.write(Command::SetHumidityCtlRegister(0b0000_0101))?;
         dev.write(Command::SetMeasurementCtlRegister(0b1011_0111))?;
 
-        match dev.model()? {
-            Some(model) => log::debug!("Detected '{model}'"),
-            None => log::warn!("Device model is unknown and may not be supported"),
-        }
+        // due to the highest quality and sampling settings, measurement takes
+        // about 112ms, so we expect the sensor to be initialized 120ms after
+        // this constructor runs
+        dev.expected_init_time = Some(Instant::now() + Duration::from_millis(120));
 
         Ok(dev)
     }
@@ -257,17 +257,27 @@ impl<'s> BoschME280<'s> {
 
     /// Returns whether the sensor should be ready to receive commands.
     fn is_ready(&self) -> bool {
-        Instant::now() >= self.expected_init_time
+        if let Some(expected_init_time) = self.expected_init_time {
+            return Instant::now() >= expected_init_time;
+        }
+
+        true
     }
 
     /// Blocks the caller until the sensor is ready.
-    fn wait_until_ready(&self) {
-        if !self.is_ready() {
-            log::warn!("Sensor is not ready yet, waiting...");
-
-            let min_wait_time = self.expected_init_time - Instant::now();
-            std::thread::sleep(min_wait_time);
+    fn wait_until_ready(&mut self) {
+        if self.is_ready() {
+            return;
         }
+
+        log::warn!("Sensor is not ready yet, waiting...");
+
+        // SAFETY: This branch only runs if `self.expected_init_time` is `Some(...)`
+        let expected_init_time = unsafe { self.expected_init_time.unwrap_unchecked() };
+
+        let min_wait_time = expected_init_time - Instant::now();
+        std::thread::sleep(min_wait_time);
+        self.expected_init_time = None;
     }
 }
 
