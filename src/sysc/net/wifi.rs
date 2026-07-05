@@ -15,7 +15,8 @@ use esp_idf_svc::{
     },
     netif::{EspNetif, IpEvent, NetifConfiguration},
     sys::{
-        esp, esp_wifi_scan_start, esp_wifi_set_country_code, esp_wifi_set_storage,
+        esp, esp_wifi_scan_start, esp_wifi_set_country_code, esp_wifi_set_max_tx_power,
+        esp_wifi_set_ps, esp_wifi_set_storage, wifi_ps_type_t_WIFI_PS_NONE,
         wifi_storage_t_WIFI_STORAGE_RAM, EspError,
     },
     wifi::{
@@ -72,11 +73,23 @@ impl WiFi {
         log::debug!("Starting WiFi interface");
         re_esp!(wifi.start(), WifiStart)?;
 
-        log::debug!("Setting country code");
-        re_esp!(
-            esp!(unsafe { esp_wifi_set_country_code(WIFI_COUNTRY_CODE.as_ptr().cast(), true) }),
-            WifiParam
-        )?;
+        log::debug!("Setting hardware parameters");
+        unsafe {
+            re_esp!(
+                esp!(esp_wifi_set_country_code(
+                    WIFI_COUNTRY_CODE.as_ptr().cast(),
+                    true
+                )),
+                WifiParam
+            )?;
+
+            re_esp!(esp!(esp_wifi_set_max_tx_power(84)), WifiParam)?;
+
+            re_esp!(
+                esp!(esp_wifi_set_ps(wifi_ps_type_t_WIFI_PS_NONE)),
+                WifiParam
+            )?;
+        }
 
         Ok(Self {
             driver: wifi,
