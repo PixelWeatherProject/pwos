@@ -1,7 +1,7 @@
 #![warn(clippy::unwrap_used)]
 #![deny(unused_must_use)]
 
-use crate::sysc::{logging::OsLogger, ReportableError};
+use crate::sysc::{logging::OsLogger, power::get_reset_reason, ReportableError};
 use esp_idf_svc::hal::{
     i2c::{config::Config, I2cDriver},
     temp_sensor::{config::Config as TempSensorConfig, TempSensorDriver},
@@ -43,6 +43,8 @@ fn main() {
         log::debug!("Disabling brownout detector");
         sysc::brownout::disable_brownout_detector();
     }
+
+    log::debug!("Reset reason: {:?}", get_reset_reason());
 
     log::debug!("Initializing system peripherals");
     let peripherals = SystemPeripherals::take();
