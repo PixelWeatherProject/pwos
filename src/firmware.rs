@@ -44,6 +44,8 @@ pub fn fw_main(
         log::warn!("Running unverified firmware");
     }
 
+    let env_sensor = setup_envsensor(i2c)?;
+
     let (wifi, ap) = setup_wifi(modem, sys_loop)?;
     log::debug!("Connecting to PWMP");
     let mut pws = PwmpClient::new(PWMP_SERVER, &pwmp_msg_id_gen, None, None, None)?;
@@ -70,9 +72,7 @@ pub fn fw_main(
         mcu_sleep(None);
     }
 
-    let env_sensor = setup_envsensor(i2c)?;
     let cpu_die_temp = re_esp!(temp_sensor.get_celsius(), InternalTempSensorRead)?;
-
     let results = read_environment(env_sensor)?;
     log::info!("{:.02}*C / {}%", results.temperature, results.humidity);
     log::debug!("Posting results");
