@@ -36,6 +36,10 @@ pub enum OsError {
     #[error("wifi info read: {0}")]
     WifiInfo(EspError),
 
+    /// Failed to find password for the specified AP.
+    #[error("wifi psk not found")]
+    WifiPskNotFound,
+
     /// Timeout while waiting for an event.
     #[error("event timeout: {0}")]
     EventTimeout(EspError),

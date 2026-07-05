@@ -120,6 +120,7 @@ pub trait RtcObject: Sized + Default + Send {}
 impl RtcObject for bool {}
 impl RtcObject for u8 {}
 impl RtcObject for NodeSettings {}
+impl<T: RtcObject> RtcObject for Option<T> {}
 
 unsafe impl<T: RtcObject> Send for RtcValue<T> {}
 unsafe impl<T: RtcObject> Sync for RtcValue<T> {}

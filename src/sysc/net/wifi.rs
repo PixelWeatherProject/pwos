@@ -1,7 +1,10 @@
 use crate::{
     config::WIFI_COUNTRY_CODE,
     re_esp,
-    sysc::{OsError, OsResult},
+    sysc::{
+        rtcvar::{RtcObject, RtcValue},
+        OsError, OsResult,
+    },
 };
 use esp_idf_svc::{
     eventloop::{EspEventLoop, EspEventSource, EspSystemEventLoop, System, Wait},
@@ -16,8 +19,8 @@ use esp_idf_svc::{
         wifi_storage_t_WIFI_STORAGE_RAM, EspError,
     },
     wifi::{
-        AccessPointInfo, ClientConfiguration, Configuration, EspWifi, PmfConfiguration, ScanMethod,
-        WifiDeviceId, WifiDriver, WifiEvent,
+        AccessPointInfo, AuthMethod, ClientConfiguration, Configuration, EspWifi, PmfConfiguration,
+        ScanMethod, WifiDeviceId, WifiDriver, WifiEvent,
     },
 };
 use pwmp_client::pwmp_msg::{aliases::Rssi, mac::Mac};
@@ -28,6 +31,18 @@ pub const MAX_NET_SCAN: usize = 2;
 
 /// Maximum acceptable signal strength
 pub const RSSI_THRESHOLD: Rssi = -85;
+
+/// Last used access point
+static LAST_AP: RtcValue<Option<ApMetadata>> = RtcValue::new();
+
+/// A simpler version of [`AccessPointInfo`].
+#[derive(Default)]
+pub struct ApMetadata {
+    ssid: [u8; 32],
+    bssid: [u8; 6],
+    channel: u8,
+    auth_method: Option<AuthMethod>,
+}
 
 pub struct WiFi {
     driver: EspWifi<'static>,
@@ -114,7 +129,23 @@ impl WiFi {
         // wait until we get an IP
         self.await_event::<IpEvent, _, _>(|| self.driver.is_up(), OsError::EventTimeout, timeout)?;
 
+        LAST_AP.set(Some(ap.into()));
+
         Ok(())
+    }
+
+    pub fn last_ap(&self) -> Option<ApMetadata> {
+        LAST_AP.read()
+    }
+
+    pub fn get_ip_info(&self) -> OsResult<esp_idf_svc::ipv4::IpInfo> {
+        Ok(re_esp!(self.driver.sta_netif().get_ip_info(), WifiInfo)?)
+    }
+
+    pub fn get_mac(&self) -> OsResult<Mac> {
+        let raw = re_esp!(self.driver.get_mac(WifiDeviceId::Sta), WifiInfo)?;
+
+        Ok(Mac::new(raw[0], raw[1], raw[2], raw[3], raw[4], raw[5]))
     }
 
     fn await_event<S, F, U>(&self, matcher: F, err_map: U, timeout: Duration) -> OsResult<()>
@@ -126,16 +157,6 @@ impl WiFi {
         let wait = re_esp!(Wait::new::<S>(&self.event_loop), EventWaiterInit)?;
         wait.wait_while(|| matcher().map(|s| !s), Some(timeout))
             .map_err(err_map)
-    }
-
-    pub fn get_ip_info(&self) -> OsResult<esp_idf_svc::ipv4::IpInfo> {
-        Ok(re_esp!(self.driver.sta_netif().get_ip_info(), WifiInfo)?)
-    }
-
-    pub fn get_mac(&self) -> OsResult<Mac> {
-        let raw = re_esp!(self.driver.get_mac(WifiDeviceId::Sta), WifiInfo)?;
-
-        Ok(Mac::new(raw[0], raw[1], raw[2], raw[3], raw[4], raw[5]))
     }
 
     fn generate_dhcp_config(wifi_driver: &WifiDriver) -> OsResult<NetifConfiguration> {
@@ -163,3 +184,45 @@ impl WiFi {
         Ok(buffer)
     }
 }
+
+impl ApMetadata {
+    pub fn ssid_as_str(&self) -> &str {
+        let end = self.ssid.into_iter().position(|c| c == 0).unwrap_or(31);
+        unsafe { std::str::from_utf8_unchecked(&self.ssid[..end]) }
+    }
+}
+
+impl From<&AccessPointInfo> for ApMetadata {
+    fn from(value: &AccessPointInfo) -> Self {
+        let mut ssid = [0; 32];
+        ssid[..value.ssid.len()].copy_from_slice(value.ssid.as_bytes());
+
+        Self {
+            ssid,
+            bssid: value.bssid,
+            channel: value.channel,
+            auth_method: value.auth_method,
+        }
+    }
+}
+
+impl From<ApMetadata> for AccessPointInfo {
+    fn from(value: ApMetadata) -> Self {
+        let mut ssid: heapless::String<32> = heapless::String::new();
+
+        for byte in value.ssid {
+            let _ = ssid.push(char::from(byte));
+        }
+
+        Self {
+            ssid,
+            bssid: value.bssid,
+            channel: value.channel,
+            auth_method: value.auth_method,
+            // lossy conversion but these are never used in `connect()`
+            ..Default::default()
+        }
+    }
+}
+
+impl RtcObject for ApMetadata {}

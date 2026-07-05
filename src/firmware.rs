@@ -156,6 +156,15 @@ fn setup_wifi(
     log::debug!("Starting WiFi setup");
     let mut wifi = WiFi::new(modem, sys_loop)?;
 
+    if let Some(ap) = wifi.last_ap() {
+        log::debug!("Reusing previous AP: {}", ap.ssid_as_str());
+        let ap: AccessPointInfo = ap.into();
+
+        if let Err(why) = wifi_try_connect(&mut wifi, &ap) {
+            log::error!("Failed to connect to previous AP: {why}");
+        }
+    }
+
     log::debug!("Starting WiFi scan");
     #[cfg(debug_assertions)]
     let scan_start = std::time::Instant::now();
@@ -186,28 +195,34 @@ fn setup_wifi(
     }
 
     for ap in networks {
-        let Some(psk) = WIFI_NETWORKS
-            .iter()
-            .find(|candidate| candidate.0 == ap.ssid)
-            .map(|candidate| candidate.1)
-        else {
-            continue;
-        };
-
-        log::debug!("Connecting to {} ({}dBm)", ap.ssid, ap.signal_strength);
-
-        let start = std::time::Instant::now();
-        match wifi.connect(&ap, psk, WIFI_TIMEOUT) {
-            Ok(()) => {
-                log::debug!("Connected in {:.02?}", start.elapsed());
-                log::debug!("IP: {}", wifi.get_ip_info()?.ip);
-                return Ok((wifi, ap));
-            }
-            Err(why) => log::error!("Failed to connect: {why}"),
+        match wifi_try_connect(&mut wifi, &ap) {
+            Ok(()) => return Ok((wifi, ap)),
+            Err(OsError::WifiPskNotFound) => (),
+            Err(other) => log::error!("Failed to connect: {other}"),
         }
     }
 
     Err(OsError::NoInternet)
+}
+
+fn wifi_try_connect(wifi: &mut WiFi, ap: &AccessPointInfo) -> OsResult<()> {
+    let psk = WIFI_NETWORKS
+        .iter()
+        .find(|candidate| candidate.0 == ap.ssid)
+        .map(|candidate| candidate.1)
+        .ok_or(OsError::WifiPskNotFound)?;
+
+    log::debug!("Connecting to {} ({}dBm)", ap.ssid, ap.signal_strength);
+
+    let start = std::time::Instant::now();
+    match wifi.connect(ap, psk, WIFI_TIMEOUT) {
+        Ok(()) => {
+            log::debug!("Connected in {:.02?}", start.elapsed());
+            log::debug!("IP: {}", wifi.get_ip_info()?.ip);
+            Ok(())
+        }
+        Err(why) => Err(why),
+    }
 }
 
 fn read_appcfg(pws: &mut PwmpClient, appcfg: &mut NodeSettings) -> OsResult<()> {
