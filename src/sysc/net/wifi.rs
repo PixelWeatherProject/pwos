@@ -17,8 +17,8 @@ use esp_idf_svc::{
     netif::{EspNetif, IpEvent, NetifConfiguration},
     sys::{
         esp, esp_wifi_scan_start, esp_wifi_set_country_code, esp_wifi_set_max_tx_power,
-        esp_wifi_set_ps, esp_wifi_set_storage, wifi_ps_type_t_WIFI_PS_NONE,
-        wifi_storage_t_WIFI_STORAGE_RAM, EspError,
+        esp_wifi_set_ps, esp_wifi_set_storage, esp_wifi_sta_get_ap_info, wifi_ap_record_t,
+        wifi_ps_type_t_WIFI_PS_NONE, wifi_storage_t_WIFI_STORAGE_RAM, EspError,
     },
     wifi::{
         AccessPointInfo, AuthMethod, ClientConfiguration, Configuration, EspWifi, PmfConfiguration,
@@ -153,6 +153,17 @@ impl WiFi {
 
     pub fn last_ap(&self) -> Option<ApMetadata> {
         LAST_AP.read()
+    }
+
+    /// Queries the live signal strength of the currently associated AP.
+    pub fn live_rssi(&self) -> OsResult<Rssi> {
+        let mut record = wifi_ap_record_t::default();
+        re_esp!(
+            esp!(unsafe { esp_wifi_sta_get_ap_info(&raw mut record) }),
+            WifiInfo
+        )?;
+
+        Ok(record.rssi)
     }
 
     pub fn get_ip_info(&self) -> OsResult<esp_idf_svc::ipv4::IpInfo> {

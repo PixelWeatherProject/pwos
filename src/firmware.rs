@@ -72,9 +72,11 @@ pub fn fw_main(
         mcu_sleep(None);
     }
 
+    let rssi = wifi.live_rssi()?;
     let cpu_die_temp = re_esp!(temp_sensor.get_celsius(), InternalTempSensorRead)?;
     let results = read_environment(env_sensor)?;
     log::info!("{:.02}*C / {}%", results.temperature, results.humidity);
+
     log::debug!("Posting results");
     pws.post_measurements(
         results.temperature,
@@ -83,7 +85,7 @@ pub fn fw_main(
         bat_voltage,
         cpu_die_temp,
         &ap.ssid,
-        ap.signal_strength,
+        rssi,
     )?;
 
     let reset_reason = get_reset_reason();
