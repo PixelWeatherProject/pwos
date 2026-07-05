@@ -2,6 +2,7 @@ use crate::{
     config::WIFI_COUNTRY_CODE,
     re_esp,
     sysc::{
+        hash,
         rtcvar::{RtcObject, RtcValue},
         OsError, OsResult,
     },
@@ -243,4 +244,25 @@ impl From<ApMetadata> for AccessPointInfo {
     }
 }
 
-impl RtcObject for ApMetadata {}
+impl RtcObject for ApMetadata {
+    fn checksum(&self) -> u32 {
+        let mut bytes = [0; 40];
+
+        bytes[0..=31].copy_from_slice(&self.ssid);
+        bytes[32..=37].copy_from_slice(&self.bssid);
+        bytes[38] = self.channel;
+        bytes[39] = self.auth_method.map_or(0, |val| match val {
+            AuthMethod::None => 1,
+            AuthMethod::WEP => 2,
+            AuthMethod::WPA => 3,
+            AuthMethod::WPA2Personal => 4,
+            AuthMethod::WPAWPA2Personal => 5,
+            AuthMethod::WPA2Enterprise => 6,
+            AuthMethod::WPA3Personal => 7,
+            AuthMethod::WPA2WPA3Personal => 8,
+            AuthMethod::WAPIPersonal => 9,
+        });
+
+        hash::crc32(&bytes)
+    }
+}

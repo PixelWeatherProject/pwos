@@ -3,6 +3,7 @@ pub mod battery;
 pub mod brownout;
 mod error;
 pub mod ext_drivers;
+pub mod hash;
 pub mod ledctl;
 pub mod logging;
 mod macros;

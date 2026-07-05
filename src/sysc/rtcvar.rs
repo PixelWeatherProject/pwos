@@ -14,12 +14,9 @@
 //!
 //! # Safety
 //! Internally, this wrapper assumes that the value is initialized and safe to read
-//! if the reset reason is a wakeup from deep sleep or a software reset. This is somewhat
-//! aggressive but also not fully safe. There is no checksum implemented, nor any other
-//! secondary mechanism to check if the value is truly safe to read.
-//!
-//! For the use cases in this firmware, this is enough. A CRC32 checksum might be added in
-//! the future.
+//! if the reset reason is a wakeup from deep sleep or a software reset, **and** the stored CRC32
+//! matches the CRC32 calculated at runtime. This is not a 100% bulletproof solution, but for
+//! the use cases in this firmware, it's good enough.
 //!
 //! ## Possible undefined behaviour #1
 //! ```rust
@@ -43,7 +40,7 @@
 //!
 //! [`Send`] and [`Sync`] are implemented for [`RtcValue`] with any `T`.
 
-use crate::sysc::power;
+use crate::sysc::{hash, power};
 use esp_idf_svc::hal::reset::ResetReason;
 use pwmp_client::pwmp_msg::settings::NodeSettings;
 use std::mem::MaybeUninit;
@@ -52,6 +49,8 @@ use std::mem::MaybeUninit;
 pub struct RtcValue<T: RtcObject> {
     /// The actual value
     value: MaybeUninit<T>,
+    /// CRC32
+    crc32: MaybeUninit<u32>,
     /// Whether `value` was ever initialized/set
     is_valid: MaybeUninit<bool>,
 }
@@ -65,6 +64,7 @@ impl<T: RtcObject> RtcValue<T> {
     pub const fn new() -> Self {
         Self {
             value: MaybeUninit::uninit(),
+            crc32: MaybeUninit::uninit(),
             is_valid: MaybeUninit::uninit(),
         }
     }
@@ -84,12 +84,8 @@ impl<T: RtcObject> RtcValue<T> {
     ///
     /// This will also mark the value as initialized and safe to read afterwards.
     pub fn set(&self, val: T) {
-        // SAFETY: Writing to uninitialized MaybeUninit<T> is safe
-        unsafe {
-            // We use pointer writes to avoid having to use `&mut self` in the method
-            self.value.as_ptr().cast_mut().write_volatile(val);
-            self.is_valid.as_ptr().cast_mut().write_volatile(true);
-        }
+        self.set_without_mark(val);
+        self.set_validity(true);
     }
 
     /// Returns whether the value has been initialized before.
@@ -99,28 +95,82 @@ impl<T: RtcObject> RtcValue<T> {
     ///
     /// The return value is always saved into [`Self::is_valid`].
     fn is_init(&self) -> bool {
-        let is_valid = matches!(
+        let reset_reason_is_safe = matches!(
             power::get_reset_reason(),
             ResetReason::DeepSleep | ResetReason::Software | ResetReason::USBPeripheral
         );
 
+        if !reset_reason_is_safe {
+            self.set_validity(false);
+            return false;
+        }
+
+        let value = unsafe { self.value.assume_init_read() };
+        let stored_checksum = unsafe { self.crc32.assume_init_read() };
+        let calculated_checksum = value.checksum();
+
+        stored_checksum == calculated_checksum
+    }
+
+    fn set_validity(&self, valid: bool) {
         // SAFETY: Writing to uninitialized MaybeUninit<T> is safe
         unsafe {
             // We use pointer writes to avoid having to use `&mut self` in the method
-            self.is_valid.as_ptr().cast_mut().write_volatile(is_valid);
+            self.is_valid.as_ptr().cast_mut().write_volatile(valid);
+        }
+    }
+
+    fn set_without_mark(&self, value: T) {
+        let checksum = value.checksum();
+
+        // SAFETY: Writing to uninitialized MaybeUninit<T> is safe
+        unsafe {
+            // We use pointer writes to avoid having to use `&mut self` in the method
+            self.value.as_ptr().cast_mut().write_volatile(value);
+            self.crc32.as_ptr().cast_mut().write_volatile(checksum);
         }
 
-        is_valid
+        self.set_validity(true);
     }
 }
 
 /// A trait for objects that are safe and possible to store with [`RtcValue`].
-pub trait RtcObject: Sized + Default + Send {}
+pub trait RtcObject: Sized + Default + Send {
+    fn checksum(&self) -> u32;
+}
 
-impl RtcObject for bool {}
-impl RtcObject for u8 {}
-impl RtcObject for NodeSettings {}
-impl<T: RtcObject> RtcObject for Option<T> {}
+impl RtcObject for bool {
+    fn checksum(&self) -> u32 {
+        hash::crc32(&[u8::from(*self)])
+    }
+}
+
+impl RtcObject for u8 {
+    fn checksum(&self) -> u32 {
+        hash::crc32(&[*self])
+    }
+}
+
+impl RtcObject for NodeSettings {
+    fn checksum(&self) -> u32 {
+        let mut raw = [0; 6];
+
+        raw[0] = u8::from(self.battery_ignore);
+        raw[1] = u8::from(self.ota);
+        raw[2..=3].copy_from_slice(&self.sleep_time.to_ne_bytes());
+        raw[4] = u8::from(self.sbop);
+        raw[5] = u8::from(self.mute_notifications);
+
+        hash::crc32(&raw)
+    }
+}
+
+impl<T: RtcObject> RtcObject for Option<T> {
+    fn checksum(&self) -> u32 {
+        self.as_ref()
+            .map_or_else(|| hash::crc32(&[0]), RtcObject::checksum)
+    }
+}
 
 unsafe impl<T: RtcObject> Send for RtcValue<T> {}
 unsafe impl<T: RtcObject> Sync for RtcValue<T> {}
