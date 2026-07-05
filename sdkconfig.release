@@ -15,6 +15,7 @@ CONFIG_PTHREAD_TASK_STACK_SIZE_DEFAULT=4096
 CONFIG_SPIRAM=y
 CONFIG_SPIRAM_MODE_OCT=y
 CONFIG_SPIRAM_SPEED_80M=y
+CONFIG_SPIRAM_MEMTEST=n
 
 # Only for the Arduino Nano ESP32!
 # 32kHZ crystal is used for RTC:
@@ -98,3 +99,6 @@ CONFIG_VFS_SUPPORT_IO=n
 
 # Force the entire heap component to be placed in flash memory
 CONFIG_HEAP_PLACE_FUNCTION_INTO_FLASH=y
+
+# Skip re-hashing the app image when waking uo from deep sleep
+CONFIG_BOOTLOADER_SKIP_VALIDATE_IN_DEEP_SLEEP=y
