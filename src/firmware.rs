@@ -92,8 +92,6 @@ pub fn fw_main(
 
         pws.send_notification(format!("Detected abnormal reset reason: {reset_reason:?}"))
             .report("Failed to report abnormal reset reason");
-    } else {
-        log::debug!("Reset reason ({reset_reason:?}) is normal");
     }
 
     if let Some(error) = nvs.get_last_os_error()? {
@@ -162,6 +160,8 @@ fn setup_wifi(
 
         if let Err(why) = wifi_try_connect(&mut wifi, &ap) {
             log::error!("Failed to connect to previous AP: {why}");
+        } else {
+            return Ok((wifi, ap));
         }
     }
 
