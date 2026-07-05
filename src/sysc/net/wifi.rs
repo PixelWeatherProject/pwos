@@ -33,6 +33,7 @@ pub const MAX_NET_SCAN: usize = 2;
 pub const RSSI_THRESHOLD: Rssi = -85;
 
 /// Last used access point
+#[link_section = ".rtc_noinit"]
 static LAST_AP: RtcValue<Option<ApMetadata>> = RtcValue::new();
 
 /// A simpler version of [`AccessPointInfo`].
@@ -129,6 +130,7 @@ impl WiFi {
         // wait until we get an IP
         self.await_event::<IpEvent, _, _>(|| self.driver.is_up(), OsError::EventTimeout, timeout)?;
 
+        log::debug!("Saving AP");
         LAST_AP.set(Some(ap.into()));
 
         Ok(())
@@ -211,6 +213,9 @@ impl From<ApMetadata> for AccessPointInfo {
         let mut ssid: heapless::String<32> = heapless::String::new();
 
         for byte in value.ssid {
+            if byte == 0 {
+                break;
+            }
             let _ = ssid.push(char::from(byte));
         }
 
