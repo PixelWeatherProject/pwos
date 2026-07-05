@@ -1,22 +1,22 @@
 use super::OsResult;
-use crate::{null_check, re_esp, sysc::OsError};
+use crate::{
+    null_check, re_esp,
+    sysc::{rtcvar::RtcValue, OsError},
+};
 use esp_idf_svc::ota::{EspOta, EspOtaUpdate, FirmwareInfo, SlotState};
 use pwmp_client::pwmp_msg::version::Version;
-use std::{
-    ops::{Deref, DerefMut},
-    sync::atomic::{AtomicBool, AtomicU8, Ordering},
-};
+use std::ops::{Deref, DerefMut};
 
 /// Maximum number of times the firmware can fail.
 const MAX_FAILIURES: u8 = 3;
 
 /// Number of times the current firmware has failed.
-#[link_section = ".rtc.data"]
-static FAILIURES: AtomicU8 = AtomicU8::new(0);
+#[link_section = ".rtc_noinit"]
+static FAILIURES: RtcValue<u8> = RtcValue::new();
 
 /// Whether the last update has been reported back to the PWMP server.
-#[link_section = ".rtc.data"]
-static REPORTED: AtomicBool = AtomicBool::new(false);
+#[link_section = ".rtc_noinit"]
+static REPORTED: RtcValue<bool> = RtcValue::new();
 
 /// A high-level Over-the-Air updates driver/wrapper.
 ///
@@ -48,7 +48,7 @@ impl Ota {
     /// was told to mark the firmware update as successfull or not.
     #[allow(clippy::unused_self)]
     pub fn mark_reported(&self) {
-        REPORTED.store(true, Ordering::SeqCst);
+        REPORTED.set(true);
     }
 
     /// Returns whether the last firmware update needs reporting to the PWMP server.
@@ -62,7 +62,7 @@ impl Ota {
             return Ok(false);
         }
 
-        Ok(!REPORTED.load(Ordering::SeqCst))
+        Ok(!REPORTED.read())
     }
 
     /// Returns whether a firmware rollback has been detected.
@@ -97,7 +97,7 @@ impl Ota {
             return Ok(());
         }
 
-        if FAILIURES.load(Ordering::SeqCst) >= MAX_FAILIURES {
+        if FAILIURES.read() >= MAX_FAILIURES {
             log::info!("Rolling back to previous version");
             self.0.mark_running_slot_invalid_and_reboot();
         }
@@ -119,9 +119,10 @@ impl Ota {
             return Ok(());
         }
 
-        let counter = FAILIURES.fetch_add(1, Ordering::SeqCst) /* returns old value */ + 1;
+        let counter = FAILIURES.read() + 1;
         log::warn!("Firmware has failed {counter}/{MAX_FAILIURES} times");
 
+        FAILIURES.set(counter);
         Ok(())
     }
 
@@ -235,8 +236,8 @@ impl Drop for OtaHandle<'_> {
         handle.flush().expect("Failed to flush OTA write");
         handle.complete().expect("Failed to complete update");
 
-        FAILIURES.store(0, Ordering::SeqCst);
-        REPORTED.store(false, Ordering::SeqCst);
+        FAILIURES.set(0);
+        REPORTED.set(false);
 
         // Null-safety of `self.0`:
         // The handle can never be used after this drop.

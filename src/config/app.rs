@@ -8,22 +8,21 @@
 //! ## Warning
 //! Calling [`save_settings()`] from multiple threads at the same time is unsafe and can cause a data-race.
 
+use crate::sysc::rtcvar::RtcValue;
 use pwmp_client::pwmp_msg::settings::NodeSettings;
 
 /// Node application configuration.
-#[link_section = ".rtc.data"]
-static mut SETTINGS: NodeSettings = NodeSettings::const_default();
+#[link_section = ".rtc_noinit"]
+static SETTINGS: RtcValue<NodeSettings> = RtcValue::new();
 
 /// Get the last known node settings given by the PWMP server.
 ///
 /// If no settings were saved before, the defaults are returned instead.
 pub fn get_settings() -> NodeSettings {
-    // SAFETY: The static is not available directly and the firmware is not multithreaded.
-    unsafe { SETTINGS }
+    SETTINGS.read()
 }
 
 #[allow(clippy::trivially_copy_pass_by_ref)]
 pub fn save_settings(settings: &NodeSettings) {
-    // SAFETY: The static is not available directly, and can be only retrieved using get_settings(), which returns only a copy.
-    unsafe { SETTINGS = *settings };
+    SETTINGS.set(*settings);
 }
