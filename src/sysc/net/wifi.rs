@@ -44,6 +44,7 @@ pub struct ApMetadata {
     ssid: [u8; 32],
     bssid: [u8; 6],
     channel: u8,
+    signal_strength: i8, // technically we dont need this but it is used in a log message
     auth_method: Option<AuthMethod>,
 }
 
@@ -217,6 +218,7 @@ impl From<&AccessPointInfo> for ApMetadata {
             ssid,
             bssid: value.bssid,
             channel: value.channel,
+            signal_strength: value.signal_strength,
             auth_method: value.auth_method,
         }
     }
@@ -237,6 +239,7 @@ impl From<ApMetadata> for AccessPointInfo {
             ssid,
             bssid: value.bssid,
             channel: value.channel,
+            signal_strength: value.signal_strength,
             auth_method: value.auth_method,
             // lossy conversion but these are never used in `connect()`
             ..Default::default()
