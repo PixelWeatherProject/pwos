@@ -29,10 +29,11 @@ fn main() {
     OsLogger::init();
 
     log::info!(
-        "PixelWeatherOS v{}-{}{} ({})",
+        "PixelWeatherOS v{}-{}{}@{} ({})",
         env!("CARGO_PKG_VERSION"),
         env!("PWOS_COMMIT"),
         env!("PWOS_REL_OR_DEV"),
+        env!("PWOS_BRANCH"),
         env!("BUILD_DATE_TIME")
     );
     log::info!("(C) Fábián Varga 2025");

@@ -17,6 +17,7 @@ fn main() {
 
     let current_date_time = get_command_output!("date", "+%d.%m.%Y %H:%M:%S");
     let git_hash = get_command_output!("git", "rev-parse", "--short", "HEAD");
+    let git_branch = get_command_output!("git", "rev-parse", "--abbrev-ref", "HEAD");
     let git_is_tagged = Command::new("git")
         .arg("describe")
         .arg("--exact-match")
@@ -31,5 +32,6 @@ fn main() {
         if git_is_tagged { "rel" } else { "dev" }
     );
     println!("cargo:rustc-env=PWOS_COMMIT={git_hash}");
+    println!("cargo:rustc-env=PWOS_BRANCH={git_branch}");
     println!("cargo:rustc-env=BUILD_DATE_TIME={current_date_time}");
 }
