@@ -279,4 +279,8 @@ impl RtcObject for ApMetadata {
 
         hash::crc32(&bytes)
     }
+
+    fn new_empty() -> Self {
+        Self::default()
+    }
 }

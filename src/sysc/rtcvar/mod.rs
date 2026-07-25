@@ -35,15 +35,21 @@
 //! # Supported types (`T`s)
 //! The type `T` must implement [`RtcObject`], which further requires `T` to implement:
 //! - [`Sized`],
-//! - [`Default`],
 //! - [`Send`].
+//!
+//! Additionally, there must be a way to create new, valid and initialized instances of `T`.
+//! Check the docs for [`RtcObject::new_empty()`] for details. Not requiring a [`Default`]
+//! implementation for `T` makes it easier to implement [`RtcObject`] even if there is a way
+//! to create a default value, but it's not implemented for `T`. Otherwise this would require
+//! creating wrapper types, which would result in more code and potencial pain points with conversions.
 //!
 //! [`Send`] and [`Sync`] are implemented for [`RtcValue`] with any `T`.
 
-use crate::sysc::{hash, power};
+use crate::sysc::power;
 use esp_idf_svc::hal::reset::ResetReason;
-use pwmp_client::pwmp_msg::settings::NodeSettings;
 use std::mem::MaybeUninit;
+
+mod checksum_impls;
 
 /// A wrapper that simplifies reading and writing variables stored in RTC memory.
 pub struct RtcValue<T: RtcObject> {
@@ -74,7 +80,7 @@ impl<T: RtcObject> RtcValue<T> {
     /// Initialization sets the value to `T::default()` before returning.
     pub fn read(&self) -> T {
         if !self.is_init() {
-            self.set(T::default());
+            self.set(T::new_empty());
         }
 
         unsafe { self.value.assume_init_read() }
@@ -135,41 +141,15 @@ impl<T: RtcObject> RtcValue<T> {
 }
 
 /// A trait for objects that are safe and possible to store with [`RtcValue`].
-pub trait RtcObject: Sized + Default + Send {
+pub trait RtcObject: Sized + Send {
+    /// Calculate the checksum of `T`.
     fn checksum(&self) -> u32;
-}
 
-impl RtcObject for bool {
-    fn checksum(&self) -> u32 {
-        hash::crc32(&[u8::from(*self)])
-    }
-}
-
-impl RtcObject for u8 {
-    fn checksum(&self) -> u32 {
-        hash::crc32(&[*self])
-    }
-}
-
-impl RtcObject for NodeSettings {
-    fn checksum(&self) -> u32 {
-        let mut raw = [0; 6];
-
-        raw[0] = u8::from(self.battery_ignore);
-        raw[1] = u8::from(self.ota);
-        raw[2..=3].copy_from_slice(&self.sleep_time.to_ne_bytes());
-        raw[4] = u8::from(self.sbop);
-        raw[5] = u8::from(self.mute_notifications);
-
-        hash::crc32(&raw)
-    }
-}
-
-impl<T: RtcObject> RtcObject for Option<T> {
-    fn checksum(&self) -> u32 {
-        self.as_ref()
-            .map_or_else(|| hash::crc32(&[0]), RtcObject::checksum)
-    }
+    /// Create a new, valid, initialized instance of `T`.
+    ///
+    /// For types that implement [`Default`], this should return `T::default()`.
+    /// For others, a custom implementation is recommended.
+    fn new_empty() -> Self;
 }
 
 unsafe impl<T: RtcObject> Send for RtcValue<T> {}
