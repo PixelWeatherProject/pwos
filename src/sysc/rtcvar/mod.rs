@@ -4,7 +4,7 @@
 //! This wrapper can only be used as follows:
 //! ```rust
 //! #[link_section = ".rtc_noinit"]
-//! static TESTING: RtcValue<T> = RtcValue::new();
+//! static MY_DATA: RtcValue<T> = RtcValue::new();
 //! ```
 //!
 //! You must link the location of this variable to `.rtc_noinit`!
@@ -18,16 +18,17 @@
 //! matches the CRC32 calculated at runtime. This is not a 100% bulletproof solution, but for
 //! the use cases in this firmware, it's good enough.
 //!
-//! ## Possible undefined behaviour #1
+//! ## Possible undefined behavior #1
 //! ```rust
-//! static TESTING: RtcValue<u8> = RtcValue::new();
+//! static MY_DATA: RtcValue<u8> = RtcValue::new();
 //!
-//! let check = TESTING.is_init(); // marks the value as initialized
+//! let check = MY_DATA.is_init(); // marks the value as initialized
 //!
 //! /* ... device reboots with a reset reason that is marked as safe ... */
 //!
-//! let value = TESTING.read(); // this will read from uninitialized memory.
+//! let value = MY_DATA.read(); // this will read from uninitialized memory.
 //! ```
+//!
 //!
 //! This is currently not possible because [`is_init()`](RtcValue::is_init) is private, but
 //! at any point it needs to be made public, this is something to keep in mind.
@@ -43,7 +44,8 @@
 //! to create a default value, but it's not implemented for `T`. Otherwise this would require
 //! creating wrapper types, which would result in more code and potencial pain points with conversions.
 //!
-//! [`Send`](Send) and [`Sync`](Sync) are implemented for [`RtcValue`] with any `T`.
+//! # Thread safety
+//! This type is **not** thread-safe.
 
 use crate::sysc::power;
 use esp_idf_svc::hal::reset::ResetReason;
@@ -151,6 +153,3 @@ pub trait RtcObject: Sized + Send {
     /// For others, a custom implementation is recommended.
     fn new_empty() -> Self;
 }
-
-unsafe impl<T: RtcObject> Send for RtcValue<T> {}
-unsafe impl<T: RtcObject> Sync for RtcValue<T> {}
