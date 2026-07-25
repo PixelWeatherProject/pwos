@@ -34,16 +34,16 @@
 //!
 //! # Supported types (`T`s)
 //! The type `T` must implement [`RtcObject`], which further requires `T` to implement:
-//! - [`Sized`],
-//! - [`Send`].
+//! - [`Sized`](Sized),
+//! - [`Send`](Send).
 //!
 //! Additionally, there must be a way to create new, valid and initialized instances of `T`.
-//! Check the docs for [`RtcObject::new_empty()`] for details. Not requiring a [`Default`]
+//! Check the docs for [`RtcObject::new_empty()`] for details. Not requiring a [`Default`](Default)
 //! implementation for `T` makes it easier to implement [`RtcObject`] even if there is a way
 //! to create a default value, but it's not implemented for `T`. Otherwise this would require
 //! creating wrapper types, which would result in more code and potencial pain points with conversions.
 //!
-//! [`Send`] and [`Sync`] are implemented for [`RtcValue`] with any `T`.
+//! [`Send`](Send) and [`Sync`](Sync) are implemented for [`RtcValue`] with any `T`.
 
 use crate::sysc::power;
 use esp_idf_svc::hal::reset::ResetReason;
