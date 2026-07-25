@@ -35,11 +35,11 @@
 //!
 //! # Supported types (`T`s)
 //! The type `T` must implement [`RtcObject`], which further requires `T` to implement:
-//! - [`Sized`](Sized),
-//! - [`Send`](Send).
+//! - [`Sized`],
+//! - [`Send`].
 //!
 //! Additionally, there must be a way to create new, valid and initialized instances of `T`.
-//! Check the docs for [`RtcObject::new_empty()`] for details. Not requiring a [`Default`](Default)
+//! Check the docs for [`RtcObject::new_empty()`] for details. Not requiring a [`Default`]
 //! implementation for `T` makes it easier to implement [`RtcObject`] even if there is a way
 //! to create a default value, but it's not implemented for `T`. Otherwise this would require
 //! creating wrapper types, which would result in more code and potencial pain points with conversions.
