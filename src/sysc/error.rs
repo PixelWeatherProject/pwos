@@ -16,7 +16,7 @@ pub enum OsError {
     #[error("wifi connect: {0}")]
     WifiConnect(EspError),
 
-    /// Failed to set up a WiFi parameter.
+    /// Failed to read or write a WiFi parameter.
     #[error("wifi param: {0}")]
     WifiParam(EspError),
 
@@ -27,6 +27,14 @@ pub enum OsError {
     /// Failed to start the WiFi interface.
     #[error("wifi start: {0}")]
     WifiStart(EspError),
+
+    /// Failed to stop the WiFi interface.
+    #[error("wifi stop: {0}")]
+    WifiStop(EspError),
+
+    /// Failed to disconnect from an AP.
+    #[error("wifi stop: {0}")]
+    WifiDisconnect(EspError),
 
     /// Failed to start AP scan or fetch the results.
     #[error("wifi scan: {0}")]

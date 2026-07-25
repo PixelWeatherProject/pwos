@@ -11,8 +11,8 @@ use esp_idf_svc::{
     eventloop::{EspEventLoop, EspEventSource, EspSystemEventLoop, System, Wait},
     hal::modem::Modem,
     ipv4::{
-        ClientConfiguration as IpClientConfiguration, Configuration as IpConfiguration,
-        DHCPClientSettings,
+        ClientConfiguration as IpClientConfiguration, ClientSettings as StaticIpSettings,
+        Configuration as IpConfiguration, DHCPClientSettings,
     },
     netif::{EspNetif, IpEvent, NetifConfiguration},
     sys::{
@@ -38,6 +38,10 @@ pub const RSSI_THRESHOLD: Rssi = -85;
 #[link_section = ".rtc_noinit"]
 static LAST_AP: RtcValue<Option<ApMetadata>> = RtcValue::new();
 
+/// Last DHCP issued IPv4 address
+#[link_section = ".rtc_noinit"]
+static LAST_IP: RtcValue<Option<StaticIpSettings>> = RtcValue::new();
+
 /// A simpler version of [`AccessPointInfo`].
 #[derive(Default)]
 pub struct ApMetadata {
@@ -57,12 +61,17 @@ pub struct WiFi {
 impl WiFi {
     pub fn new(modem: Modem<'static>, sys_loop: EspSystemEventLoop) -> OsResult<Self> {
         let wifi = re_esp!(WifiDriver::new(modem, sys_loop.clone(), None), WifiInit)?;
-        let ip_config = Self::generate_dhcp_config(&wifi)?;
 
         re_esp!(
             esp!(unsafe { esp_wifi_set_storage(wifi_storage_t_WIFI_STORAGE_RAM) }),
             WifiParam
         )?;
+
+        log::debug!("Generating IP configuration");
+        let ip_config = NetifConfiguration {
+            ip_configuration: Some(IpConfiguration::Client(Self::generate_dhcp_config(&wifi)?)),
+            ..NetifConfiguration::wifi_default_client()
+        };
 
         log::debug!("Configuring WiFi interface");
         let sta_netif = re_esp!(EspNetif::new_with_conf(&ip_config), WifiInit)?;
@@ -148,11 +157,32 @@ impl WiFi {
         log::debug!("Saving AP");
         LAST_AP.set(Some(ap.into()));
 
+        log::debug!("Saving IP");
+        let ip_info = self.get_ip_info()?;
+        LAST_IP.set(Some(StaticIpSettings {
+            ip: ip_info.ip,
+            subnet: ip_info.subnet,
+            dns: ip_info.dns,
+            secondary_dns: ip_info.secondary_dns,
+        }));
+
         Ok(())
     }
 
-    pub fn last_ap(&self) -> Option<ApMetadata> {
+    pub fn last_ap() -> Option<ApMetadata> {
         LAST_AP.read()
+    }
+
+    pub fn last_ip() -> Option<StaticIpSettings> {
+        LAST_IP.read()
+    }
+
+    pub fn set_dymanic_ip_config(&mut self) -> OsResult<()> {
+        self.set_ipconfig(Self::generate_dhcp_config(self.driver.driver())?)
+    }
+
+    pub fn set_static_ip_config(&mut self, config: StaticIpSettings) -> OsResult<()> {
+        self.set_ipconfig(IpClientConfiguration::Fixed(config))
     }
 
     /// Queries the live signal strength of the currently associated AP.
@@ -187,15 +217,48 @@ impl WiFi {
             .map_err(err_map)
     }
 
-    fn generate_dhcp_config(wifi_driver: &WifiDriver) -> OsResult<NetifConfiguration> {
-        Ok(NetifConfiguration {
-            ip_configuration: Some(IpConfiguration::Client(IpClientConfiguration::DHCP(
-                DHCPClientSettings {
-                    hostname: Some(Self::generate_hostname(wifi_driver)?),
-                },
-            ))),
+    fn set_ipconfig(&mut self, mut ip_config: IpClientConfiguration) -> OsResult<()> {
+        /*
+         * thank you random github comment: https://github.com/esp-rs/esp-idf-svc/issues/332#issuecomment-2242900501
+         */
+
+        // shut down the interface
+        if self.is_connected()? {
+            self.disconnect()?;
+        }
+        self.stop()?;
+
+        // autofill hostname for DHCP
+        if let IpClientConfiguration::DHCP(ref mut dhcp_config) = ip_config {
+            dhcp_config.hostname = Some(Self::generate_hostname(self.driver.driver())?);
+        }
+
+        // generate a different key based on the IP configuration
+        // it can be anything and the previous key can be reused as long
+        // as it does not match the key of the current interface
+        let netif_key = ip_config
+            .as_fixed_settings_ref()
+            .map_or("WIFI_STA_DHCP", |_| "WIFI_STA_STATIC");
+
+        let sta_netif = NetifConfiguration {
+            ip_configuration: Some(IpConfiguration::Client(ip_config)),
+            key: netif_key.try_into().expect("NEIF key was too long"),
             ..NetifConfiguration::wifi_default_client()
-        })
+        };
+
+        let netif = re_esp!(EspNetif::new_with_conf(&sta_netif), WifiInit)?;
+
+        // swap and restart
+        re_esp!(self.driver.swap_netif_sta(netif), WifiParam)?;
+        self.start()?;
+
+        Ok(())
+    }
+
+    fn generate_dhcp_config(wifi_driver: &WifiDriver) -> OsResult<IpClientConfiguration> {
+        Ok(IpClientConfiguration::DHCP(DHCPClientSettings {
+            hostname: Some(Self::generate_hostname(wifi_driver)?),
+        }))
     }
 
     fn generate_hostname(wifi_driver: &WifiDriver) -> OsResult<heapless::String<30>> {
@@ -210,6 +273,22 @@ impl WiFi {
         .map_err(|_| OsError::UnexpectedBufferFailiure)?;
 
         Ok(buffer)
+    }
+
+    fn stop(&mut self) -> OsResult<()> {
+        re_esp!(self.driver.stop(), WifiStop)
+    }
+
+    fn start(&mut self) -> OsResult<()> {
+        re_esp!(self.driver.stop(), WifiStop)
+    }
+
+    fn is_connected(&self) -> OsResult<bool> {
+        re_esp!(self.driver.is_connected(), WifiParam)
+    }
+
+    fn disconnect(&mut self) -> OsResult<()> {
+        re_esp!(self.driver.disconnect(), WifiDisconnect)
     }
 }
 

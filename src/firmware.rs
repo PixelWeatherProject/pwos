@@ -149,19 +149,33 @@ pub fn fw_main(
     Ok(())
 }
 
+#[allow(clippy::similar_names)]
 fn setup_wifi(
     modem: Modem<'static>,
     sys_loop: EspSystemEventLoop,
 ) -> OsResult<(WiFi, AccessPointInfo)> {
+    let last_ip = WiFi::last_ip();
+    let last_ap = WiFi::last_ap();
+
     log::debug!("Starting WiFi setup");
     let mut wifi = WiFi::new(modem, sys_loop)?;
 
-    if let Some(ap) = wifi.last_ap() {
+    if let Some(ap) = last_ap {
         log::debug!("Reusing previous AP: {}", ap.ssid_as_str());
         let ap: AccessPointInfo = ap.into();
 
+        if let Some(config) = last_ip {
+            log::debug!("Reusing previous IP configuration");
+            wifi.set_static_ip_config(config)?;
+        }
+
         if let Err(why) = wifi_try_connect(&mut wifi, &ap) {
             log::error!("Failed to connect to previous AP: {why}");
+
+            if last_ip.is_some() {
+                log::debug!("Resetting IP configuration");
+                wifi.set_dymanic_ip_config()?;
+            }
         } else {
             return Ok((wifi, ap));
         }
