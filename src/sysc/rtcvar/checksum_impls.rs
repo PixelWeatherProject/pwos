@@ -1,7 +1,8 @@
 use super::RtcObject;
 use crate::sysc::hash;
-use esp_idf_svc::ipv4;
+use esp_idf_svc::ipv4::{self, Mask, Subnet};
 use pwmp_client::pwmp_msg::settings::NodeSettings;
+use std::net::Ipv4Addr;
 
 impl RtcObject for bool {
     fn checksum(&self) -> u32 {
@@ -83,7 +84,15 @@ impl RtcObject for ipv4::ClientSettings {
     }
 
     fn new_empty() -> Self {
-        todo!()
+        Self {
+            ip: Ipv4Addr::UNSPECIFIED,
+            subnet: Subnet {
+                gateway: Ipv4Addr::UNSPECIFIED,
+                mask: Mask(0),
+            },
+            dns: Some(Ipv4Addr::UNSPECIFIED),
+            secondary_dns: None,
+        }
     }
 }
 
