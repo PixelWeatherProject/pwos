@@ -99,10 +99,8 @@ pub fn fw_main(
     if let Some(error) = nvs.get_last_os_error()? {
         log::info!("Reporting error from previous run ({error})");
 
-        pws.send_notification(format!(
-            "An error has been detected during a previous run: {error}"
-        ))
-        .report("Failed to report previous error");
+        pws.send_notification(format!("Error from previous run: {error}"))
+            .report("Failed to report previous error");
 
         nvs.clear_last_os_error()?;
     } else {
