@@ -167,7 +167,7 @@ fn setup_wifi(
             wifi.set_static_ip_config(config)?;
         }
 
-        if let Err(why) = wifi_try_connect(&mut wifi, &ap) {
+        if let Err(why) = wifi_try_connect(&mut wifi, &ap, true) {
             log::error!("Failed to connect to previous AP: {why}");
 
             if last_ip.is_some() {
@@ -209,7 +209,7 @@ fn setup_wifi(
     }
 
     for ap in networks {
-        match wifi_try_connect(&mut wifi, &ap) {
+        match wifi_try_connect(&mut wifi, &ap, false) {
             Ok(()) => return Ok((wifi, ap)),
             Err(OsError::WifiPskNotFound) => (),
             Err(other) => log::error!("Failed to connect: {other}"),
@@ -219,7 +219,7 @@ fn setup_wifi(
     Err(OsError::NoInternet)
 }
 
-fn wifi_try_connect(wifi: &mut WiFi, ap: &AccessPointInfo) -> OsResult<()> {
+fn wifi_try_connect(wifi: &mut WiFi, ap: &AccessPointInfo, skip_save: bool) -> OsResult<()> {
     let psk = WIFI_NETWORKS
         .iter()
         .find(|candidate| candidate.0 == ap.ssid)
@@ -229,7 +229,7 @@ fn wifi_try_connect(wifi: &mut WiFi, ap: &AccessPointInfo) -> OsResult<()> {
     log::debug!("Connecting to {} ({}dBm)", ap.ssid, ap.signal_strength);
 
     let start = std::time::Instant::now();
-    match wifi.connect(ap, psk, WIFI_TIMEOUT) {
+    match wifi.connect(ap, psk, WIFI_TIMEOUT, skip_save) {
         Ok(()) => {
             log::debug!("Connected in {:.02?}", start.elapsed());
             log::debug!("IP: {}", wifi.get_ip_info()?.ip);

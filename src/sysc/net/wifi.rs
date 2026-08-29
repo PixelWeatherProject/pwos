@@ -123,7 +123,13 @@ impl WiFi {
         Ok(re_esp!(self.driver.get_scan_result_n(), WifiScan)?.0)
     }
 
-    pub fn connect(&mut self, ap: &AccessPointInfo, psk: &str, timeout: Duration) -> OsResult<()> {
+    pub fn connect(
+        &mut self,
+        ap: &AccessPointInfo,
+        psk: &str,
+        timeout: Duration,
+        skip_save: bool,
+    ) -> OsResult<()> {
         re_esp!(
             self.driver
                 .set_configuration(&Configuration::Client(ClientConfiguration {
@@ -154,26 +160,28 @@ impl WiFi {
         // wait until we get an IP
         self.await_event::<IpEvent, _, _>(|| self.driver.is_up(), OsError::EventTimeout, timeout)?;
 
-        log::debug!("Saving AP");
-        LAST_AP.set(Some(ap.into()));
+        if !skip_save {
+            log::debug!("Saving AP");
+            LAST_AP.set(Some(ap.into()));
 
-        log::debug!("Saving IP");
-        let ip_info = self.get_ip_info()?;
-        LAST_IP.set(Some(StaticIpSettings {
-            ip: ip_info.ip,
-            subnet: ip_info.subnet,
-            dns: ip_info.dns,
+            log::debug!("Saving IP");
+            let ip_info = self.get_ip_info()?;
+            LAST_IP.set(Some(StaticIpSettings {
+                ip: ip_info.ip,
+                subnet: ip_info.subnet,
+                dns: ip_info.dns,
 
-            // `EspNetif::get_ip_info` always returns `Some(..)`, using `0.0.0.0` for
-            // unset servers. `esp_netif_set_dns_info` rejects `0.0.0.0` with
-            // `ESP_ERR_ESP_NETIF_INVALID_PARAMS`, which `esp-idf-svc` unwraps, so
-            // filter those out before they reach the restore path.
-            secondary_dns: if ip_info.secondary_dns == Some(Ipv4Addr::UNSPECIFIED) {
-                None
-            } else {
-                ip_info.secondary_dns
-            },
-        }));
+                // `EspNetif::get_ip_info` always returns `Some(..)`, using `0.0.0.0` for
+                // unset servers. `esp_netif_set_dns_info` rejects `0.0.0.0` with
+                // `ESP_ERR_ESP_NETIF_INVALID_PARAMS`, which `esp-idf-svc` unwraps, so
+                // filter those out before they reach the restore path.
+                secondary_dns: if ip_info.secondary_dns == Some(Ipv4Addr::UNSPECIFIED) {
+                    None
+                } else {
+                    ip_info.secondary_dns
+                },
+            }));
+        }
 
         Ok(())
     }
