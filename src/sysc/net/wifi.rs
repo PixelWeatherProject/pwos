@@ -289,7 +289,7 @@ impl WiFi {
     }
 
     fn start(&mut self) -> OsResult<()> {
-        re_esp!(self.driver.stop(), WifiStop)
+        re_esp!(self.driver.start(), WifiStop)
     }
 
     fn is_connected(&self) -> OsResult<bool> {
