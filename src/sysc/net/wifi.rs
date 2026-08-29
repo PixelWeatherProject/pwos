@@ -43,7 +43,7 @@ static LAST_AP: RtcValue<Option<ApMetadata>> = RtcValue::new();
 static LAST_IP: RtcValue<Option<StaticIpSettings>> = RtcValue::new();
 
 /// A simpler version of [`AccessPointInfo`].
-#[derive(Default, Debug)]
+#[derive(Default, Debug, Clone, Copy)]
 pub struct ApMetadata {
     ssid: [u8; 32],
     bssid: [u8; 6],

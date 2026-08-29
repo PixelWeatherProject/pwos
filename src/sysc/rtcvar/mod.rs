@@ -13,29 +13,22 @@
 //! above, **it never actually runs**. The section `.rtc_noinit` does not handle initialization.
 //!
 //! # Safety
-//! Internally, this wrapper assumes that the value is initialized and safe to read
-//! if the reset reason is a wakeup from deep sleep or a software reset, **and** the stored CRC32
-//! matches the CRC32 calculated at runtime. This is not a 100% bulletproof solution, but for
-//! the use cases in this firmware, it's good enough.
+//! Internally, this wrapper assumes that the value is initialized and safe to read when the following
+//! conditions are met in order:
+//! 1. The reset reason is a wakeup from deep sleep or a software reset,
+//! 2. The stored magic byte is correct,
+//! 3. The stored checksum equals the checksum calculated based on the currently stored value.
 //!
-//! ## Possible undefined behavior #1
-//! ```rust
-//! static MY_DATA: RtcValue<u8> = RtcValue::new();
-//!
-//! let check = MY_DATA.is_init(); // marks the value as initialized
-//!
-//! /* ... device reboots with a reset reason that is marked as safe ... */
-//!
-//! let value = MY_DATA.read(); // this will read from uninitialized memory.
-//! ```
-//!
-//!
-//! This is currently not possible because [`is_init()`](RtcValue::is_init) is private, but
-//! at any point it needs to be made public, this is something to keep in mind.
+//! These checks are not 100% accurate, but for the use cases in this firmware, it's good enough.
 //!
 //! # Supported types (`T`s)
+//! This wrapper is primarily designed to hold simple primitives, like integers, `bool`s, integer arrays
+//! and simple `struct`s. It is **not** designed to hold complex types such as dynamic `String`s, `Box`es
+//! and `Vec`s. Such types will never be supported.
+//!
 //! The type `T` must implement [`RtcObject`], which further requires `T` to implement:
 //! - [`Sized`],
+//! - [`Copy`],
 //! - [`Send`].
 //!
 //! Additionally, there must be a way to create new, valid and initialized instances of `T`.
@@ -49,18 +42,25 @@
 
 use crate::sysc::power;
 use esp_idf_svc::hal::reset::ResetReason;
-use std::mem::MaybeUninit;
+use std::{cell::UnsafeCell, mem::MaybeUninit};
 
 mod checksum_impls;
 
+const MAGIC_START_BYTE: u32 = 0xFEED_BEEF;
+
 /// A wrapper that simplifies reading and writing variables stored in RTC memory.
-pub struct RtcValue<T: RtcObject> {
+pub struct RtcValue<T: RtcObject>(UnsafeCell<MaybeUninit<Inner<T>>>);
+/// Wraps the internal content of the RTC object.
+#[repr(C)]
+struct Inner<T> {
+    /// Magic starting byte
+    magic: u32,
+
+    /// CRC32
+    crc32: u32,
+
     /// The actual value
     value: MaybeUninit<T>,
-    /// CRC32
-    crc32: MaybeUninit<u32>,
-    /// Whether `value` was ever initialized/set
-    is_valid: MaybeUninit<bool>,
 }
 
 impl<T: RtcObject> RtcValue<T> {
@@ -70,38 +70,37 @@ impl<T: RtcObject> RtcValue<T> {
     /// ## Warning
     /// This method is never executed!
     pub const fn new() -> Self {
-        Self {
-            value: MaybeUninit::uninit(),
-            crc32: MaybeUninit::uninit(),
-            is_valid: MaybeUninit::uninit(),
-        }
+        Self(UnsafeCell::new(MaybeUninit::uninit()))
     }
 
     /// Reads the underlying value, initializing it when necessary.
     ///
-    /// Initialization sets the value to `T::default()` before returning.
+    /// Initialization sets the value to `T::new_empty()` before returning.
     pub fn read(&self) -> T {
         if !self.is_init() {
-            self.set(T::new_empty());
+            let value = T::new_empty();
+            self.set(value);
+            return value;
         }
 
-        unsafe { self.value.assume_init_read() }
+        self.read_raw()
     }
 
     /// Overwites the current value with the specified one.
     ///
     /// This will also mark the value as initialized and safe to read afterwards.
     pub fn set(&self, val: T) {
-        self.set_without_mark(val);
-        self.set_validity(true);
+        let checksum = val.checksum();
+
+        self.write_magic(0);
+        self.write_raw(val);
+        self.write_crc(checksum);
+        self.write_magic(MAGIC_START_BYTE);
     }
 
     /// Returns whether the value has been initialized before.
     ///
-    /// If the reset reason is not a deep-sleep wakeup or a software reset, this will
-    /// always return `false`. Otherwise, `true` is returned.
-    ///
-    /// The return value is always saved into [`Self::is_valid`].
+    /// Read module-level documentation on what checks are performed.
     fn is_init(&self) -> bool {
         let reset_reason_is_safe = matches!(
             power::get_reset_reason(),
@@ -109,41 +108,65 @@ impl<T: RtcObject> RtcValue<T> {
         );
 
         if !reset_reason_is_safe {
-            self.set_validity(false);
             return false;
         }
 
-        let value = unsafe { self.value.assume_init_read() };
-        let stored_checksum = unsafe { self.crc32.assume_init_read() };
+        if self.read_magic() != MAGIC_START_BYTE {
+            return false;
+        }
+
+        let stored_checksum = self.read_crc();
+        let value = self.read_raw();
         let calculated_checksum = value.checksum();
 
         stored_checksum == calculated_checksum
     }
 
-    fn set_validity(&self, valid: bool) {
-        // SAFETY: Writing to uninitialized MaybeUninit<T> is safe
+    const fn inner_ptr(&self) -> *mut Inner<T> {
+        // `MaybeUninit<Inner<T>>` and `Inner<T>` have identical layout.
+        self.0.get().cast::<Inner<T>>()
+    }
+
+    fn read_magic(&self) -> u32 {
+        // SAFETY: `&raw mut` projects to the field without creating a
+        // reference to uninitialized memory; the read is volatile so the
+        // optimizer cannot fold it against the static's initializer.
+        unsafe { (&raw mut (*self.inner_ptr()).magic).read_volatile() }
+    }
+
+    fn write_magic(&self, val: u32) {
+        unsafe { (&raw mut (*self.inner_ptr()).magic).write_volatile(val) }
+    }
+
+    fn read_crc(&self) -> u32 {
+        // SAFETY: field projection via `&raw mut`, no reference to uninit memory;
+        // volatile so it can't be folded against the static's initializer.
+        unsafe { (&raw mut (*self.inner_ptr()).crc32).read_volatile() }
+    }
+
+    fn write_crc(&self, val: u32) {
+        unsafe { (&raw mut (*self.inner_ptr()).crc32).write_volatile(val) }
+    }
+
+    fn read_raw(&self) -> T {
         unsafe {
-            // We use pointer writes to avoid having to use `&mut self` in the method
-            self.is_valid.as_ptr().cast_mut().write_volatile(valid);
+            (&raw mut (*self.inner_ptr()).value)
+                .cast::<T>()
+                .read_volatile()
         }
     }
 
-    fn set_without_mark(&self, value: T) {
-        let checksum = value.checksum();
-
-        // SAFETY: Writing to uninitialized MaybeUninit<T> is safe
+    fn write_raw(&self, val: T) {
         unsafe {
-            // We use pointer writes to avoid having to use `&mut self` in the method
-            self.value.as_ptr().cast_mut().write_volatile(value);
-            self.crc32.as_ptr().cast_mut().write_volatile(checksum);
+            (&raw mut (*self.inner_ptr()).value)
+                .cast::<T>()
+                .write_volatile(val);
         }
-
-        self.set_validity(true);
     }
 }
 
 /// A trait for objects that are safe and possible to store with [`RtcValue`].
-pub trait RtcObject: Sized + Send {
+pub trait RtcObject: Sized + Send + Copy {
     /// Calculate the checksum of `T`.
     fn checksum(&self) -> u32;
 
@@ -153,3 +176,6 @@ pub trait RtcObject: Sized + Send {
     /// For others, a custom implementation is recommended.
     fn new_empty() -> Self;
 }
+
+unsafe impl<T: RtcObject> Send for RtcValue<T> {}
+unsafe impl<T: RtcObject> Sync for RtcValue<T> {}
