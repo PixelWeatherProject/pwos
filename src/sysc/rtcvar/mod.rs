@@ -122,11 +122,13 @@ impl<T: RtcObject> RtcValue<T> {
         stored_checksum == calculated_checksum
     }
 
+    /// Returns a mutable pointer to the inner storage.
     const fn inner_ptr(&self) -> *mut Inner<T> {
         // `MaybeUninit<Inner<T>>` and `Inner<T>` have identical layout.
         self.0.get().cast::<Inner<T>>()
     }
 
+    /// Reads the stored magic byte.
     fn read_magic(&self) -> u32 {
         // SAFETY: `&raw mut` projects to the field without creating a
         // reference to uninitialized memory; the read is volatile so the
@@ -134,21 +136,31 @@ impl<T: RtcObject> RtcValue<T> {
         unsafe { (&raw mut (*self.inner_ptr()).magic).read_volatile() }
     }
 
+    /// Stores a new magic byte.
     fn write_magic(&self, val: u32) {
+        // SAFETY: Writes are safe.
         unsafe { (&raw mut (*self.inner_ptr()).magic).write_volatile(val) }
     }
 
+    /// Reads the stored CRC32 checksum.
     fn read_crc(&self) -> u32 {
         // SAFETY: field projection via `&raw mut`, no reference to uninit memory;
         // volatile so it can't be folded against the static's initializer.
         unsafe { (&raw mut (*self.inner_ptr()).crc32).read_volatile() }
     }
 
+    /// Stores a new CRC32 checksum.
     fn write_crc(&self, val: u32) {
+        // SAFETY: Writes are safe.
         unsafe { (&raw mut (*self.inner_ptr()).crc32).write_volatile(val) }
     }
 
+    /// Reads the stored value of `T` **without performing any safety checks**.
+    ///
+    /// This should only be used after the validation checks have been performed.
     fn read_raw(&self) -> T {
+        // SAFETY: If this method is called after validation checks have been performed, then
+        //         it's safe. Otherwise it's UB and the returned value will have garbage data.
         unsafe {
             (&raw mut (*self.inner_ptr()).value)
                 .cast::<T>()
@@ -156,7 +168,9 @@ impl<T: RtcObject> RtcValue<T> {
         }
     }
 
+    /// Stores a new value in the RTC memory.
     fn write_raw(&self, val: T) {
+        // SAFETY: Writes are safe.
         unsafe {
             (&raw mut (*self.inner_ptr()).value)
                 .cast::<T>()
