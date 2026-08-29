@@ -26,7 +26,7 @@ use esp_idf_svc::{
     },
 };
 use pwmp_client::pwmp_msg::{aliases::Rssi, mac::Mac};
-use std::{fmt::Write, ptr, time::Duration};
+use std::{fmt::Write, net::Ipv4Addr, ptr, time::Duration};
 
 /// Maximum number of networks to scan
 pub const MAX_NET_SCAN: usize = 2;
@@ -163,7 +163,16 @@ impl WiFi {
             ip: ip_info.ip,
             subnet: ip_info.subnet,
             dns: ip_info.dns,
-            secondary_dns: ip_info.secondary_dns,
+
+            // `EspNetif::get_ip_info` always returns `Some(..)`, using `0.0.0.0` for
+            // unset servers. `esp_netif_set_dns_info` rejects `0.0.0.0` with
+            // `ESP_ERR_ESP_NETIF_INVALID_PARAMS`, which `esp-idf-svc` unwraps, so
+            // filter those out before they reach the restore path.
+            secondary_dns: if ip_info.secondary_dns == Some(Ipv4Addr::UNSPECIFIED) {
+                None
+            } else {
+                ip_info.secondary_dns
+            },
         }));
 
         Ok(())
