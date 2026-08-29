@@ -61,11 +61,11 @@ impl RtcObject for ipv4::ClientSettings {
         // dns - 4 bytes
         // secondary dns - 4 bytes
 
-        let mut raw = [0; 19];
+        let mut raw = [0; 17];
 
         raw[0..=3].copy_from_slice(&self.ip.octets());
-        raw[4..=8].copy_from_slice(&self.subnet.gateway.octets());
-        raw[9] = self.subnet.mask.0;
+        raw[4..=7].copy_from_slice(&self.subnet.gateway.octets());
+        raw[8] = self.subnet.mask.0;
 
         /*
          * Note: This implementation for checksuming the DNS IPs cannot
@@ -74,10 +74,10 @@ impl RtcObject for ipv4::ClientSettings {
          */
 
         if let Some(ip) = self.dns {
-            raw[10..=13].copy_from_slice(&ip.octets());
+            raw[9..=12].copy_from_slice(&ip.octets());
         }
         if let Some(ip) = self.secondary_dns {
-            raw[14..].copy_from_slice(&ip.octets());
+            raw[13..=16].copy_from_slice(&ip.octets());
         }
 
         hash::crc32(&raw)
