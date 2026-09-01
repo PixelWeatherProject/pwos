@@ -46,9 +46,21 @@ pub fn fw_main(
 
     let env_sensor = setup_envsensor(i2c)?;
 
-    let (wifi, ap) = setup_wifi(modem, sys_loop)?;
+    let (wifi, ap, cached) = setup_wifi(modem, sys_loop)?;
     log::debug!("Connecting to PWMP");
-    let mut pws = PwmpClient::new(PWMP_SERVER, &pwmp_msg_id_gen, None, None, None)?;
+    let mut pws =
+        PwmpClient::new(PWMP_SERVER, &pwmp_msg_id_gen, None, None, None).inspect_err(|_| {
+            // if the reused AP has changed it's IP configuration, we won't have internet access
+            // this is not something that happens everyday, rather just a *VERY RARE* edge case
+            // we signal failiure and attempt DHCP on next boot
+            //
+            // there are other ways to fix this but this is probably the "cheapest" performance
+            // and memory wise
+            if cached {
+                log::error!("IP configuration may be outdated, clearing RTC cache");
+                wifi.clear_config_cache();
+            }
+        })?;
 
     log::debug!("Sending handshake request");
     pws.perform_handshake(wifi.get_mac()?)?;
@@ -151,32 +163,14 @@ pub fn fw_main(
 fn setup_wifi(
     modem: Modem<'static>,
     sys_loop: EspSystemEventLoop,
-) -> OsResult<(WiFi, AccessPointInfo)> {
-    let last_ip = WiFi::last_ip();
-    let last_ap = WiFi::last_ap();
-
+) -> OsResult<(WiFi, AccessPointInfo, bool)> {
     log::debug!("Starting WiFi setup");
     let mut wifi = WiFi::new(modem, sys_loop)?;
 
-    if let Some(ap) = last_ap {
-        log::debug!("Reusing previous AP: {}", ap.ssid_as_str());
-        let ap: AccessPointInfo = ap.into();
-
-        if let Some(config) = last_ip {
-            log::debug!("Reusing previous IP configuration");
-            wifi.set_static_ip_config(config)?;
-        }
-
-        if let Err(why) = wifi_try_connect(&mut wifi, &ap, true) {
-            log::error!("Failed to connect to previous AP: {why}");
-
-            if last_ip.is_some() {
-                log::debug!("Resetting IP configuration");
-                wifi.set_dymanic_ip_config()?;
-            }
-        } else {
-            return Ok((wifi, ap));
-        }
+    match wifi_try_last(&mut wifi) {
+        Ok((true, Some(ap))) => return Ok((wifi, ap, true)),
+        Err(why) => return Err(why),
+        _ => (),
     }
 
     log::debug!("Starting WiFi scan");
@@ -210,13 +204,48 @@ fn setup_wifi(
 
     for ap in networks {
         match wifi_try_connect(&mut wifi, &ap, false) {
-            Ok(()) => return Ok((wifi, ap)),
+            Ok(()) => return Ok((wifi, ap, false)),
             Err(OsError::WifiPskNotFound) => (),
             Err(other) => log::error!("Failed to connect: {other}"),
         }
     }
 
     Err(OsError::NoInternet)
+}
+
+#[allow(clippy::similar_names)]
+fn wifi_try_last(wifi: &mut WiFi) -> OsResult<(bool, Option<AccessPointInfo>)> {
+    let last_ip = WiFi::last_ip();
+
+    let Some(last_ap) = WiFi::last_ap() else {
+        /* no network was stored from previous sessions */
+        return Ok((false, None));
+    };
+
+    log::debug!("Reusing previous AP: {}", last_ap.ssid_as_str());
+    let ap: AccessPointInfo = last_ap.into();
+
+    if let Some(config) = last_ip {
+        /* we have a cached DHCP configuration */
+        log::debug!("Reusing previous IP configuration");
+        wifi.set_static_ip_config(config)?;
+    }
+
+    if let Err(why) = wifi_try_connect(wifi, &ap, true) {
+        /* failed to connect to cached AP */
+        log::error!("Failed to connect to previous AP: {why}");
+
+        // if we used static IP, reset the interface back to use DHCP
+        if last_ip.is_some() {
+            wifi.set_dymanic_ip_config()?;
+        }
+
+        // signal the called that we could not reuse the previous AP
+        return Ok((false, None));
+    }
+
+    /* successfully connected */
+    Ok((true, Some(ap)))
 }
 
 fn wifi_try_connect(wifi: &mut WiFi, ap: &AccessPointInfo, skip_save: bool) -> OsResult<()> {

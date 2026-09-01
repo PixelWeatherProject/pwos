@@ -223,6 +223,11 @@ impl WiFi {
         Ok(Mac::new(raw[0], raw[1], raw[2], raw[3], raw[4], raw[5]))
     }
 
+    pub fn clear_config_cache(&self) {
+        LAST_AP.set(None);
+        LAST_IP.set(None);
+    }
+
     fn await_event<S, F, U>(&self, matcher: F, err_map: U, timeout: Duration) -> OsResult<()>
     where
         S: EspEventSource,
