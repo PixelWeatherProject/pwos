@@ -102,30 +102,48 @@ impl Log for OsLogger {
             return;
         }
 
+        // Create a buffer
+        let mut buffer = heapless::String::<256>::new();
+
         // Get a lock to stdout
         let mut lock = stdout().lock();
 
-        // Print the level first
-        match record.level() {
-            Level::Info => lock.write_all(INFO_HEADER.as_bytes()),
-            Level::Warn => lock.write_all(WARN_HEADER.as_bytes()),
-            Level::Error => lock.write_all(ERROR_HEADER.as_bytes()),
-            Level::Debug => lock.write_all(DEBUG_HEADER.as_bytes()),
-            Level::Trace => lock.write_all(TRACE_HEADER.as_bytes()),
-        }
-        .expect("stdout-write failed");
+        // Get the header
+        let header = match record.level() {
+            Level::Info => INFO_HEADER,
+            Level::Warn => WARN_HEADER,
+            Level::Error => ERROR_HEADER,
+            Level::Debug => DEBUG_HEADER,
+            Level::Trace => TRACE_HEADER,
+        };
 
-        // Print the module level next
-        lock.write_all(module.as_bytes())
-            .and_then(|()| lock.write_all(b"] "))
-            .expect("stdout-write-2 failed");
+        /* Assuming that the buffer is large enough to hold everything, we'll skip error handling. */
+
+        // Print the level first
+        let _ = buffer.push_str(header);
+
+        // Print the module name next
+        let _ = buffer.push_str(module);
+        let _ = buffer.push_str("] ");
 
         // Print the actual message, but also avoid runtime formatting when possible
         match record.args().as_str() {
-            Some(stat_str) => lock.write_all(stat_str.as_bytes()),
-            None => lock.write_all(record.args().to_string().as_bytes()),
+            Some(stat_str) => {
+                // No string interpolation was used
+                let _ = std::fmt::Write::write_str(&mut buffer, stat_str);
+            }
+            None => {
+                // String interpolation was used, so we need to format it at runtime
+                let _ = std::fmt::Write::write_fmt(&mut buffer, format_args!("{}", record.args()));
+            }
         }
-        .and_then(|()| lock.write_all(b"\n"))
-        .expect("stdout-write-3 failed");
+
+        // End it with a newline
+        let _ = buffer.push('\n');
+
+        // Write the buffer to stdout
+        lock.write_all(buffer.as_bytes())
+            .and_then(|()| lock.flush())
+            .expect("Failed to write log message to stdout");
     }
 }
