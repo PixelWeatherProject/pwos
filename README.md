@@ -233,9 +233,9 @@ To build a debug image (or flash it) remove the `--release` flag from the above 
 </details>
 
 ## Build variants
-Firmware size (as of commit `24d9c56`):
-- Release build: `931,728/4,096,000 bytes, 22.75%`
-- Debug build: `1,167,360/4,096,000 bytes, 28.50%`
+Firmware size (as of commit `bcb9a35`):
+- Release build: `940,432/4,096,000 bytes, 22.96%`
+- Debug build: `1,182,272/4,096,000 bytes, 28.86%`
 
 Debug builds may be slower and contain a lot of debug messages. As such they are slightly larger.
 
