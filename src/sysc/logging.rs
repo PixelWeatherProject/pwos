@@ -27,15 +27,18 @@ const DEBUG_HEADER: &str = concatcp!(COLOR_DEBUG, "DEBUG", RESET_COLOR, " [");
 const TRACE_HEADER: &str = "TRACE [";
 
 /// The global instance of the logger.
-pub static LOGGER: OsLogger = OsLogger::new();
+static LOGGER: OsLogger = OsLogger::new();
 
 /// The firmware-wide logging backend.
 ///
 /// It integrates with the [`log`] crate.
-pub struct OsLogger {
+struct OsLogger {
     /// Whether the logger is enabled.
     enabled: AtomicBool,
 }
+
+/// A global logger that can be used to log messages.
+pub struct GlobalOsLogger;
 
 impl OsLogger {
     /// Create the logger.
@@ -44,7 +47,9 @@ impl OsLogger {
             enabled: AtomicBool::new(true),
         }
     }
+}
 
+impl GlobalOsLogger {
     /// Disable the global logger.
     ///
     /// When disabled, it will not print any messages *regardless of their level*.

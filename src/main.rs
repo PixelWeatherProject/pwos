@@ -1,7 +1,7 @@
 #![warn(clippy::unwrap_used)]
 #![deny(unused_must_use)]
 
-use crate::sysc::{logging::OsLogger, power::get_reset_reason, ReportableError};
+use crate::sysc::{logging::GlobalOsLogger, power::get_reset_reason, ReportableError};
 use esp_idf_svc::hal::{
     i2c::{config::Config, I2cDriver},
     temp_sensor::{config::Config as TempSensorConfig, TempSensorDriver},
@@ -23,10 +23,10 @@ fn main() {
 
     // Turn off logging when USB is not connected
     if !usbctl::is_connected() {
-        OsLogger::disable();
+        GlobalOsLogger::disable();
     }
 
-    OsLogger::init();
+    GlobalOsLogger::init();
 
     log::info!(
         "PixelWeatherOS v{}-{}{}@{} ({})",
