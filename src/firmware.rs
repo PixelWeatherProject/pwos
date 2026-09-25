@@ -44,8 +44,6 @@ pub fn fw_main(
         log::warn!("Running unverified firmware");
     }
 
-    let env_sensor = setup_envsensor(i2c)?;
-
     let (wifi, ap, cached) = setup_wifi(modem, sys_loop)?;
     log::debug!("Connecting to PWMP");
     let mut pws =
@@ -67,6 +65,17 @@ pub fn fw_main(
 
     log::debug!("Requesting app configuration");
     read_appcfg(&mut pws, cfg)?;
+
+    let env_sensor = match setup_envsensor(i2c) {
+        Ok(sensor) => sensor,
+        Err(why) => {
+            pws.send_notification(
+                "Environment sensor hardware fault detected. Node will permanently halt.",
+            )
+            .report("Failed to send notification about environment sensor fault");
+            return Err(why);
+        }
+    };
 
     let bat_voltage = battery.read()?;
     if usbctl::is_connected() {
