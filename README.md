@@ -95,8 +95,53 @@ When implementing a driver, it is recommended to also implement model detection,
 
 Using multiple environment sensors is **not** supported. The firmware will use the first sensor it finds (which is typically the one with the lowest I2C address). This also means that every I2C hardware must use a different address.
 
-## Other hardware
+## Other MCUs
 The project currently only supports the ESP32. There are no plans to support any other MCU.
+
+## Environment sensors
+The project defines the term "environment sensor" as a device that is capable of collecting weather data.
+
+Currently, the requirements for a environment sensor are the following:
+- Uses I2C for communication,
+- must have temperature measurement support,
+- must have relative humidity measurement support,
+- optionally supports air pressure measurement,
+- can be powered from a 3.3V power line, while supporting lower voltages, down to 2.9V,
+- uses 3.3V for data logic,
+- works outdoors safely.
+
+Only one environment sensor is supported, so no separate temperature, humidity and/or air pressure sensors.
+
+### Longevity
+No sensor is perfect and no matter what you use, eventually they will break. We only recommend sensors that work for at least 1 year, during continuous usage.
+Replacements should only be necessary once per year, although longer longevity is preferred.
+
+### Tested & Recommended sensors
+
+<details>
+  <summary>Bosch BME280</summary>
+
+  This sensor has very good accuracy and supports air pressure measurement.
+  The driver only supports this model!
+  Be aware of fake BME280 models, that are actually BMP280 sensors, which are much cheaper but lack humidity measurement support.
+  
+  > ⚠️ Warning
+  > 
+  > This sensor did not pass the minimum longevity test (1 year) outdoors.
+  > 
+  > It is **not recommend** to use this sensor outdoors.
+</details>
+
+<details>
+  <summary>HTU21D / Si7021 / HTU family</summary>
+
+  This is a simple temperature and humidity only sensor. The accuracy is average and both work well.
+
+  > ⚠️ Warning
+  > 
+  > For outdoor use, only the **Si7021** is recommend. It passed the longevity test, possibly due to the included PTFE filter.
+  > The **HTU21D** sensor **is not recommend** for outdoor use!
+</details>
 
 ## Power
 Consumption measurements:
