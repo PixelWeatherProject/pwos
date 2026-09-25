@@ -329,7 +329,7 @@ impl EnvironmentSensor for BoschME280<'_> {
 
         let mut p_var1 = (t_fine / 2.0) - 64000.0;
         let mut p_var2 = p_var1 * p_var1 * self.cal.p6 / 32768.0;
-        p_var2 += p_var1 * self.cal.p5 * 2.0;
+        p_var2 = (p_var1 * self.cal.p5).mul_add(2.0, p_var2);
         p_var2 = self.cal.p4.mul_add(65536.0, p_var2 / 4.0);
         p_var1 = self
             .cal
