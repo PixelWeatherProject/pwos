@@ -76,6 +76,13 @@ impl<T: RtcObject> RtcValue<T> {
     /// Reads the underlying value, initializing it when necessary.
     ///
     /// Initialization sets the value to `T::new_empty()` before returning.
+    ///
+    /// # Safety
+    /// When this method has to initialize the object with a default value, it will, afterwards
+    /// assume that the value is valid and safe to read troughout the lifetime of the firmware.
+    ///
+    /// However, if a memory corruption happens after (or during) the initialization, reading the value will be undefined
+    /// behavior. The chance of this happening is **extremely** low, but it's worth to mention.
     pub fn read(&self) -> T {
         if !self.is_init() {
             let value = T::new_empty();
