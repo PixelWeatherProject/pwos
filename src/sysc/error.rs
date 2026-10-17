@@ -197,7 +197,11 @@ impl OsError {
         let mut data_copy = heapless::Vec::<u8, 4>::new();
 
         // SAFETY: The copy operation will copy only as much as the vec can hold.
-        unsafe { data_copy.extend_from_slice(data).unwrap_unchecked() };
+        unsafe {
+            data_copy
+                .extend_from_slice(&data[..data.len().min(4)])
+                .unwrap_unchecked();
+        }
 
         if wr {
             Err(Self::I2cWr {
