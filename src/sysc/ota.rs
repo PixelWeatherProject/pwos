@@ -233,6 +233,9 @@ impl Drop for OtaHandle<'_> {
 
         log::error!("Finalizing update");
 
+        // The ESP-IDF does some basic checks on the image while it's being written
+        // so if there is no error during that process, it's very unlikely that we'll
+        // panic here.
         handle.flush().expect("Failed to flush OTA write");
         handle.complete().expect("Failed to complete update");
 
