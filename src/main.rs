@@ -1,7 +1,10 @@
 #![warn(clippy::unwrap_used)]
 #![deny(unused_must_use)]
 
-use crate::sysc::{logging::GlobalOsLogger, power::get_reset_reason, ReportableError};
+use crate::sysc::{
+    ddls, drivers::shared_i2c::SharedI2cDriver, logging::GlobalOsLogger, power::get_reset_reason,
+    ReportableError,
+};
 use esp_idf_svc::hal::{
     i2c::{config::Config, I2cDriver},
     temp_sensor::{config::Config as TempSensorConfig, TempSensorDriver},
@@ -92,6 +95,7 @@ fn main() {
         &Config::default().baudrate(400u32.kHz().into()),
     )
     .expect("Failed to initialize I2C");
+    let i2c = SharedI2cDriver::wrap(i2c);
 
     log::debug!("Initializing internal temperature sensor");
     let mut temp_sensor =
@@ -101,6 +105,9 @@ fn main() {
         .enable()
         .expect("Failed to enable internal temperature sensor driver");
 
+    log::debug!("Initializing dynamic driver loader subsystem");
+    ddls::init(i2c, temp_sensor).expect("DDLS init failed");
+
     log::debug!("Initializing app configuration");
     let mut appcfg = config::get_settings();
 
@@ -109,10 +116,9 @@ fn main() {
     let start = Instant::now();
     let fw_exit = firmware::fw_main(
         battery,
-        i2c,
+        //i2c,
         peripherals.wifi.modem,
         peripherals.wifi.sys_loop,
-        &temp_sensor,
         led,
         &nvs,
         &mut ota,

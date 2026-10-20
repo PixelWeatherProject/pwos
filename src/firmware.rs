@@ -3,7 +3,7 @@ use crate::{
     re_esp,
     sysc::{
         battery::{Battery, CRITICAL_VOLTAGE},
-        ext_drivers::{AnySensor, BoschME280, EnvironmentSensor, Htu, MeasurementResults},
+        drivers::{AirPressureSensor, HumiditySensor, TemperatureSensor},
         ledctl::BoardLed,
         net::wifi::{WiFi, RSSI_THRESHOLD},
         nvs::NonVolatileStorage,
@@ -13,13 +13,7 @@ use crate::{
     },
 };
 use core::sync::atomic::{AtomicU8, Ordering};
-use esp_idf_svc::{
-    eventloop::EspSystemEventLoop,
-    hal::{
-        i2c::I2cDriver, modem::Modem, temp_sensor::TempSensorDriver as InternalTempSensorDriver,
-    },
-    wifi::AccessPointInfo,
-};
+use esp_idf_svc::{eventloop::EspSystemEventLoop, hal::modem::Modem, wifi::AccessPointInfo};
 use pwmp_client::{
     ota::UpdateStatus,
     pwmp_msg::{settings::NodeSettings, version::Version, MsgId},
@@ -31,10 +25,8 @@ static PWMP_MSG_ID: AtomicU8 = AtomicU8::new(0);
 #[allow(clippy::too_many_arguments, clippy::cognitive_complexity)]
 pub fn fw_main(
     mut battery: Battery,
-    i2c: I2cDriver,
     modem: Modem<'static>,
     sys_loop: EspSystemEventLoop,
-    temp_sensor: &InternalTempSensorDriver<'static>,
     mut led: BoardLed,
     nvs: &NonVolatileStorage,
     ota: &mut Ota,
@@ -66,12 +58,9 @@ pub fn fw_main(
     log::debug!("Requesting app configuration");
     read_appcfg(&mut pws, cfg)?;
 
-    let env_sensor = setup_envsensor(i2c).inspect_err(|_| {
-        pws.send_notification(
-            "Environment sensor hardware fault detected. Node will permanently halt.",
-        )
-        .report("Failed to send notification about environment sensor fault");
-    })?;
+    let temperature_sensor = TemperatureSensor::get_external().ok_or(OsError::NoEnvSensor)?;
+    let humidity_sensor = HumiditySensor::get().ok_or(OsError::NoEnvSensor)?;
+    let air_pressure_sensor = AirPressureSensor::get();
 
     let bat_voltage = battery.read()?;
     if usbctl::is_connected() {
@@ -90,15 +79,22 @@ pub fn fw_main(
     }
 
     let rssi = wifi.live_rssi()?;
-    let cpu_die_temp = re_esp!(temp_sensor.get_celsius(), InternalTempSensorRead)?;
-    let results = read_environment(env_sensor)?;
-    log::info!("{:.02}*C / {}%", results.temperature, results.humidity);
+    let temperature = temperature_sensor.read()?;
+    let humidity = humidity_sensor.read()?;
+    let air_pressure = match air_pressure_sensor {
+        Some(s) => Some(s.read()?),
+        None => None,
+    };
+    let cpu_die_temp = TemperatureSensor::get_internal()
+        .ok_or(OsError::UnexpectedNull)?
+        .read()?;
+    log::info!("{temperature:.02}*C / {humidity}%");
 
     log::debug!("Posting results");
     pws.post_measurements(
-        results.temperature,
-        results.humidity,
-        results.air_pressure,
+        temperature,
+        humidity,
+        air_pressure,
         bat_voltage,
         cpu_die_temp,
         &ap.ssid,
@@ -285,49 +281,6 @@ fn read_appcfg(pws: &mut PwmpClient, appcfg: &mut NodeSettings) -> OsResult<()> 
 
     log::debug!("Settings updated");
     Ok(())
-}
-
-fn setup_envsensor(mut i2c_driver: I2cDriver<'_>) -> OsResult<AnySensor<'_>> {
-    let mut working = None;
-
-    for addr in 1..128 {
-        if i2c_driver.write(addr, &[], 1000).is_ok() {
-            log::debug!("Found device @ I2C/0x{addr:X}");
-            working = Some(addr);
-
-            /* We expect only ONE device, so the loop can be broken here. */
-            break;
-        }
-    }
-
-    match working {
-        Some(Htu::DEV_ADDR) => {
-            log::debug!("Detected HTU-compatible sensor");
-            return Ok(AnySensor::HtuCompatible(Htu::new_with_driver(i2c_driver)?));
-        }
-        Some(bosch_addr) if BoschME280::DEV_ADDRS.contains(&bosch_addr) => {
-            log::debug!("Deteched Bosch sensor");
-            return Ok(AnySensor::Bme280(BoschME280::new_with_driver(
-                i2c_driver, bosch_addr,
-            )?));
-        }
-        Some(other) => {
-            log::warn!("Unrecognised device @ I2C/0x{other:X}");
-        }
-        None => {
-            log::error!("No I2C device was detected");
-        }
-    }
-
-    Err(OsError::NoEnvSensor)
-}
-
-fn read_environment(mut env: AnySensor) -> OsResult<MeasurementResults> {
-    Ok(MeasurementResults {
-        temperature: env.read_temperature()?,
-        humidity: env.read_humidity()?,
-        air_pressure: env.read_air_pressure()?,
-    })
 }
 
 fn check_ota(pws: &mut PwmpClient) -> OsResult<bool> {

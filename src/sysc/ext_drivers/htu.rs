@@ -7,10 +7,11 @@
 //!
 //! These sensors work over the I2C protocol.
 
-use super::EnvironmentSensor;
-use crate::sysc::{OsError, OsResult};
-use esp_idf_svc::hal::i2c::I2cDriver;
-use pwmp_client::pwmp_msg::aliases::{AirPressure, Humidity, Temperature};
+use crate::sysc::{
+    drivers::{shared_i2c::SharedI2cDriver, Driver, HumidityDriver, TemperatureDriver},
+    OsError, OsResult,
+};
+use pwmp_client::pwmp_msg::aliases::{Humidity, Temperature};
 use std::{thread::sleep, time::Duration};
 
 /// Commands for HTU21D (and similar) sensors.
@@ -30,9 +31,9 @@ enum Command {
 }
 
 /// Driver handle for HTU21D (and similar) sensors.
-pub struct Htu<'s>(I2cDriver<'s>);
+pub struct Htu(SharedI2cDriver);
 
-impl<'s> Htu<'s> {
+impl Htu {
     /// Known default address
     pub const DEV_ADDR: u8 = 0x40;
 
@@ -40,9 +41,9 @@ impl<'s> Htu<'s> {
     const CMD_WAIT_TIME: u64 = 50;
 
     /// Initialize the driver with the given I2C driver handle.
-    pub fn new_with_driver(driver: I2cDriver<'s>) -> Result<Self, OsError> {
+    pub fn new_with_driver(driver: SharedI2cDriver) -> Result<Self, OsError> {
         log::debug!("Loading driver");
-        let mut dev = Self(driver);
+        let dev = Self(driver);
 
         dev.reset()?;
 
@@ -54,7 +55,7 @@ impl<'s> Htu<'s> {
         Ok(dev)
     }
 
-    fn model(&mut self) -> OsResult<Option<&'static str>> {
+    pub fn model(&self) -> OsResult<Option<&'static str>> {
         let mut buf = [0u8; 6];
         self.write_read(Command::ReadSerial1, &mut buf)?;
 
@@ -69,51 +70,14 @@ impl<'s> Htu<'s> {
         }
     }
 
-    fn reset(&mut self) -> OsResult<()> {
-        self.write(Command::Reset)?;
-        sleep(Duration::from_millis(Self::CMD_WAIT_TIME));
-        Ok(())
-    }
-
-    fn write(&mut self, command: Command) -> OsResult<()> {
-        OsError::from_i2c_writeop(
-            self.0
-                .write(Self::DEV_ADDR, command.as_bytes(), Self::BUS_TIMEOUT),
-            Self::DEV_ADDR,
-            command.as_bytes(),
-            false,
-        )
-    }
-
-    fn write_read(&mut self, command: Command, buffer: &mut [u8]) -> OsResult<()> {
-        let result = self.0.write_read(
-            Self::DEV_ADDR,
-            command.as_bytes(),
-            buffer,
-            Self::BUS_TIMEOUT,
-        );
-
-        OsError::from_i2c_writeop(result, Self::DEV_ADDR, command.as_bytes(), true)
-    }
-
-    fn write_read_u16(&mut self, command: Command) -> OsResult<u16> {
-        let mut buffer = [0; 2];
-        self.write_read(command, &mut buffer)?;
-
-        let raw = u16::from_be_bytes(buffer);
-        Ok(raw)
-    }
-}
-
-impl EnvironmentSensor for Htu<'_> {
-    fn read_temperature(&mut self) -> OsResult<Temperature> {
+    pub fn read_temperature(&self) -> OsResult<Temperature> {
         let raw = self.write_read_u16(Command::ReadTemperature)?;
         let temp = ((175.72 * f32::from(raw)) / 65536.0) - 46.85;
         Ok(temp)
     }
 
     #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
-    fn read_humidity(&mut self) -> OsResult<Humidity> {
+    pub fn read_humidity(&self) -> OsResult<Humidity> {
         let raw = self.write_read_u16(Command::ReadHumidity)?;
         let hum = ((125.0 * f32::from(raw)) / 65536.0) - 6.0;
         let percentage = hum.floor().clamp(0., 100.);
@@ -121,9 +85,32 @@ impl EnvironmentSensor for Htu<'_> {
         Ok(percentage as u8)
     }
 
-    fn read_air_pressure(&mut self) -> OsResult<Option<AirPressure>> {
-        log::warn!("Air pressure is not supported");
-        Ok(None)
+    fn reset(&self) -> OsResult<()> {
+        self.write(Command::Reset)?;
+        sleep(Duration::from_millis(Self::CMD_WAIT_TIME));
+        Ok(())
+    }
+
+    fn write(&self, command: Command) -> OsResult<()> {
+        self.0
+            .write(Self::DEV_ADDR, command.as_bytes(), Self::BUS_TIMEOUT)
+    }
+
+    fn write_read(&self, command: Command, buffer: &mut [u8]) -> OsResult<()> {
+        self.0.write_read(
+            Self::DEV_ADDR,
+            command.as_bytes(),
+            buffer,
+            Self::BUS_TIMEOUT,
+        )
+    }
+
+    fn write_read_u16(&self, command: Command) -> OsResult<u16> {
+        let mut buffer = [0; 2];
+        self.write_read(command, &mut buffer)?;
+
+        let raw = u16::from_be_bytes(buffer);
+        Ok(raw)
     }
 }
 
@@ -136,5 +123,41 @@ impl Command {
             Self::Reset => &[0xFE],
             Self::ReadSerial1 => &[0xFC, 0xC9],
         }
+    }
+}
+
+impl Driver for Htu {
+    fn driver_name(&self) -> &'static str {
+        "HTU"
+    }
+
+    fn driver_version(&self) -> &'static str {
+        "v1.0.0"
+    }
+
+    fn device_name(&self) -> OsResult<String> {
+        Ok(String::from("Unknown"))
+    }
+
+    fn device_model(&self) -> OsResult<String> {
+        Ok(self
+            .model()?
+            .map_or_else(|| "Unknown".to_string(), std::string::ToString::to_string))
+    }
+}
+
+impl TemperatureDriver for Htu {
+    fn is_internal(&self) -> bool {
+        false
+    }
+
+    fn read(&self) -> OsResult<f32> {
+        self.read_temperature()
+    }
+}
+
+impl HumidityDriver for Htu {
+    fn read(&self) -> OsResult<u8> {
+        self.read_humidity()
     }
 }

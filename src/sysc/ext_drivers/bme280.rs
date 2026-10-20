@@ -9,16 +9,22 @@
 //!
 //! These sensors work over the I2C protocol.
 
-use super::EnvironmentSensor;
-use crate::sysc::{OsError, OsResult, ReportableError};
-use esp_idf_svc::hal::i2c::I2cDriver;
+use crate::sysc::{
+    drivers::{
+        shared_i2c::SharedI2cDriver, AirPressureDriver, Driver, HumidityDriver, TemperatureDriver,
+    },
+    OsError, OsResult, ReportableError,
+};
 use pwmp_client::pwmp_msg::aliases::{AirPressure, Humidity, Temperature};
-use std::time::{Duration, Instant};
+use std::{
+    sync::Mutex,
+    time::{Duration, Instant},
+};
 
 /// Driver handle for Bosch BME280 sensors.
-pub struct BoschME280<'s> {
+pub struct BoschME280 {
     /// I2C driver handle for communication with the sensor.
-    i2c: I2cDriver<'s>,
+    i2c: SharedI2cDriver,
 
     /// I2C address of the sensor.
     addr: u8,
@@ -27,7 +33,7 @@ pub struct BoschME280<'s> {
     cal: CalibrationData,
 
     /// Time at which the sensor should be initialized.
-    expected_init_time: Option<Instant>,
+    expected_init_time: Mutex<Option<Instant>>,
 }
 
 /// Commands for BME280 sensors
@@ -86,20 +92,20 @@ struct CalibrationData {
     h6: f32,
 }
 
-impl<'s> BoschME280<'s> {
+impl BoschME280 {
     /// Known default address
     pub const DEV_ADDRS: [u8; 2] = [0x76, 0x77];
 
     const BUS_TIMEOUT: u32 = 1000;
 
     /// Initialize the driver with the given I2C driver handle.
-    pub fn new_with_driver(driver: I2cDriver<'s>, addr: u8) -> Result<Self, OsError> {
+    pub fn new_with_driver(driver: SharedI2cDriver, addr: u8) -> Result<Self, OsError> {
         log::debug!("Loading driver");
         let mut dev = Self {
             i2c: driver,
             addr,
             cal: CalibrationData::default(),
-            expected_init_time: None,
+            expected_init_time: Mutex::default(),
         };
 
         /*
@@ -124,13 +130,76 @@ impl<'s> BoschME280<'s> {
         // due to the highest quality and sampling settings, measurement takes
         // about 112ms, so we expect the sensor to be initialized 120ms after
         // this constructor runs
-        dev.expected_init_time = Some(Instant::now() + Duration::from_millis(120));
+        *dev.expected_init_time.get_mut()? = Some(Instant::now() + Duration::from_millis(120));
 
         Ok(dev)
     }
 
+    pub fn read_temperature(&self) -> OsResult<Temperature> {
+        let raw_t = self.read_raw_measurements()?.0;
+
+        // temperature compensation
+        let t_fine = self.calc_t_fine(raw_t);
+        let temperature_c = t_fine / 5120.0;
+
+        Ok(temperature_c)
+    }
+
+    #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+    pub fn read_humidity(&self) -> OsResult<Humidity> {
+        let (raw_t, raw_h, _) = self.read_raw_measurements()?;
+
+        // humidity compensation
+        let t_fine = self.calc_t_fine(raw_t);
+        let mut h = t_fine - 76800.0;
+
+        h = (raw_h - self.cal.h4.mul_add(64.0, self.cal.h5 / 16384.0 * h))
+            * (self.cal.h2 / 65536.0
+                * (self.cal.h6 / 67_108_864.0 * h)
+                    .mul_add((self.cal.h3 / 67_108_864.0).mul_add(h, 1.0), 1.0));
+
+        h = h * (1.0 - self.cal.h1 * h / 524_288.0);
+        h = h.floor().clamp(0., 100.);
+
+        Ok(h as u8)
+    }
+
+    #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+    pub fn read_air_pressure(&self) -> OsResult<AirPressure> {
+        let (raw_t, _, raw_p) = self.read_raw_measurements()?;
+
+        // pressure compensation
+        let t_fine = self.calc_t_fine(raw_t);
+
+        let mut p_var1 = (t_fine / 2.0) - 64000.0;
+        let mut p_var2 = p_var1 * p_var1 * self.cal.p6 / 32768.0;
+        p_var2 = (p_var1 * self.cal.p5).mul_add(2.0, p_var2);
+        p_var2 = self.cal.p4.mul_add(65536.0, p_var2 / 4.0);
+        p_var1 = self
+            .cal
+            .p2
+            .mul_add(p_var1, self.cal.p3 * p_var1 * p_var1 / 524_288.0)
+            / 524_288.0;
+        p_var1 = (1.0 + p_var1 / 32768.0) * self.cal.p1;
+
+        let pressure_pa = if p_var1 > 0.0 {
+            let mut p = 1_048_576.0 - raw_p;
+            p = (p - (p_var2 / 4096.0)) * 6250.0 / p_var1;
+            p_var1 = self.cal.p9 * p * p / 2_147_483_648.0;
+            p_var2 = p * self.cal.p8 / 32768.0;
+            p + (p_var1 + p_var2 + self.cal.p7) / 16.0
+        } else {
+            0.0
+        };
+
+        let hpa = pressure_pa / 100.0;
+        let hpa = hpa.floor().clamp(0., 65535.0) as u16;
+
+        Ok(hpa)
+    }
+
     /// Detect the sensor model by reading the device ID register.
-    fn model(&mut self) -> OsResult<Option<&'static str>> {
+    pub fn model(&self) -> OsResult<Option<&'static str>> {
         let mut buffer = [0u8; 1];
         self.write_read(Command::ReadIdRegister, &mut buffer)?;
 
@@ -182,7 +251,7 @@ impl<'s> BoschME280<'s> {
     ///
     /// These are not final and need to be compensated using the calibration data to get accurate readings.
     #[allow(clippy::cast_precision_loss)]
-    fn read_raw_measurements(&mut self) -> OsResult<(f32, f32, f32)> {
+    fn read_raw_measurements(&self) -> OsResult<(f32, f32, f32)> {
         let mut buffer = [0; 8];
         self.write_read(Command::ReadMeasurementsStartRegister, &mut buffer)?;
 
@@ -211,7 +280,7 @@ impl<'s> BoschME280<'s> {
     /// - Any operation after this will likely fail.
     /// - All oversampling and other settings set by [`new_with_driver`](Self::new_with_driver) **will be erased**.
     ///
-    fn enter_sleep_mode(&mut self) -> OsResult<()> {
+    fn enter_sleep_mode(&self) -> OsResult<()> {
         self.write(Command::SetMeasurementCtlRegister(0))
     }
 
@@ -227,61 +296,49 @@ impl<'s> BoschME280<'s> {
     /// Send a non-returning command to the sensor.
     ///
     /// If the command returns data, use [`write_read()`](Self::write_read) instead.
-    fn write(&mut self, command: Command) -> OsResult<()> {
-        self.wait_until_ready();
+    fn write(&self, command: Command) -> OsResult<()> {
+        self.wait_until_ready()?;
         let (cmd, len) = command.serialize();
-
-        OsError::from_i2c_writeop(
-            self.i2c.write(self.addr, &cmd[..len], Self::BUS_TIMEOUT),
-            self.addr,
-            &cmd[..len],
-            false,
-        )
+        self.i2c.write(self.addr, &cmd[..len], Self::BUS_TIMEOUT)
     }
 
     /// Send a command to the sensor and read the response into the provided buffer.
     ///
     /// If the command does not return data, use [`write()`](Self::write) instead.
-    fn write_read(&mut self, command: Command, buffer: &mut [u8]) -> OsResult<()> {
-        self.wait_until_ready();
+    fn write_read(&self, command: Command, buffer: &mut [u8]) -> OsResult<()> {
+        self.wait_until_ready()?;
         let (cmd, len) = command.serialize();
-
-        OsError::from_i2c_writeop(
-            self.i2c
-                .write_read(self.addr, &cmd[..len], buffer, Self::BUS_TIMEOUT),
-            self.addr,
-            &cmd[..len],
-            true,
-        )
-    }
-
-    /// Returns whether the sensor should be ready to receive commands.
-    fn is_ready(&self) -> bool {
-        if let Some(expected_init_time) = self.expected_init_time {
-            return Instant::now() >= expected_init_time;
-        }
-
-        true
+        self.i2c
+            .write_read(self.addr, &cmd[..len], buffer, Self::BUS_TIMEOUT)
     }
 
     /// Blocks the caller until the sensor is ready.
-    fn wait_until_ready(&mut self) {
-        if self.is_ready() {
-            return;
+    fn wait_until_ready(&self) -> OsResult<()> {
+        let mut maybe_expected_init_time = self.expected_init_time.lock()?;
+
+        if maybe_expected_init_time.is_none() {
+            return Ok(());
+        }
+
+        // SAFETY: The above check for `Option::None` guarantees that this only runs of the option has a value.
+        let expected_init_time = unsafe { maybe_expected_init_time.unwrap_unchecked() };
+
+        if Instant::now() >= expected_init_time {
+            return Ok(());
         }
 
         log::warn!("Sensor is not ready yet, waiting...");
 
-        // SAFETY: This branch only runs if `self.expected_init_time` is `Some(...)`
-        let expected_init_time = unsafe { self.expected_init_time.unwrap_unchecked() };
-
         let min_wait_time = expected_init_time - Instant::now();
         std::thread::sleep(min_wait_time);
-        self.expected_init_time = None;
+
+        *maybe_expected_init_time = None;
+        drop(maybe_expected_init_time);
+        Ok(())
     }
 }
 
-impl Drop for BoschME280<'_> {
+impl Drop for BoschME280 {
     fn drop(&mut self) {
         log::debug!("Attempting to enter sleep mode");
 
@@ -290,68 +347,45 @@ impl Drop for BoschME280<'_> {
     }
 }
 
-impl EnvironmentSensor for BoschME280<'_> {
-    fn read_temperature(&mut self) -> OsResult<Temperature> {
-        let raw_t = self.read_raw_measurements()?.0;
-
-        // temperature compensation
-        let t_fine = self.calc_t_fine(raw_t);
-        let temperature_c = t_fine / 5120.0;
-
-        Ok(temperature_c)
+impl Driver for BoschME280 {
+    fn driver_name(&self) -> &'static str {
+        "BoshBME280"
     }
 
-    #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
-    fn read_humidity(&mut self) -> OsResult<Humidity> {
-        let (raw_t, raw_h, _) = self.read_raw_measurements()?;
-
-        // humidity compensation
-        let t_fine = self.calc_t_fine(raw_t);
-        let mut h = t_fine - 76800.0;
-
-        h = (raw_h - self.cal.h4.mul_add(64.0, self.cal.h5 / 16384.0 * h))
-            * (self.cal.h2 / 65536.0
-                * (self.cal.h6 / 67_108_864.0 * h)
-                    .mul_add((self.cal.h3 / 67_108_864.0).mul_add(h, 1.0), 1.0));
-
-        h = h * (1.0 - self.cal.h1 * h / 524_288.0);
-        h = h.floor().clamp(0., 100.);
-
-        Ok(h as u8)
+    fn driver_version(&self) -> &'static str {
+        "v1.0.0"
     }
 
-    #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
-    fn read_air_pressure(&mut self) -> OsResult<Option<AirPressure>> {
-        let (raw_t, _, raw_p) = self.read_raw_measurements()?;
+    fn device_name(&self) -> OsResult<String> {
+        Ok(self
+            .model()?
+            .map_or_else(|| "Unknown".to_string(), std::string::ToString::to_string))
+    }
 
-        // pressure compensation
-        let t_fine = self.calc_t_fine(raw_t);
+    fn device_model(&self) -> OsResult<String> {
+        self.device_name()
+    }
+}
 
-        let mut p_var1 = (t_fine / 2.0) - 64000.0;
-        let mut p_var2 = p_var1 * p_var1 * self.cal.p6 / 32768.0;
-        p_var2 = (p_var1 * self.cal.p5).mul_add(2.0, p_var2);
-        p_var2 = self.cal.p4.mul_add(65536.0, p_var2 / 4.0);
-        p_var1 = self
-            .cal
-            .p2
-            .mul_add(p_var1, self.cal.p3 * p_var1 * p_var1 / 524_288.0)
-            / 524_288.0;
-        p_var1 = (1.0 + p_var1 / 32768.0) * self.cal.p1;
+impl TemperatureDriver for BoschME280 {
+    fn read(&self) -> OsResult<f32> {
+        self.read_temperature()
+    }
 
-        let pressure_pa = if p_var1 > 0.0 {
-            let mut p = 1_048_576.0 - raw_p;
-            p = (p - (p_var2 / 4096.0)) * 6250.0 / p_var1;
-            p_var1 = self.cal.p9 * p * p / 2_147_483_648.0;
-            p_var2 = p * self.cal.p8 / 32768.0;
-            p + (p_var1 + p_var2 + self.cal.p7) / 16.0
-        } else {
-            0.0
-        };
+    fn is_internal(&self) -> bool {
+        false
+    }
+}
 
-        let hpa = pressure_pa / 100.0;
-        let hpa = hpa.floor().clamp(0., 65535.0) as u16;
+impl HumidityDriver for BoschME280 {
+    fn read(&self) -> OsResult<u8> {
+        self.read_humidity()
+    }
+}
 
-        Ok(Some(hpa))
+impl AirPressureDriver for BoschME280 {
+    fn read(&self) -> OsResult<u16> {
+        self.read_air_pressure()
     }
 }
 

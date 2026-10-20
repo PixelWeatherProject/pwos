@@ -1,7 +1,7 @@
 //! Error types for the firmware.
 
 use esp_idf_svc::sys::EspError;
-use std::{fmt::Display, string::FromUtf8Error};
+use std::{fmt::Display, string::FromUtf8Error, sync::PoisonError};
 use thiserror::Error;
 
 /// A wrapper for several different lower-level error types.
@@ -155,6 +155,10 @@ pub enum OsError {
     /// Failed to read data from internal temperature sensor.
     #[error("Failed to read internal temperature sensor")]
     InternalTempSensorRead(EspError),
+
+    /// Mutex could not be locked.
+    #[error("Failed to aquire mutex lock (poisoned)")]
+    MutexPoisoned,
 }
 
 /// Trait for non-fatal error types that can be "reported" to the console.
@@ -170,6 +174,12 @@ impl<T, E: Display> ReportableError for Result<T, E> {
         if let Err(why) = self {
             log::warn!("{desc}: {why}");
         }
+    }
+}
+
+impl<T> From<PoisonError<T>> for OsError {
+    fn from(_: PoisonError<T>) -> Self {
+        Self::MutexPoisoned
     }
 }
 
