@@ -21,6 +21,12 @@ pub fn init(i2c: &SharedI2cDriver, int_temp_sensor: TempSensorDriver<'static>) -
 
     // ... implement more interfaces here
 
+    #[cfg(debug_assertions)]
+    log::debug!(
+        "Loaded {} devices",
+        RegisteredDevices::loaded_device_count()
+    );
+
     Ok(())
 }
 

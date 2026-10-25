@@ -46,4 +46,13 @@ impl RegisteredDevices {
             .map(|mut store| store.air_pressure_sensor = Some(driver))?;
         Ok(())
     }
+
+    #[cfg(debug_assertions)]
+    pub fn loaded_device_count() -> usize {
+        GLOBAL_STORE.try_read().map_or(0, |store| {
+            store.temperature_sensors.len()
+                + usize::from(store.humidity_sensor.is_some())
+                + usize::from(store.air_pressure_sensor.is_some())
+        })
+    }
 }
