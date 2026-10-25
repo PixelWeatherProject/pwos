@@ -68,9 +68,9 @@ enum Command {
 #[derive(Default)]
 struct CalibrationData {
     // Temperature
-    t1: f32,
-    t2: f32,
-    t3: f32,
+    t1: u16,
+    t2: i16,
+    t3: i16,
 
     // Pressure
     p1: f32,
@@ -135,22 +135,30 @@ impl BoschME280 {
         Ok(dev)
     }
 
+    /// Read the temperature in decidegrees Celsius.
+    #[allow(clippy::cast_possible_truncation)]
     pub fn read_temperature(&self) -> OsResult<Temperature> {
         let raw_t = self.read_raw_measurements()?.0;
 
         // temperature compensation
+        // T[°C] = t_fine / 5120, so T[d°C] = t_fine / 512, rounded to nearest
         let t_fine = self.calc_t_fine(raw_t);
-        let temperature_c = t_fine / 5120.0;
+        let temperature_dc = (t_fine + 256) >> 9;
 
-        Ok(temperature_c)
+        // the sensor's range is -40..85°C, so this always fits
+        Ok(temperature_dc as Temperature)
     }
 
-    #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+    #[allow(
+        clippy::cast_possible_truncation,
+        clippy::cast_sign_loss,
+        clippy::cast_precision_loss
+    )]
     pub fn read_humidity(&self) -> OsResult<Humidity> {
         let (raw_t, raw_h, _) = self.read_raw_measurements()?;
 
         // humidity compensation
-        let t_fine = self.calc_t_fine(raw_t);
+        let t_fine = self.calc_t_fine(raw_t) as f32;
         let mut h = t_fine - 76800.0;
 
         h = (raw_h - self.cal.h4.mul_add(64.0, self.cal.h5 / 16384.0 * h))
@@ -164,12 +172,16 @@ impl BoschME280 {
         Ok(h as u8)
     }
 
-    #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+    #[allow(
+        clippy::cast_possible_truncation,
+        clippy::cast_sign_loss,
+        clippy::cast_precision_loss
+    )]
     pub fn read_air_pressure(&self) -> OsResult<AirPressure> {
         let (raw_t, _, raw_p) = self.read_raw_measurements()?;
 
         // pressure compensation
-        let t_fine = self.calc_t_fine(raw_t);
+        let t_fine = self.calc_t_fine(raw_t) as f32;
 
         let mut p_var1 = (t_fine / 2.0) - 64000.0;
         let mut p_var2 = p_var1 * p_var1 * self.cal.p6 / 32768.0;
@@ -218,9 +230,9 @@ impl BoschME280 {
         self.write_read(Command::ReadCalibrationPart2, &mut calib_buf_2)?;
 
         self.cal = CalibrationData {
-            t1: f32::from(u16::from_le_bytes([calib_buf_1[0], calib_buf_1[1]])),
-            t2: f32::from(i16::from_le_bytes([calib_buf_1[2], calib_buf_1[3]])),
-            t3: f32::from(i16::from_le_bytes([calib_buf_1[4], calib_buf_1[5]])),
+            t1: u16::from_le_bytes([calib_buf_1[0], calib_buf_1[1]]),
+            t2: i16::from_le_bytes([calib_buf_1[2], calib_buf_1[3]]),
+            t3: i16::from_le_bytes([calib_buf_1[4], calib_buf_1[5]]),
 
             p1: f32::from(u16::from_le_bytes([calib_buf_1[6], calib_buf_1[7]])),
             p2: f32::from(i16::from_le_bytes([calib_buf_1[8], calib_buf_1[9]])),
@@ -251,7 +263,7 @@ impl BoschME280 {
     ///
     /// These are not final and need to be compensated using the calibration data to get accurate readings.
     #[allow(clippy::cast_precision_loss)]
-    fn read_raw_measurements(&self) -> OsResult<(f32, f32, f32)> {
+    fn read_raw_measurements(&self) -> OsResult<(i32, f32, f32)> {
         let mut buffer = [0; 8];
         self.write_read(Command::ReadMeasurementsStartRegister, &mut buffer)?;
 
@@ -259,9 +271,9 @@ impl BoschME280 {
             | u32::from(buffer[1]) << 4
             | u32::from(buffer[2]) >> 4) as f32;
 
-        let raw_t = (u32::from(buffer[3]) << 12
-            | u32::from(buffer[4]) << 4
-            | u32::from(buffer[5]) >> 4) as f32;
+        // 20-bit value, always fits into an `i32`
+        let raw_t =
+            i32::from(buffer[3]) << 12 | i32::from(buffer[4]) << 4 | i32::from(buffer[5]) >> 4;
 
         let raw_h = (u32::from(buffer[6]) << 8 | u32::from(buffer[7])) as f32;
 
@@ -285,11 +297,15 @@ impl BoschME280 {
     }
 
     /// Calculate the `t_fine` value from the raw temperature measurement, which is used for compensation of all measurements.
-    const fn calc_t_fine(&self, raw_t: f32) -> f32 {
-        let var1 = (raw_t / 16384.0 - self.cal.t1 / 1024.0) * self.cal.t2;
-        let var2 = ((raw_t / 131_072.0 - self.cal.t1 / 8192.0)
-            * (raw_t / 131_072.0 - self.cal.t1 / 8192.0))
-            * self.cal.t3;
+    ///
+    /// Uses the 32-bit integer compensation formula from the datasheet.
+    fn calc_t_fine(&self, raw_t: i32) -> i32 {
+        let t1 = i32::from(self.cal.t1);
+        let t2 = i32::from(self.cal.t2);
+        let t3 = i32::from(self.cal.t3);
+
+        let var1 = (((raw_t >> 3) - (t1 << 1)) * t2) >> 11;
+        let var2 = (((((raw_t >> 4) - t1) * ((raw_t >> 4) - t1)) >> 12) * t3) >> 14;
         var1 + var2
     }
 
@@ -351,7 +367,7 @@ impl Driver for BoschME280 {}
 
 impl TemperatureDriver for BoschME280 {
     fn read(&self) -> OsResult<f32> {
-        self.read_temperature()
+        self.read_temperature().map(|t| f32::from(t) / 10.0)
     }
 
     fn is_internal(&self) -> bool {
