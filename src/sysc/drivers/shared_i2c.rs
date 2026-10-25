@@ -35,3 +35,9 @@ impl SharedI2cDriver {
         )
     }
 }
+
+impl Clone for SharedI2cDriver {
+    fn clone(&self) -> Self {
+        Self(Arc::clone(&self.0))
+    }
+}

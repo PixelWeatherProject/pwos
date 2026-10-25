@@ -106,7 +106,7 @@ fn main() {
         .expect("Failed to enable internal temperature sensor driver");
 
     log::debug!("Initializing dynamic driver loader subsystem");
-    ddls::init(i2c, temp_sensor).expect("DDLS init failed");
+    ddls::init(&i2c, temp_sensor).expect("DDLS init failed");
 
     log::debug!("Initializing app configuration");
     let mut appcfg = config::get_settings();

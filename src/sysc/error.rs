@@ -1,7 +1,11 @@
 //! Error types for the firmware.
 
 use esp_idf_svc::sys::EspError;
-use std::{fmt::Display, string::FromUtf8Error, sync::PoisonError};
+use std::{
+    fmt::Display,
+    string::FromUtf8Error,
+    sync::{PoisonError, TryLockError},
+};
 use thiserror::Error;
 
 /// A wrapper for several different lower-level error types.
@@ -179,6 +183,12 @@ impl<T, E: Display> ReportableError for Result<T, E> {
 
 impl<T> From<PoisonError<T>> for OsError {
     fn from(_: PoisonError<T>) -> Self {
+        Self::MutexPoisoned
+    }
+}
+
+impl<T> From<TryLockError<T>> for OsError {
+    fn from(_: TryLockError<T>) -> Self {
         Self::MutexPoisoned
     }
 }

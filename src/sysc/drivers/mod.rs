@@ -35,27 +35,27 @@ pub struct TemperatureSensor {
 
 impl TemperatureSensor {
     pub fn get_internal() -> Option<Self> {
-        unsafe {
-            store::GLOBAL_STORE
-                .temperature_sensors
-                .iter()
-                .find(|s| s.is_internal())
-                .map(|s| Self {
-                    driver: Arc::clone(s),
-                })
-        }
+        store::GLOBAL_STORE
+            .try_read()
+            .ok()?
+            .temperature_sensors
+            .iter()
+            .find(|s| s.is_internal())
+            .map(|s| Self {
+                driver: Arc::clone(s),
+            })
     }
 
     pub fn get_external() -> Option<Self> {
-        unsafe {
-            store::GLOBAL_STORE
-                .temperature_sensors
-                .iter()
-                .find(|s| !s.is_internal())
-                .map(|s| Self {
-                    driver: Arc::clone(s),
-                })
-        }
+        store::GLOBAL_STORE
+            .try_read()
+            .ok()?
+            .temperature_sensors
+            .iter()
+            .find(|s| !s.is_internal())
+            .map(|s| Self {
+                driver: Arc::clone(s),
+            })
     }
 }
 
@@ -73,11 +73,14 @@ pub struct HumiditySensor {
 
 impl HumiditySensor {
     pub fn get() -> Option<Self> {
-        unsafe {
-            store::GLOBAL_STORE.humidity_sensor.as_ref().map(|d| Self {
+        store::GLOBAL_STORE
+            .try_read()
+            .ok()?
+            .humidity_sensor
+            .as_ref()
+            .map(|d| Self {
                 driver: Arc::clone(d),
             })
-        }
     }
 }
 
@@ -95,14 +98,14 @@ pub struct AirPressureSensor {
 
 impl AirPressureSensor {
     pub fn get() -> Option<Self> {
-        unsafe {
-            store::GLOBAL_STORE
-                .air_pressure_sensor
-                .as_ref()
-                .map(|d| Self {
-                    driver: Arc::clone(d),
-                })
-        }
+        store::GLOBAL_STORE
+            .try_read()
+            .ok()?
+            .air_pressure_sensor
+            .as_ref()
+            .map(|d| Self {
+                driver: Arc::clone(d),
+            })
     }
 }
 

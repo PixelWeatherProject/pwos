@@ -1,7 +1,10 @@
-use crate::sysc::drivers::{AirPressureDriver, HumidityDriver, TemperatureDriver};
-use std::sync::Arc;
+use crate::sysc::{
+    drivers::{AirPressureDriver, HumidityDriver, TemperatureDriver},
+    OsResult,
+};
+use std::sync::{Arc, RwLock};
 
-pub(super) static mut GLOBAL_STORE: RegisteredDevices = RegisteredDevices::new();
+pub(super) static GLOBAL_STORE: RwLock<RegisteredDevices> = RwLock::new(RegisteredDevices::new());
 
 pub struct RegisteredDevices {
     // We have an internal and external sensor, so we allow multiple
@@ -23,19 +26,24 @@ impl RegisteredDevices {
         }
     }
 
-    pub fn register_temperature_device<D: TemperatureDriver>(driver: Arc<D>) {
-        unsafe { GLOBAL_STORE.temperature_sensors.push(driver) };
+    pub fn register_temperature_device<D: TemperatureDriver>(driver: Arc<D>) -> OsResult<()> {
+        GLOBAL_STORE
+            .try_write()
+            .map(|mut store| store.temperature_sensors.push(driver))?;
+        Ok(())
     }
 
-    pub fn register_humidity_device<D: HumidityDriver>(driver: Arc<D>) {
-        unsafe {
-            GLOBAL_STORE.humidity_sensor = Some(driver);
-        }
+    pub fn register_humidity_device<D: HumidityDriver>(driver: Arc<D>) -> OsResult<()> {
+        GLOBAL_STORE
+            .try_write()
+            .map(|mut store| store.humidity_sensor = Some(driver))?;
+        Ok(())
     }
 
-    pub fn register_air_pressure_device<D: AirPressureDriver>(driver: Arc<D>) {
-        unsafe {
-            GLOBAL_STORE.air_pressure_sensor = Some(driver);
-        }
+    pub fn register_air_pressure_device<D: AirPressureDriver>(driver: Arc<D>) -> OsResult<()> {
+        GLOBAL_STORE
+            .try_write()
+            .map(|mut store| store.air_pressure_sensor = Some(driver))?;
+        Ok(())
     }
 }
