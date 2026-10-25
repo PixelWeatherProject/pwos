@@ -70,17 +70,26 @@ impl Htu {
         }
     }
 
+    /// Read the temperature in decidegrees Celsius.
+    #[allow(clippy::cast_possible_truncation)]
     pub fn read_temperature(&self) -> OsResult<Temperature> {
-        let raw = self.write_read_u16(Command::ReadTemperature)?;
-        let temp = ((175.72 * f32::from(raw)) / 65536.0) - 46.85;
-        Ok(temp)
+        let raw = i32::from(self.write_read_u16(Command::ReadTemperature)?);
+
+        // T[°C] = 175.72 * raw / 65536 - 46.85
+        // T[d°C] = (17572 * raw - 4685 * 65536) / 655360, rounded to nearest
+        let temp = (17572 * raw - 4685 * 65536 + 327_680).div_euclid(655_360);
+
+        // the result is always within -469..1288, so this always fits
+        Ok(temp as Temperature)
     }
 
     #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
     pub fn read_humidity(&self) -> OsResult<Humidity> {
-        let raw = self.write_read_u16(Command::ReadHumidity)?;
-        let hum = ((125.0 * f32::from(raw)) / 65536.0) - 6.0;
-        let percentage = hum.floor().clamp(0., 100.);
+        let raw = i32::from(self.write_read_u16(Command::ReadHumidity)?);
+
+        // RH[%] = 125 * raw / 65536 - 6, floored
+        let hum = ((125 * raw) >> 16) - 6;
+        let percentage = hum.clamp(0, 100);
 
         Ok(percentage as u8)
     }
@@ -134,7 +143,7 @@ impl TemperatureDriver for Htu {
     }
 
     fn read(&self) -> OsResult<f32> {
-        self.read_temperature()
+        self.read_temperature().map(|t| f32::from(t) / 10.0)
     }
 }
 
