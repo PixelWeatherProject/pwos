@@ -126,25 +126,7 @@ impl Command {
     }
 }
 
-impl Driver for Htu {
-    fn driver_name(&self) -> &'static str {
-        "HTU"
-    }
-
-    fn driver_version(&self) -> &'static str {
-        "v1.0.0"
-    }
-
-    fn device_name(&self) -> OsResult<String> {
-        Ok(String::from("Unknown"))
-    }
-
-    fn device_model(&self) -> OsResult<String> {
-        Ok(self
-            .model()?
-            .map_or_else(|| "Unknown".to_string(), std::string::ToString::to_string))
-    }
-}
+impl Driver for Htu {}
 
 impl TemperatureDriver for Htu {
     fn is_internal(&self) -> bool {

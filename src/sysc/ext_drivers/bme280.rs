@@ -347,25 +347,7 @@ impl Drop for BoschME280 {
     }
 }
 
-impl Driver for BoschME280 {
-    fn driver_name(&self) -> &'static str {
-        "BoshBME280"
-    }
-
-    fn driver_version(&self) -> &'static str {
-        "v1.0.0"
-    }
-
-    fn device_name(&self) -> OsResult<String> {
-        Ok(self
-            .model()?
-            .map_or_else(|| "Unknown".to_string(), std::string::ToString::to_string))
-    }
-
-    fn device_model(&self) -> OsResult<String> {
-        self.device_name()
-    }
-}
+impl Driver for BoschME280 {}
 
 impl TemperatureDriver for BoschME280 {
     fn read(&self) -> OsResult<f32> {

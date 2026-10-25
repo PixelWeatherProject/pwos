@@ -5,15 +5,7 @@ pub mod internal_temp_sensor;
 pub mod shared_i2c;
 pub mod store;
 
-pub trait Driver: 'static + Send + Sync {
-    fn driver_name(&self) -> &'static str;
-
-    fn driver_version(&self) -> &'static str;
-
-    fn device_name(&self) -> OsResult<String>;
-
-    fn device_model(&self) -> OsResult<String>;
-}
+pub trait Driver: 'static + Send + Sync {}
 
 pub trait TemperatureDriver: Driver {
     fn read(&self) -> OsResult<f32>;

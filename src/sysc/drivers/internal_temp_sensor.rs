@@ -11,23 +11,7 @@ impl From<TempSensorDriver<'static>> for CpuTemperatureSensor {
     }
 }
 
-impl Driver for CpuTemperatureSensor {
-    fn driver_name(&self) -> &'static str {
-        "ESP32S3 Internal Temperature Sensor Driver"
-    }
-
-    fn driver_version(&self) -> &'static str {
-        "v1.0.0"
-    }
-
-    fn device_name(&self) -> OsResult<String> {
-        Ok("Internal Temperature Sesnor".to_string())
-    }
-
-    fn device_model(&self) -> OsResult<String> {
-        Ok("Generic".to_string())
-    }
-}
+impl Driver for CpuTemperatureSensor {}
 
 impl TemperatureDriver for CpuTemperatureSensor {
     fn read(&self) -> OsResult<f32> {
