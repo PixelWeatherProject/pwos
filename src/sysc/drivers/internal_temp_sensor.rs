@@ -1,6 +1,7 @@
 use super::{Driver, TemperatureDriver};
 use crate::sysc::{OsError, OsResult};
 use esp_idf_svc::hal::temp_sensor::TempSensorDriver;
+use pwmp_client::pwmp_msg::aliases::Temperature;
 use std::sync::{Arc, Mutex};
 
 pub struct CpuTemperatureSensor(Arc<Mutex<TempSensorDriver<'static>>>);
@@ -14,11 +15,16 @@ impl From<TempSensorDriver<'static>> for CpuTemperatureSensor {
 impl Driver for CpuTemperatureSensor {}
 
 impl TemperatureDriver for CpuTemperatureSensor {
-    fn read(&self) -> OsResult<f32> {
-        self.0
+    #[allow(clippy::cast_possible_truncation)]
+    fn read(&self) -> OsResult<Temperature> {
+        let celsius = self
+            .0
             .lock()?
             .get_celsius()
-            .map_err(OsError::InternalTempSensorRead)
+            .map_err(OsError::InternalTempSensorRead)?;
+
+        // the HAL only provides a float reading
+        Ok((celsius * 10.0).round() as Temperature)
     }
 
     fn is_internal(&self) -> bool {

@@ -88,15 +88,20 @@ pub fn fw_main(
     let cpu_die_temp = TemperatureSensor::get_internal()
         .ok_or(OsError::UnexpectedNull)?
         .read()?;
-    log::info!("{temperature:.02}*C / {humidity}%");
+    log::info!(
+        "{}{}.{}*C / {humidity}%",
+        if temperature < 0 { "-" } else { "" },
+        temperature.unsigned_abs() / 10,
+        temperature.unsigned_abs() % 10
+    );
 
     log::debug!("Posting results");
     pws.post_measurements(
-        temperature,
+        f32::from(temperature) / 10.0,
         humidity,
         air_pressure,
         bat_voltage,
-        cpu_die_temp,
+        f32::from(cpu_die_temp) / 10.0,
         &ap.ssid,
         rssi,
     )?;

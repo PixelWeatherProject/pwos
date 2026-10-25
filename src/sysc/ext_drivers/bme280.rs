@@ -366,8 +366,8 @@ impl Drop for BoschME280 {
 impl Driver for BoschME280 {}
 
 impl TemperatureDriver for BoschME280 {
-    fn read(&self) -> OsResult<f32> {
-        self.read_temperature().map(|t| f32::from(t) / 10.0)
+    fn read(&self) -> OsResult<Temperature> {
+        self.read_temperature()
     }
 
     fn is_internal(&self) -> bool {

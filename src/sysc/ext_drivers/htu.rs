@@ -142,8 +142,8 @@ impl TemperatureDriver for Htu {
         false
     }
 
-    fn read(&self) -> OsResult<f32> {
-        self.read_temperature().map(|t| f32::from(t) / 10.0)
+    fn read(&self) -> OsResult<Temperature> {
+        self.read_temperature()
     }
 }
 

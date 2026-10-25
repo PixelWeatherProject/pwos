@@ -1,4 +1,5 @@
 use crate::sysc::OsResult;
+use pwmp_client::pwmp_msg::aliases::Temperature;
 use std::{ops::Deref, sync::Arc};
 
 pub mod internal_temp_sensor;
@@ -8,7 +9,8 @@ pub mod store;
 pub trait Driver: 'static + Send + Sync {}
 
 pub trait TemperatureDriver: Driver {
-    fn read(&self) -> OsResult<f32>;
+    /// Read the temperature in decidegrees Celsius.
+    fn read(&self) -> OsResult<Temperature>;
 
     fn is_internal(&self) -> bool;
 }
