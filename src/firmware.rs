@@ -97,11 +97,11 @@ pub fn fw_main(
 
     log::debug!("Posting results");
     pws.post_measurements(
-        f32::from(temperature) / 10.0,
+        temperature,
         humidity,
         air_pressure,
         bat_voltage,
-        f32::from(cpu_die_temp) / 10.0,
+        cpu_die_temp,
         &ap.ssid,
         rssi,
     )?;
