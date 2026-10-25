@@ -58,7 +58,9 @@ pub fn fw_main(
     log::debug!("Requesting app configuration");
     read_appcfg(&mut pws, cfg)?;
 
-    let temperature_sensor = TemperatureSensor::get_external().ok_or(OsError::NoEnvSensor)?;
+    let int_temperature_sensor =
+        TemperatureSensor::get_internal().ok_or(OsError::UnexpectedNull)?;
+    let ext_temperature_sensor = TemperatureSensor::get_external().ok_or(OsError::NoEnvSensor)?;
     let humidity_sensor = HumiditySensor::get().ok_or(OsError::NoEnvSensor)?;
     let air_pressure_sensor = AirPressureSensor::get();
 
@@ -79,15 +81,13 @@ pub fn fw_main(
     }
 
     let rssi = wifi.live_rssi()?;
-    let temperature = temperature_sensor.read()?;
+    let temperature = ext_temperature_sensor.read()?;
     let humidity = humidity_sensor.read()?;
     let air_pressure = match air_pressure_sensor {
         Some(s) => Some(s.read()?),
         None => None,
     };
-    let cpu_die_temp = TemperatureSensor::get_internal()
-        .ok_or(OsError::UnexpectedNull)?
-        .read()?;
+    let cpu_die_temp = int_temperature_sensor.read()?;
     log::info!(
         "{}{}.{}*C / {humidity}%",
         if temperature < 0 { "-" } else { "" },
@@ -106,60 +106,10 @@ pub fn fw_main(
         rssi,
     )?;
 
-    let reset_reason = get_reset_reason();
-    if reset_reason.is_abnormal() {
-        log::warn!("Detected abnormal reset reason: {reset_reason:?}");
-
-        pws.send_notification(format!("Detected abnormal reset reason: {reset_reason:?}"))
-            .report("Failed to report abnormal reset reason");
-    }
-
-    if let Some(error) = nvs.get_last_os_error()? {
-        log::info!("Reporting error from previous run ({error})");
-
-        pws.send_notification(format!("Error from previous run: {error}"))
-            .report("Failed to report previous error");
-
-        nvs.clear_last_os_error()?;
-    } else {
-        log::debug!("No error detected from previous run");
-    }
-
-    if ota.report_needed()? {
-        let success = !ota.rollback_detected()?;
-
-        log::info!(
-            "Reporting {}successfull firmware update",
-            if success { "" } else { "un" }
-        );
-
-        pws.send_notification(format!(
-            "Update to PWOS {} has {}",
-            if success {
-                env!("CARGO_PKG_VERSION").to_string()
-            } else {
-                ota.previous_version()?.to_string()
-            },
-            if success { "succeeded" } else { "failed" }
-        ))?;
-
-        pws.report_firmware(success)?;
-        ota.mark_reported();
-    } else {
-        log::debug!("No update report needed");
-    }
-
-    log::debug!("Checking for updates");
-    if check_ota(&mut pws)? {
-        let mut handle = ota.begin_update()?;
-
-        if let Err(why) = begin_update(&mut pws, &mut handle) {
-            log::error!("OTA failed: {why}, aborting");
-            handle.cancel()?;
-        }
-
-        log::info!("Update installed successfully");
-    } // Handle will be dropped and the update should finalize
+    report_reset_reason(&mut pws);
+    report_previous_run_error(&mut pws, nvs)?;
+    report_ota_result(&mut pws, ota)?;
+    ota_routine(&mut pws, ota)?;
 
     led.off();
     Ok(())
@@ -272,6 +222,74 @@ fn wifi_try_connect(wifi: &mut WiFi, ap: &AccessPointInfo, skip_save: bool) -> O
         }
         Err(why) => Err(why),
     }
+}
+
+fn report_reset_reason(pws: &mut PwmpClient) {
+    let reset_reason = get_reset_reason();
+    if reset_reason.is_abnormal() {
+        log::warn!("Detected abnormal reset reason: {reset_reason:?}");
+
+        pws.send_notification(format!("Detected abnormal reset reason: {reset_reason:?}"))
+            .report("Failed to report abnormal reset reason");
+    }
+}
+
+fn report_previous_run_error(pws: &mut PwmpClient, nvs: &NonVolatileStorage) -> OsResult<()> {
+    if let Some(error) = nvs.get_last_os_error()? {
+        log::info!("Reporting error from previous run ({error})");
+
+        pws.send_notification(format!("Error from previous run: {error}"))
+            .report("Failed to report previous error");
+
+        nvs.clear_last_os_error()?;
+    } else {
+        log::debug!("No error detected from previous run");
+    }
+
+    Ok(())
+}
+
+fn report_ota_result(pws: &mut PwmpClient, ota: &Ota) -> OsResult<()> {
+    if ota.report_needed()? {
+        let success = !ota.rollback_detected()?;
+
+        log::info!(
+            "Reporting {}successfull firmware update",
+            if success { "" } else { "un" }
+        );
+
+        pws.send_notification(format!(
+            "Update to PWOS {} has {}",
+            if success {
+                env!("CARGO_PKG_VERSION").to_string()
+            } else {
+                ota.previous_version()?.to_string()
+            },
+            if success { "succeeded" } else { "failed" }
+        ))?;
+
+        pws.report_firmware(success)?;
+        ota.mark_reported();
+    } else {
+        log::debug!("No update report needed");
+    }
+    Ok(())
+}
+
+fn ota_routine(pws: &mut PwmpClient, ota: &mut Ota) -> OsResult<()> {
+    log::debug!("Checking for updates");
+    if check_ota(pws)? {
+        let mut handle = ota.begin_update()?;
+
+        if let Err(why) = begin_update(pws, &mut handle) {
+            log::error!("OTA failed: {why}, aborting");
+            handle.cancel()?;
+        }
+
+        log::info!("Update installed successfully");
+    } // Handle will be dropped and the update should finalize
+
+    Ok(())
 }
 
 fn read_appcfg(pws: &mut PwmpClient, appcfg: &mut NodeSettings) -> OsResult<()> {
