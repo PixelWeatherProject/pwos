@@ -67,7 +67,7 @@ pub fn fw_main(
         log::warn!("Battery voltage measurement may be affected by USB power");
         cfg.battery_ignore = true;
     }
-    log::info!("Battery: {bat_voltage:.02}V");
+    log::info!("Battery: {}.{:03}V", bat_voltage / 1000, bat_voltage % 1000);
 
     if (bat_voltage <= CRITICAL_VOLTAGE) && cfg.sbop && !cfg.battery_ignore {
         log::warn!("Battery voltage too low, activating sBOP");

@@ -15,6 +15,7 @@ use esp_idf_svc::{
     },
     sys::adc_atten_t,
 };
+use pwmp_client::pwmp_msg::aliases::BatteryVoltage;
 use std::rc::Rc;
 
 /// GPIO pin where the output of the voltage divider is connected
@@ -38,9 +39,9 @@ type BatteryAdcChannelDriver = AdcChannelDriver<'static, BatteryChannel, Rc<Batt
 // the ADC, the current should be very limited, i.e. no damage should be done.
 const ATTEN: adc_atten_t = 0;
 /// Value of the first resistor of the voltage divider
-const R1: f32 = 1_000_000.; // 1MOhm
+const R1: u32 = 1_000_000; // 1MOhm
 /// Value of the second resistor of the voltage divider
-const R2: f32 = 300_000.; // 300kOhm
+const R2: u32 = 300_000; // 300kOhm
 /// ADC channel configuration
 const CONFIG: AdcChannelConfig = AdcChannelConfig {
     attenuation: ATTEN,              /* refer to the attenuation value above  */
@@ -48,7 +49,7 @@ const CONFIG: AdcChannelConfig = AdcChannelConfig {
     resolution: Resolution::Resolution12Bit, /* ADC resolution */
 };
 /// Critical voltage value that's still higher than the minimum supply voltage for the ESP32
-pub const CRITICAL_VOLTAGE: f32 = 3.22;
+pub const CRITICAL_VOLTAGE: BatteryVoltage = 3220; // mV
 /// Amount of samples to read when reading ADC value.
 pub const SAMPLES: u16 = 16;
 
@@ -77,7 +78,7 @@ impl Battery {
         Ok(Self { adc, ch })
     }
 
-    /// Returns the voltage measured by the ADC.
+    /// Returns the battery voltage in millivolts.
     ///
     /// This method internally uses multisampling to stabilize the value.
     /// The number of samples is defined in the constant [`SAMPLES`].
@@ -85,12 +86,17 @@ impl Battery {
     /// # Errors
     /// Retuns an [`OsError::AdcRead`](crate::sysc::error::OsError::AdcRead)
     /// if the ADC read operation fails.
-    pub fn read(&mut self) -> OsResult<f32> {
+    #[allow(clippy::cast_possible_truncation)]
+    pub fn read(&mut self) -> OsResult<BatteryVoltage> {
         let raw = self.read_raw_avg()?;
-        let volts = f32::from(self.raw_to_mv(raw)?) / 1000.;
-        let result = (volts * (R1 + R2)) / R2;
+        let adc_mv = u32::from(self.raw_to_mv(raw)?);
 
-        Ok(result)
+        // undo the voltage divider, rounded to nearest
+        // the ADC tops out at ~1V, so this can't overflow a `u32`
+        let result = (adc_mv * (R1 + R2) + R2 / 2) / R2;
+
+        // ~1V * 13 / 3 = ~4.3V, so this always fits
+        Ok(result as BatteryVoltage)
     }
 
     /// Returns a calculated average value from the ADC.
