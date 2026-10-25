@@ -1,6 +1,6 @@
 [package]
 name = "pwos"
-version = "3.0.4"
+version = "4.0.0"
 authors = ["Fábián Varga <23280129+br0kenpixel@users.noreply.github.com>"]
 description = "PixelWeatherOS for the PixelWeather weather station project."
 homepage = "https://github.com/PixelWeatherProject"
@@ -31,7 +31,7 @@ esp-idf-svc = { version = "0.52.1", default-features = false, features = [
     "alloc",
     "binstart",
 ] }
-pwmp-client = { git = "https://github.com/PixelWeatherProject/pwmp-client", tag = "v3.1.1" }
+pwmp-client = { git = "https://github.com/PixelWeatherProject/pwmp-client", branch = "v4" }
 log = { version = "0.4.34", default-features = false, features = ["release_max_level_info", "max_level_debug"] }
 thiserror = { version = "2.0.21", default-features = false }
 heapless = "0.9.3"

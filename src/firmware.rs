@@ -53,7 +53,7 @@ pub fn fw_main(
         })?;
 
     log::debug!("Sending handshake request");
-    pws.perform_handshake(wifi.get_mac()?)?;
+    pws.initialize_session(wifi.get_mac()?, ota.current_version()?, None)?;
 
     log::debug!("Requesting app configuration");
     read_appcfg(&mut pws, cfg)?;
