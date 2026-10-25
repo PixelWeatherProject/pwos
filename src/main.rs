@@ -116,7 +116,6 @@ fn main() {
     let start = Instant::now();
     let fw_exit = firmware::fw_main(
         battery,
-        //i2c,
         peripherals.wifi.modem,
         peripherals.wifi.sys_loop,
         led,
