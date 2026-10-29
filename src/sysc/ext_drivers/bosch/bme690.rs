@@ -23,9 +23,7 @@ const STATUS_NEW_DATA: u8 = 1 << 7;
 const STATUS_MEASURING: u8 = 1 << 5;
 
 // with 16x oversampling on all channels, a measurement takes roughly 100ms
-const EXPECTED_DURATION: Duration = Duration::from_millis(100);
-const POLL_INTERVAL: Duration = Duration::from_millis(5);
-const MAX_POLLS: u32 = 20;
+const EXPECTED_DURATION: Duration = Duration::from_millis(120);
 
 /// Sensor calibration data.
 ///
@@ -83,6 +81,7 @@ pub struct Driver {
 
 impl Driver {
     pub fn new(addr: u8, i2c: SharedI2cDriver) -> Self {
+        log::debug!("Loading BME690 driver");
         Self {
             cal: CalibrationData::default(),
             i2c,
@@ -293,28 +292,24 @@ impl Driver {
         // temperature (0x22..=0x24), humidity (0x25..=0x26)
         let mut buf = [0u8; 10];
 
-        for i in 0..MAX_POLLS {
-            self.i2c
-                .write_read(self.addr, [REG_MEAS_STATUS_0], &mut buf)?;
+        self.i2c
+            .write_read(self.addr, [REG_MEAS_STATUS_0], &mut buf)?;
 
-            let status = buf[0];
-            if status & STATUS_NEW_DATA != 0 && status & STATUS_MEASURING == 0 {
-                // pressure and temperature are 20-bit, humidity is 16-bit, so all fit into an `i32`
-                let raw_20bit =
-                    |b: &[u8]| i32::from(b[0]) << 12 | i32::from(b[1]) << 4 | i32::from(b[2]) >> 4;
-
-                return Ok(RawMeasurements {
-                    pressure: raw_20bit(&buf[2..5]),
-                    temperature: raw_20bit(&buf[5..8]),
-                    humidity: i32::from(buf[8]) << 8 | i32::from(buf[9]),
-                });
-            }
-
-            log::debug!("Measurement not ready, polling ({i}/{MAX_POLLS})");
-            std::thread::sleep(POLL_INTERVAL);
+        let status = buf[0];
+        if status & STATUS_NEW_DATA == 0 || status & STATUS_MEASURING != 0 {
+            log::error!("Device did not complete measurement in time");
+            return Err(OsError::BmeMeasurementTimeout);
         }
 
-        Err(OsError::BmeMeasurementTimeout)
+        // pressure and temperature are 20-bit, humidity is 16-bit, so all fit into an `i32`
+        let raw_20bit =
+            |b: &[u8]| i32::from(b[0]) << 12 | i32::from(b[1]) << 4 | i32::from(b[2]) >> 4;
+
+        Ok(RawMeasurements {
+            pressure: raw_20bit(&buf[2..5]),
+            temperature: raw_20bit(&buf[5..8]),
+            humidity: i32::from(buf[8]) << 8 | i32::from(buf[9]),
+        })
     }
 }
 

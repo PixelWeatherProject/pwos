@@ -62,6 +62,7 @@ pub struct Driver {
 
 impl Driver {
     pub fn new(addr: u8, i2c: SharedI2cDriver) -> Self {
+        log::debug!("Loading BME280 driver");
         Self {
             cal: CalibrationData::default(),
             i2c,
