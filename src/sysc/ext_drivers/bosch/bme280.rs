@@ -287,7 +287,7 @@ impl Driver {
     /// Blocks the caller until the sensor is ready.
     fn wait_until_ready(&self) -> OsResult<()> {
         // the lock is held while sleeping, so concurrent callers also wait
-        let mut expected_init_time = self.expected_init_time.lock()?;
+        let mut expected_init_time = self.expected_init_time.lock()?.take();
 
         let Some(deadline) = expected_init_time.take() else {
             return Ok(());
