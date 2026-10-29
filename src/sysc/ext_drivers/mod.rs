@@ -1,5 +1,5 @@
-mod bme280;
+mod bosch;
 mod htu;
 
-pub use bme280::BoschME280;
+pub use bosch::Bosch;
 pub use htu::Htu;

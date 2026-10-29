@@ -1,62 +1,12 @@
-//! Driver for the Bosch BME280 temperature, humidity and air pressure sensor.
-//!
-//! ## Compatibility
-//! **This driver only supports the BME280**. Other models like the BMP280, BME680 are **not** supported.
-//!
-//! ## Measurement parameters
-//! This driver uses the maximum precision and multisampling (16x).
-//! This cannot be changed and is not intended to be configurable.
-//!
-//! These sensors work over the I2C protocol.
-
-use crate::sysc::{
-    drivers::{
-        shared_i2c::SharedI2cDriver, AirPressureDriver, Driver, HumidityDriver, TemperatureDriver,
-    },
-    OsError, OsResult, ReportableError,
-};
+use super::sign_extend_12;
+use crate::sysc::{drivers::shared_i2c::SharedI2cDriver, OsResult, ReportableError};
 use pwmp_client::pwmp_msg::aliases::{AirPressure, Humidity, Temperature};
-use std::{
-    sync::Mutex,
-    time::{Duration, Instant},
-};
 
-/// Driver handle for Bosch BME280 sensors.
-pub struct BoschME280 {
-    /// I2C driver handle for communication with the sensor.
-    i2c: SharedI2cDriver,
-
-    /// I2C address of the sensor.
-    addr: u8,
-
-    /// Factory calibration data read from the sensor.
-    cal: CalibrationData,
-
-    /// Time at which the sensor should be initialized.
-    expected_init_time: Mutex<Option<Instant>>,
-}
-
-/// Commands for BME280 sensors
-#[derive(Clone, Copy)]
-enum Command {
-    /// Read calibration data part 1
-    ReadCalibrationPart1,
-
-    /// Read calibration data part 2
-    ReadCalibrationPart2,
-
-    /// Set humidity control register
-    SetHumidityCtlRegister(u8),
-
-    /// Set temperature control register
-    SetMeasurementCtlRegister(u8),
-
-    /// Read the device ID register
-    ReadIdRegister,
-
-    /// Read the first data register.
-    ReadMeasurementsStartRegister,
-}
+const REG_CALIB_DATA_1: u8 = 0x88;
+const REG_CALIB_DATA_2: u8 = 0xE1;
+const REG_MEASUREMENTS: u8 = 0xF7;
+const REG_MEASUREMENT_CTL: u8 = 0xF4;
+const REG_HUMIDITY_CTL: u8 = 0xF2;
 
 /// Sensor calibration data.
 ///
@@ -99,47 +49,37 @@ struct RawMeasurements {
     pressure: i32,
 }
 
-impl BoschME280 {
-    /// Known default address
-    pub const DEV_ADDRS: [u8; 2] = [0x76, 0x77];
+pub struct Driver {
+    /// Factory calibration data read from the sensor.
+    cal: CalibrationData,
 
-    const BUS_TIMEOUT: u32 = 1000;
+    /// I2C driver handle for communication with the sensor.
+    i2c: SharedI2cDriver,
 
-    /// Initialize the driver with the given I2C driver handle.
-    pub fn new_with_driver(driver: SharedI2cDriver, addr: u8) -> Result<Self, OsError> {
-        log::debug!("Loading driver");
-        let mut dev = Self {
-            i2c: driver,
-            addr,
+    /// I2C address of the sensor.
+    addr: u8,
+}
+
+impl Driver {
+    pub fn new(addr: u8, i2c: SharedI2cDriver) -> Self {
+        Self {
             cal: CalibrationData::default(),
-            expected_init_time: Mutex::default(),
-        };
-
-        /*
-         * Basic setup
-         *
-         * The BMx280 sensors require some additional setup to work.
-         */
-
-        // read the factory calibration data
-        dev.read_calibration_data()?;
-
-        match dev.model()? {
-            Some(model) => log::debug!("Detected '{model}'"),
-            None => log::warn!("Device model is unknown and may not be supported"),
+            i2c,
+            addr,
         }
+    }
+
+    pub fn initialize(&mut self) -> OsResult<()> {
+        self.read_calibration_data()?;
 
         // set temperature and humidity oversampling to 16x
+        self.i2c.write(self.addr, [REG_HUMIDITY_CTL, 0b0000_0101])?;
+
         // also set the reading mode to normal
-        dev.write(Command::SetHumidityCtlRegister(0b0000_0101))?;
-        dev.write(Command::SetMeasurementCtlRegister(0b1011_0111))?;
+        self.i2c
+            .write(self.addr, [REG_MEASUREMENT_CTL, 0b1011_0111])?;
 
-        // due to the highest quality and sampling settings, measurement takes
-        // about 112ms, so we expect the sensor to be initialized 120ms after
-        // this constructor runs
-        *dev.expected_init_time.get_mut()? = Some(Instant::now() + Duration::from_millis(120));
-
-        Ok(dev)
+        Ok(())
     }
 
     /// Read the temperature in decidegrees Celsius.
@@ -222,24 +162,15 @@ impl BoschME280 {
         Ok(hpa as AirPressure)
     }
 
-    /// Detect the sensor model by reading the device ID register.
-    pub fn model(&self) -> OsResult<Option<&'static str>> {
-        let mut buffer = [0u8; 1];
-        self.write_read(Command::ReadIdRegister, &mut buffer)?;
-
-        match buffer[0] {
-            0x60 => Ok(Some("BME280")),
-            _ => Ok(None),
-        }
-    }
-
     /// Read the factory calibration data from the sensor.
     fn read_calibration_data(&mut self) -> OsResult<()> {
-        let mut buf1 = [0u8; 26]; // 0x88 to 0xA1
-        self.write_read(Command::ReadCalibrationPart1, &mut buf1)?;
+        let mut buf1 = [0u8; 26];
+        self.i2c
+            .write_read(self.addr, [REG_CALIB_DATA_1], &mut buf1)?;
 
-        let mut buf2 = [0u8; 7]; // 0xE1 to 0xE7
-        self.write_read(Command::ReadCalibrationPart2, &mut buf2)?;
+        let mut buf2 = [0u8; 7];
+        self.i2c
+            .write_read(self.addr, [REG_CALIB_DATA_2], &mut buf2)?;
 
         let u16_at = |buf: &[u8], i: usize| u16::from_le_bytes([buf[i], buf[i + 1]]);
         let i16_at = |buf: &[u8], i: usize| i16::from_le_bytes([buf[i], buf[i + 1]]);
@@ -270,24 +201,6 @@ impl BoschME280 {
         Ok(())
     }
 
-    /// Read the raw measurements from the sensor.
-    ///
-    /// These are not final and need to be compensated using the calibration data to get accurate readings.
-    fn read_raw_measurements(&self) -> OsResult<RawMeasurements> {
-        let mut buf = [0; 8];
-        self.write_read(Command::ReadMeasurementsStartRegister, &mut buf)?;
-
-        // pressure and temperature are 20-bit, humidity is 16-bit, so all fit into an `i32`
-        let raw_20bit =
-            |b: &[u8]| i32::from(b[0]) << 12 | i32::from(b[1]) << 4 | i32::from(b[2]) >> 4;
-
-        Ok(RawMeasurements {
-            pressure: raw_20bit(&buf[0..3]),
-            temperature: raw_20bit(&buf[3..6]),
-            humidity: i32::from(buf[6]) << 8 | i32::from(buf[7]),
-        })
-    }
-
     /// Shuts down the sensor.
     ///
     /// This method should only ever be used internally, specifically in the implementation of [`Drop`].
@@ -301,7 +214,7 @@ impl BoschME280 {
     /// - All oversampling and other settings set by [`new_with_driver`](Self::new_with_driver) **will be erased**.
     ///
     fn enter_sleep_mode(&self) -> OsResult<()> {
-        self.write(Command::SetMeasurementCtlRegister(0))
+        self.i2c.write(self.addr, [REG_MEASUREMENT_CTL, 0])
     }
 
     /// Calculate the `t_fine` value from the raw temperature measurement, which is used for compensation of all measurements.
@@ -317,91 +230,31 @@ impl BoschME280 {
         var1 + var2
     }
 
-    /// Send a non-returning command to the sensor.
+    /// Read the raw measurements from the sensor.
     ///
-    /// If the command returns data, use [`write_read()`](Self::write_read) instead.
-    fn write(&self, command: Command) -> OsResult<()> {
-        self.wait_until_ready()?;
-        let (cmd, len) = command.serialize();
-        self.i2c.write(self.addr, &cmd[..len], Self::BUS_TIMEOUT)
-    }
-
-    /// Send a command to the sensor and read the response into the provided buffer.
-    ///
-    /// If the command does not return data, use [`write()`](Self::write) instead.
-    fn write_read(&self, command: Command, buffer: &mut [u8]) -> OsResult<()> {
-        self.wait_until_ready()?;
-        let (cmd, len) = command.serialize();
+    /// These are not final and need to be compensated using the calibration data to get accurate readings.
+    fn read_raw_measurements(&self) -> OsResult<RawMeasurements> {
+        let mut buf = [0; 8];
         self.i2c
-            .write_read(self.addr, &cmd[..len], buffer, Self::BUS_TIMEOUT)
-    }
+            .write_read(self.addr, [REG_MEASUREMENTS], &mut buf)?;
 
-    /// Blocks the caller until the sensor is ready.
-    fn wait_until_ready(&self) -> OsResult<()> {
-        // the lock is held while sleeping, so concurrent callers also wait
-        let expected_init_time = self.expected_init_time.lock()?.take();
+        // pressure and temperature are 20-bit, humidity is 16-bit, so all fit into an `i32`
+        let raw_20bit =
+            |b: &[u8]| i32::from(b[0]) << 12 | i32::from(b[1]) << 4 | i32::from(b[2]) >> 4;
 
-        let Some(deadline) = expected_init_time else {
-            return Ok(());
-        };
-
-        if let Some(remaining) = deadline.checked_duration_since(Instant::now()) {
-            log::warn!("Sensor is not ready yet, waiting...");
-            std::thread::sleep(remaining);
-        }
-
-        Ok(())
+        Ok(RawMeasurements {
+            pressure: raw_20bit(&buf[0..3]),
+            temperature: raw_20bit(&buf[3..6]),
+            humidity: i32::from(buf[6]) << 8 | i32::from(buf[7]),
+        })
     }
 }
 
-impl Drop for BoschME280 {
+impl Drop for Driver {
     fn drop(&mut self) {
         log::debug!("Attempting to enter sleep mode");
 
         // Note: if this fails, the next boot will likely fail
         self.enter_sleep_mode().report("Failed to enter sleep mode");
     }
-}
-
-impl Driver for BoschME280 {}
-
-impl TemperatureDriver for BoschME280 {
-    fn read(&self) -> OsResult<Temperature> {
-        self.read_temperature()
-    }
-
-    fn is_internal(&self) -> bool {
-        false
-    }
-}
-
-impl HumidityDriver for BoschME280 {
-    fn read(&self) -> OsResult<u8> {
-        self.read_humidity()
-    }
-}
-
-impl AirPressureDriver for BoschME280 {
-    fn read(&self) -> OsResult<u16> {
-        self.read_air_pressure()
-    }
-}
-
-impl Command {
-    /// Serialize the command into raw bytes and a length.
-    const fn serialize(self) -> ([u8; 2], usize) {
-        match self {
-            Self::ReadCalibrationPart1 => ([0x88, 0], 1),
-            Self::ReadCalibrationPart2 => ([0xE1, 0], 1),
-            Self::SetHumidityCtlRegister(d) => ([0xF2, d], 2),
-            Self::SetMeasurementCtlRegister(d) => ([0xF4, d], 2),
-            Self::ReadIdRegister => ([0xD0, 0], 1),
-            Self::ReadMeasurementsStartRegister => ([0xF7, 0], 1),
-        }
-    }
-}
-
-/// Converts a 12-bit signed integer into a normal [i16].
-const fn sign_extend_12(x: i16) -> i16 {
-    (x << 4) >> 4
 }

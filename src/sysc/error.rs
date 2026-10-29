@@ -163,6 +163,18 @@ pub enum OsError {
     /// Mutex could not be locked.
     #[error("Failed to aquire mutex lock (poisoned)")]
     MutexPoisoned,
+
+    /// BME driver was unable to identify the exact BME6xx variant
+    #[error("bmexx: unable to identify BME6xx family variant: {0}")]
+    BmeUnknownVariant(u8),
+
+    /// BME driver was unable to identify a chip ID
+    #[error("bmexx: unknown chip ID: {0}")]
+    BmeUnknownChipId(u8),
+
+    /// BME driver timed out while waiting for measurement
+    #[error("bmexx: timed out while performing measurement")]
+    BmeMeasurementTimeout,
 }
 
 /// Trait for non-fatal error types that can be "reported" to the console.

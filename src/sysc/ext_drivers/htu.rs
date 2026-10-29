@@ -37,7 +37,6 @@ impl Htu {
     /// Known default address
     pub const DEV_ADDR: u8 = 0x40;
 
-    const BUS_TIMEOUT: u32 = 2000;
     const CMD_WAIT_TIME: u64 = 50;
 
     /// Initialize the driver with the given I2C driver handle.
@@ -101,17 +100,12 @@ impl Htu {
     }
 
     fn write(&self, command: Command) -> OsResult<()> {
-        self.0
-            .write(Self::DEV_ADDR, command.as_bytes(), Self::BUS_TIMEOUT)
+        self.0.write(Self::DEV_ADDR, command.as_bytes())
     }
 
     fn write_read(&self, command: Command, buffer: &mut [u8]) -> OsResult<()> {
-        self.0.write_read(
-            Self::DEV_ADDR,
-            command.as_bytes(),
-            buffer,
-            Self::BUS_TIMEOUT,
-        )
+        self.0
+            .write_read(Self::DEV_ADDR, command.as_bytes(), buffer)
     }
 
     fn write_read_u16(&self, command: Command) -> OsResult<u16> {
