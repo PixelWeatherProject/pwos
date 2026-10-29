@@ -89,6 +89,7 @@ All drivers for external hardware are in [`src/sysc/ext_drivers`](src/sysc/ext_d
 Currently, the following drivers are implemented:
 - [HTU-compatible driver](src/sysc/ext_drivers/htu.rs) - Supports HTU21D, Si7021 and similar sensors. Expects address `0x40`.
 - [BMExxx driver](src/sysc/ext_drivers/bosch/mod.rs) - Supports the BME280 and BME690 sensors only. Expects addresses `0x77` or `0x76`.
+  - Does **not** support measuring VOCs, AQI, and other gas-related metrics.
 
 You could also implement your own driver, however the sensor must support temperature **and** humidity measuring at minimum. Your driver then must implement the [`EnvironmentSensor`](src/sysc/ext_drivers/envsensor_trait.rs) trait.
 
