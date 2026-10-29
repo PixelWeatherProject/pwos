@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::{sync::RwLock, time::Duration};
 
 use super::sign_extend_12;
 use crate::sysc::{drivers::shared_i2c::SharedI2cDriver, OsError, OsResult, ReportableError};
@@ -23,7 +23,7 @@ const STATUS_NEW_DATA: u8 = 1 << 7;
 const STATUS_MEASURING: u8 = 1 << 5;
 
 // with 16x oversampling on all channels, a measurement takes roughly 100ms
-const EXPECTED_DURATION: Duration = Duration::from_millis(120);
+const EXPECTED_DURATION: Duration = Duration::from_millis(100);
 
 /// Sensor calibration data.
 ///
@@ -62,6 +62,7 @@ struct CalibrationData {
 }
 
 /// Raw, uncompensated measurements read from the sensor.
+#[derive(Default, Clone, Copy)]
 struct RawMeasurements {
     temperature: i32,
     humidity: i32,
@@ -77,6 +78,9 @@ pub struct Driver {
 
     /// I2C address of the sensor.
     addr: u8,
+
+    /// Last measurement results.
+    last_measurement: RwLock<Option<RawMeasurements>>,
 }
 
 impl Driver {
@@ -86,6 +90,7 @@ impl Driver {
             cal: CalibrationData::default(),
             i2c,
             addr,
+            last_measurement: RwLock::default(),
         }
     }
 
@@ -110,7 +115,7 @@ impl Driver {
     /// Read the temperature in decidegrees Celsius.
     #[allow(clippy::cast_possible_truncation)]
     pub fn read_temperature(&self) -> OsResult<Temperature> {
-        let raw = self.read_raw_measurements()?;
+        let raw = self.read_last_measurements()?;
 
         // `t_lin` is T[°C] in Q16, so T[d°C] = t_lin * 10 / 2^16, rounded to nearest
         let t_lin = self.calc_t_lin(raw.temperature);
@@ -125,7 +130,7 @@ impl Driver {
     /// Uses the integer compensation formula from the datasheet, evaluated in 64 bits.
     #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
     pub fn read_humidity(&self) -> OsResult<Humidity> {
-        let raw = self.read_raw_measurements()?;
+        let raw = self.read_last_measurements()?;
 
         // the humidity formula is the BME280 one, which expects `t_fine = T[°C] * 5120`
         let t_lin = i64::from(self.calc_t_lin(raw.temperature));
@@ -155,7 +160,7 @@ impl Driver {
     /// Uses the 64-bit integer compensation formula from the datasheet.
     #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
     pub fn read_air_pressure(&self) -> OsResult<AirPressure> {
-        let raw = self.read_raw_measurements()?;
+        let raw = self.read_last_measurements()?;
         let t_lin = i64::from(self.calc_t_lin(raw.temperature));
 
         // the datasheet formula expects a 24-bit ADC value
@@ -274,6 +279,17 @@ impl Driver {
         (((var2 << 18) + var3) / (1 << 32)) as i32
     }
 
+    /// Read the results from the last recorded measurement.
+    fn read_last_measurements(&self) -> OsResult<RawMeasurements> {
+        let maybe_cached = *self.last_measurement.try_read()?;
+        if let Some(cached) = maybe_cached {
+            return Ok(cached);
+        }
+
+        log::debug!("Measurement cache is cold");
+        self.read_raw_measurements()
+    }
+
     /// Read the raw measurements from the sensor.
     ///
     /// This triggers a single forced mode measurement and blocks until it's finished.
@@ -305,11 +321,14 @@ impl Driver {
         let raw_20bit =
             |b: &[u8]| i32::from(b[0]) << 12 | i32::from(b[1]) << 4 | i32::from(b[2]) >> 4;
 
-        Ok(RawMeasurements {
+        let measurements = RawMeasurements {
             pressure: raw_20bit(&buf[2..5]),
             temperature: raw_20bit(&buf[5..8]),
             humidity: i32::from(buf[8]) << 8 | i32::from(buf[9]),
-        })
+        };
+
+        *self.last_measurement.try_write()? = Some(measurements);
+        Ok(measurements)
     }
 }
 
