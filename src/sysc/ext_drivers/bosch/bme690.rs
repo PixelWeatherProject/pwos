@@ -1,8 +1,7 @@
-use std::{sync::RwLock, time::Duration};
-
 use super::sign_extend_12;
 use crate::sysc::{drivers::shared_i2c::SharedI2cDriver, OsError, OsResult, ReportableError};
 use pwmp_client::pwmp_msg::aliases::{AirPressure, Humidity, Temperature};
+use std::{sync::RwLock, time::Duration};
 
 const REG_CALIB_DATA_1: u8 = 0x8A;
 const REG_CALIB_DATA_2: u8 = 0xE1;
