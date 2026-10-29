@@ -64,6 +64,7 @@ As of now, this firmware has been tested with:
 - [Adafruit Si7021 Temperature & Humidity Sensor](https://www.adafruit.com/product/3251)
 - [HTU21D from SparkFun](https://www.sparkfun.com/products/retired/12064)
 - [BME280 from Bosch](https://www.bosch-sensortec.com/en/products/environmental-sensors/humidity-sensors-bme280)
+- [BME690 from Bosch](https://www.bosch-sensortec.com/en/products/environmental-sensors/gas-sensors/bme690)
 
 #### Recommended batteries
 > **⚠️WARNING⚠️**
@@ -87,7 +88,7 @@ All drivers for external hardware are in [`src/sysc/ext_drivers`](src/sysc/ext_d
 
 Currently, the following drivers are implemented:
 - [HTU-compatible driver](src/sysc/ext_drivers/htu.rs) - Supports HTU21D, Si7021 and similar sensors. Expects address `0x40`.
-- [BME280 driver](src/sysc/ext_drivers/bme280.rs) - Supports the BME280 sensor only. Expects addresses `0x77` or `0x76`.
+- [BMExxx driver](src/sysc/ext_drivers/bosch/mod.rs) - Supports the BME280 and BME690 sensors only. Expects addresses `0x77` or `0x76`.
 
 You could also implement your own driver, however the sensor must support temperature **and** humidity measuring at minimum. Your driver then must implement the [`EnvironmentSensor`](src/sysc/ext_drivers/envsensor_trait.rs) trait.
 
@@ -130,6 +131,14 @@ Replacements should only be necessary once per year, although longer longevity i
   > This sensor did not pass the minimum longevity test (1 year) outdoors.
   > 
   > It is **not recommend** to use this sensor outdoors.
+</details>
+
+<details>
+  <summary>Bosch BME690</summary>
+
+  This sensor has very good accuracy and supports air pressure measurement.
+  
+  **This sensor has not been tested yet.**
 </details>
 
 <details>
