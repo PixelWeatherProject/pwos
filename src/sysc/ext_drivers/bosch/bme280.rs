@@ -1,6 +1,10 @@
 use super::sign_extend_12;
 use crate::sysc::{drivers::shared_i2c::SharedI2cDriver, OsResult, ReportableError};
 use pwmp_client::pwmp_msg::aliases::{AirPressure, Humidity, Temperature};
+use std::{
+    sync::{Mutex, RwLock},
+    time::{Duration, Instant},
+};
 
 const REG_CALIB_DATA_1: u8 = 0x88;
 const REG_CALIB_DATA_2: u8 = 0xE1;
@@ -43,6 +47,7 @@ struct CalibrationData {
 }
 
 /// Raw, uncompensated measurements read from the sensor.
+#[derive(Default, Clone, Copy)]
 struct RawMeasurements {
     temperature: i32,
     humidity: i32,
@@ -58,6 +63,12 @@ pub struct Driver {
 
     /// I2C address of the sensor.
     addr: u8,
+
+    /// Last measurement results.
+    last_measurement: RwLock<Option<RawMeasurements>>,
+
+    /// Time at which the sensor should be initialized.
+    expected_init_time: Mutex<Option<Instant>>,
 }
 
 impl Driver {
@@ -67,6 +78,8 @@ impl Driver {
             cal: CalibrationData::default(),
             i2c,
             addr,
+            last_measurement: RwLock::default(),
+            expected_init_time: Mutex::default(),
         }
     }
 
@@ -80,13 +93,18 @@ impl Driver {
         self.i2c
             .write(self.addr, [REG_MEASUREMENT_CTL, 0b1011_0111])?;
 
+        // due to the highest quality and sampling settings, measurement takes
+        // about 112ms, so we expect the sensor to be initialized 120ms after
+        // this function runs
+        *self.expected_init_time.get_mut()? = Some(Instant::now() + Duration::from_millis(120));
+
         Ok(())
     }
 
     /// Read the temperature in decidegrees Celsius.
     #[allow(clippy::cast_possible_truncation)]
     pub fn read_temperature(&self) -> OsResult<Temperature> {
-        let raw = self.read_raw_measurements()?;
+        let raw = self.read_last_measurements()?;
 
         // temperature compensation
         // T[°C] = t_fine / 5120, so T[d°C] = t_fine / 512, rounded to nearest
@@ -102,7 +120,7 @@ impl Driver {
     /// Uses the 32-bit integer compensation formula from the datasheet.
     #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
     pub fn read_humidity(&self) -> OsResult<Humidity> {
-        let raw = self.read_raw_measurements()?;
+        let raw = self.read_last_measurements()?;
         let t_fine = self.calc_t_fine(raw.temperature);
 
         let h1 = i32::from(self.cal.h1);
@@ -129,7 +147,7 @@ impl Driver {
     /// Uses the 64-bit integer compensation formula from the datasheet.
     #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
     pub fn read_air_pressure(&self) -> OsResult<AirPressure> {
-        let raw = self.read_raw_measurements()?;
+        let raw = self.read_last_measurements()?;
         let t_fine = i64::from(self.calc_t_fine(raw.temperature));
 
         let p1 = i64::from(self.cal.p1);
@@ -231,10 +249,23 @@ impl Driver {
         var1 + var2
     }
 
+    /// Read the results from the last recorded measurement.
+    fn read_last_measurements(&self) -> OsResult<RawMeasurements> {
+        let maybe_cached = *self.last_measurement.try_read()?;
+        if let Some(cached) = maybe_cached {
+            return Ok(cached);
+        }
+
+        log::debug!("Measurement cache is cold");
+        self.read_raw_measurements()
+    }
+
     /// Read the raw measurements from the sensor.
     ///
     /// These are not final and need to be compensated using the calibration data to get accurate readings.
     fn read_raw_measurements(&self) -> OsResult<RawMeasurements> {
+        self.wait_until_ready()?;
+
         let mut buf = [0; 8];
         self.i2c
             .write_read(self.addr, [REG_MEASUREMENTS], &mut buf)?;
@@ -243,11 +274,31 @@ impl Driver {
         let raw_20bit =
             |b: &[u8]| i32::from(b[0]) << 12 | i32::from(b[1]) << 4 | i32::from(b[2]) >> 4;
 
-        Ok(RawMeasurements {
+        let measurements = RawMeasurements {
             pressure: raw_20bit(&buf[0..3]),
             temperature: raw_20bit(&buf[3..6]),
             humidity: i32::from(buf[6]) << 8 | i32::from(buf[7]),
-        })
+        };
+
+        *self.last_measurement.try_write()? = Some(measurements);
+        Ok(measurements)
+    }
+
+    /// Blocks the caller until the sensor is ready.
+    fn wait_until_ready(&self) -> OsResult<()> {
+        // the lock is held while sleeping, so concurrent callers also wait
+        let mut expected_init_time = self.expected_init_time.lock()?;
+
+        let Some(deadline) = expected_init_time.take() else {
+            return Ok(());
+        };
+
+        if let Some(remaining) = deadline.checked_duration_since(Instant::now()) {
+            log::warn!("Sensor is not ready yet, waiting...");
+            std::thread::sleep(remaining);
+        }
+
+        Ok(())
     }
 }
 
