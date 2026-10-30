@@ -33,7 +33,7 @@ See other repositories for more components of the PixelWeather ecosystem:
 - [espflash](https://github.com/esp-rs/espflash)
   - You will need both `espflash` and `cargo-espflash`.
 - [ESP-IDF](https://docs.espressif.com/projects/esp-idf/en/v5.5.4/esp32s3/get-started/linux-macos-setup.html#get-started-prerequisites)
-  - The project currently is version locked to `v5.5.3`.
+  - The project currently is version locked to `v5.5.6`.
 - An instance of the PixelWeather Messaging Protocol (PWMP) server.
   - Repository [here](https://github.com/PixelWeatherProject/pwmp-server).
 
