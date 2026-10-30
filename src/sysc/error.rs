@@ -175,6 +175,10 @@ pub enum OsError {
     /// BME driver timed out while waiting for measurement
     #[error("bmexx: timed out while performing measurement")]
     BmeMeasurementTimeout,
+
+    /// Failed to set the system time.
+    #[error("set time: {0}")]
+    SetTime(std::io::Error),
 }
 
 /// Trait for non-fatal error types that can be "reported" to the console.

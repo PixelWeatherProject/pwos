@@ -2,6 +2,7 @@ use crate::{
     config::{PWMP_SERVER, WIFI_NETWORKS, WIFI_TIMEOUT},
     re_esp,
     sysc::{
+        self,
         battery::{Battery, CRITICAL_VOLTAGE},
         drivers::{AirPressureSensor, HumiditySensor, TemperatureSensor},
         ledctl::BoardLed,
@@ -57,6 +58,9 @@ pub fn fw_main(
 
     log::debug!("Requesting app configuration");
     read_appcfg(&mut pws, cfg)?;
+
+    log::debug!("Requesting date time");
+    update_system_time(&mut pws)?;
 
     let int_temperature_sensor =
         TemperatureSensor::get_internal().ok_or(OsError::UnexpectedNull)?;
@@ -305,6 +309,23 @@ fn read_appcfg(pws: &mut PwmpClient, appcfg: &mut NodeSettings) -> OsResult<()> 
     }
 
     log::debug!("Settings updated");
+    Ok(())
+}
+
+fn update_system_time(pws: &mut PwmpClient) -> OsResult<()> {
+    if !sysc::time::resync_recommended()? {
+        log::debug!("Wall clock in sync");
+        return Ok(());
+    }
+
+    log::debug!("Wall clock not set or out of sync");
+
+    let epoch = pws.get_date_time(true)?;
+    log::debug!("Got epoch: {epoch}");
+
+    sysc::time::set_system_time(epoch)?;
+    log::debug!("Wall clock time updated");
+
     Ok(())
 }
 

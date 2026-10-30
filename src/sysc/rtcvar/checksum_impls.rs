@@ -24,6 +24,16 @@ impl RtcObject for u8 {
     }
 }
 
+impl RtcObject for u64 {
+    fn checksum(&self) -> u32 {
+        hash::crc32(self.to_ne_bytes().as_slice())
+    }
+
+    fn new_empty() -> Self {
+        Self::default()
+    }
+}
+
 impl RtcObject for NodeSettings {
     fn checksum(&self) -> u32 {
         let mut raw = [0; 6];

@@ -16,6 +16,7 @@ pub mod panic;
 pub mod periph;
 pub mod power;
 pub mod rtcvar;
+pub mod time;
 pub mod usbctl;
 
 pub use error::{OsError, ReportableError};
