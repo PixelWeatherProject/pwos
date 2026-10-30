@@ -137,7 +137,7 @@ pub enum OsError {
     IllegalFirmwareVersion,
 
     /// Partition metadata is missing.
-    #[error("Unexpected version format")]
+    #[error("Missing partition metadata")]
     MissingPartitionMetadata,
 
     /// A buffer has been filled unexpectedly
