@@ -6,6 +6,7 @@ use crate::{
         battery::{Battery, CRITICAL_VOLTAGE},
         drivers::{AirPressureSensor, HumiditySensor, TemperatureSensor},
         ledctl::BoardLed,
+        logging::GlobalOsLogger,
         net::wifi::{WiFi, RSSI_THRESHOLD},
         nvs::NonVolatileStorage,
         ota::{Ota, OtaHandle},
@@ -114,6 +115,12 @@ pub fn fw_main(
     report_previous_run_error(&mut pws, nvs)?;
     report_ota_result(&mut pws, ota)?;
     ota_routine(&mut pws, ota)?;
+
+    if GlobalOsLogger::is_history_enabled() {
+        log::debug!("Sending diagnostic logs");
+        pws.send_diagnostic_data("logs", GlobalOsLogger::extract())
+            .report("Failed to send log history");
+    }
 
     pws.close_session(false)?;
 

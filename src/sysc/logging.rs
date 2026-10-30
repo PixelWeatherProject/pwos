@@ -2,7 +2,10 @@ use esp_idf_svc::sys::const_format::concatcp;
 use log::{Level, LevelFilter, Log};
 use std::{
     io::{stdout, Write},
-    sync::atomic::{AtomicBool, Ordering},
+    sync::{
+        atomic::{AtomicBool, AtomicUsize, Ordering},
+        RwLock,
+    },
 };
 
 /// Modules whose logs should be ignored.
@@ -35,6 +38,17 @@ static LOGGER: OsLogger = OsLogger::new();
 struct OsLogger {
     /// Whether the logger is enabled.
     enabled: AtomicBool,
+
+    /// Rotating buffer that keeps track of previous log messages
+    /// **This is used for diagnostics.**
+    history_buffer: HistoryBuffer,
+}
+
+struct HistoryBuffer {
+    enabled: AtomicBool,
+    inner: RwLock<String>,
+    lines_written: AtomicUsize,
+    max_lines: usize,
 }
 
 /// A global logger that can be used to log messages.
@@ -45,6 +59,7 @@ impl OsLogger {
     pub const fn new() -> Self {
         Self {
             enabled: AtomicBool::new(true),
+            history_buffer: HistoryBuffer::new(),
         }
     }
 }
@@ -55,6 +70,19 @@ impl GlobalOsLogger {
     /// When disabled, it will not print any messages *regardless of their level*.
     pub fn disable() {
         LOGGER.enabled.store(false, Ordering::SeqCst);
+    }
+
+    /// Enable the history buffer for diagnostics.
+    pub fn enable_history() {
+        LOGGER.history_buffer.enabled.store(true, Ordering::SeqCst);
+    }
+
+    pub fn extract() -> Box<[u8]> {
+        LOGGER.history_buffer.extract()
+    }
+
+    pub fn is_history_enabled() -> bool {
+        LOGGER.history_buffer.enabled.load(Ordering::Relaxed)
     }
 
     /// Initialize the global logger.
@@ -145,5 +173,51 @@ impl Log for OsLogger {
         lock.write_all(buffer.as_bytes())
             .and_then(|()| lock.flush())
             .expect("Failed to write log message to stdout");
+
+        if self.history_buffer.is_enabled() {
+            self.history_buffer.push(&buffer);
+        }
+    }
+}
+
+impl HistoryBuffer {
+    pub const fn new() -> Self {
+        Self {
+            enabled: AtomicBool::new(false),
+            inner: RwLock::new(String::new()),
+            lines_written: AtomicUsize::new(0),
+            max_lines: 100,
+        }
+    }
+
+    pub fn is_enabled(&self) -> bool {
+        self.enabled.load(Ordering::Relaxed)
+    }
+
+    pub fn push(&self, line: &str) {
+        let mut buffer = self
+            .inner
+            .try_write()
+            .expect("History buffer lock was poisoned");
+
+        if self.lines_written.load(Ordering::Relaxed) > self.max_lines {
+            let pos = buffer
+                .find('\n')
+                .expect("Expected to find one newline in history buffer");
+            buffer.replace_range(0..=pos, "");
+        }
+
+        buffer.push_str(line);
+        drop(buffer);
+        self.lines_written.fetch_add(1, Ordering::Relaxed);
+    }
+
+    pub fn extract(&self) -> Box<[u8]> {
+        let buffer = self
+            .inner
+            .try_write()
+            .expect("History buffer lock was poisoned");
+
+        buffer.clone().as_bytes().into()
     }
 }

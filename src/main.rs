@@ -36,6 +36,9 @@ fn main() {
 
     GlobalOsLogger::init();
 
+    #[cfg(debug_assertions)]
+    GlobalOsLogger::enable_history();
+
     log::info!(
         "PixelWeatherOS v{}-{}{}@{} ({})",
         env!("CARGO_PKG_VERSION"),
