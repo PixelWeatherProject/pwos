@@ -77,7 +77,7 @@ CONFIG_LWIP_SO_REUSE=n
 CONFIG_LWIP_IPV6=n
 
 # Skip ARP check on offered DHCP leases
-LWIP_DHCP_DOES_ARP_CHECK=n
+CONFIG_LWIP_DHCP_DOES_ARP_CHECK=n
 
 # Disable unnecessary WiFi features
 CONFIG_ESP_WIFI_SOFTAP_SUPPORT=n
