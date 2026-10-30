@@ -20,6 +20,11 @@ mod config;
 mod firmware;
 mod sysc;
 
+#[allow(unexpected_cfgs)]
+mod app_desc {
+    esp_idf_svc::sys::esp_app_desc!();
+}
+
 #[allow(clippy::cognitive_complexity, clippy::too_many_lines)]
 fn main() {
     esp_idf_svc::sys::link_patches();
