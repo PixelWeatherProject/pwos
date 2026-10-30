@@ -128,12 +128,9 @@ impl Ota {
 
     /// Returns the version of the currently running firmware.
     ///
-    /// *This method should only be used in debug builds.*
-    ///
-    /// If the version number is not available, [`Option::None`] is returned.
-    ///
     /// # Errors
-    /// Returns an error if the underlying OTA driver fails.
+    /// Returns an error if the underlying OTA driver fails, or if the firmware
+    /// metadata is missing or contains an invalid version string.
     pub fn current_version(&self) -> OsResult<Version> {
         let slot = crate::re_esp!(self.0.get_running_slot(), OtaSlot)?;
 
@@ -151,14 +148,16 @@ impl Ota {
 
     /// Returns the version of the previous firmware from the flash.
     ///
-    /// If the version number is not available, [`Option::None`] is returned.
+    /// This is the firmware in the last slot marked as invalid, so it's only
+    /// available after a rollback.
     ///
     /// # Errors
-    /// Returns an error if the underlying OTA driver fails.
+    /// Returns an error if the underlying OTA driver fails, or if there is no
+    /// previous firmware ([`OsError::MissingPartitionMetadata`]).
     pub fn previous_version(&self) -> OsResult<Version> {
-        let slot = crate::re_esp!(self.0.get_running_slot(), OtaSlot)?;
+        let slot = crate::re_esp!(self.0.get_last_invalid_slot(), OtaSlot)?;
 
-        let Some(info) = slot.firmware else {
+        let Some(info) = slot.and_then(|slot| slot.firmware) else {
             return Err(OsError::MissingPartitionMetadata);
         };
 
@@ -175,19 +174,14 @@ impl Ota {
     /// If the parsing fails, [`Option::None`] is returned.
     fn parse_info_version(info: &FirmwareInfo) -> Option<Version> {
         /*
-         * If ESP-IDF uses `git describe` to get a version string, it will
-         * look like this: `v2.0.0-rc3-8-g1a1ba69`.
+         * Images built with `esp_app_desc!` contain the crate version: `4.0.0`.
+         * Older images use the output of `git describe`: `v2.0.0-rc3-8-g1a1ba69`.
          *
-         * This method assumes the above format.
+         * Both are handled by stripping the `v` prefix and anything after the first `-`.
          */
+        let version = info.version.trim_start_matches('v');
 
-        // Index of the first `-`
-        let dash_index = info.version.find('-')?;
-
-        // Cut the version string
-        let slice = &info.version[1..dash_index];
-
-        Version::parse(slice)
+        Version::parse(version.split('-').next()?)
     }
 }
 
