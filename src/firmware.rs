@@ -111,6 +111,8 @@ pub fn fw_main(
     report_ota_result(&mut pws, ota)?;
     ota_routine(&mut pws, ota)?;
 
+    pws.close_session(false)?;
+
     led.off();
     Ok(())
 }
