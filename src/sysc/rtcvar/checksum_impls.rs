@@ -112,3 +112,13 @@ impl<T: RtcObject> RtcObject for Option<T> {
         None
     }
 }
+
+impl<const N: usize> RtcObject for super::string::RtcString<N> {
+    fn checksum(&self) -> u32 {
+        hash::crc32(self.as_bytes())
+    }
+
+    fn new_empty() -> Self {
+        Self::new()
+    }
+}

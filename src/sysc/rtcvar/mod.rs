@@ -45,6 +45,7 @@ use esp_idf_svc::hal::reset::ResetReason;
 use std::{cell::UnsafeCell, mem::MaybeUninit};
 
 mod checksum_impls;
+pub mod string;
 
 const MAGIC_START_BYTE: u32 = 0xFEED_BEEF;
 

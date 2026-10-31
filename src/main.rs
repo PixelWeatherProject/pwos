@@ -36,9 +36,6 @@ fn main() {
 
     GlobalOsLogger::init();
 
-    #[cfg(debug_assertions)]
-    GlobalOsLogger::enable_history();
-
     log::info!(
         "PixelWeatherOS v{}-{}{}@{} ({})",
         env!("CARGO_PKG_VERSION"),
@@ -150,8 +147,9 @@ fn main() {
                 .expect("Failed to increment failiure count");
         }
     }
-    log::info!("Tasks completed in {runtime:.02?}");
+    GlobalOsLogger::save_history();
 
+    log::info!("Tasks completed in {runtime:.02?}");
     log::debug!("Sleeping for {:?}", appcfg.sleep_time());
     mcu_sleep(Some(appcfg.sleep_time()));
 }

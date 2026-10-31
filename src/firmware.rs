@@ -116,10 +116,12 @@ pub fn fw_main(
     report_ota_result(&mut pws, ota)?;
     ota_routine(&mut pws, ota)?;
 
-    if GlobalOsLogger::is_history_enabled() {
+    if let Some(logs) = GlobalOsLogger::load_history() {
         log::debug!("Sending diagnostic logs");
-        pws.send_diagnostic_data("logs", Artifact::from(GlobalOsLogger::extract()))
+        pws.send_diagnostic_data("logs", Artifact::String(logs))
             .report("Failed to send log history");
+    } else {
+        log::debug!("No diagnostic logs were saved");
     }
 
     pws.close_session(false)?;

@@ -1,10 +1,11 @@
+use crate::sysc::rtcvar::{string::RtcString, RtcValue};
 use esp_idf_svc::sys::const_format::concatcp;
 use log::{Level, LevelFilter, Log};
 use std::{
     io::{stdout, Write},
     sync::{
-        atomic::{AtomicBool, AtomicUsize, Ordering},
-        RwLock,
+        atomic::{AtomicBool, Ordering},
+        Mutex,
     },
 };
 
@@ -29,8 +30,13 @@ const ERROR_HEADER: &str = concatcp!(COLOR_ERROR, "ERROR", RESET_COLOR, " [");
 const DEBUG_HEADER: &str = concatcp!(COLOR_DEBUG, "DEBUG", RESET_COLOR, " [");
 const TRACE_HEADER: &str = "TRACE [";
 
+const LAST_SESSION_LOGS_SIZE: usize = 1024;
+
 /// The global instance of the logger.
 static LOGGER: OsLogger = OsLogger::new();
+
+#[link_section = ".rtc_noinit"]
+static LAST_SESSION_LOGS: RtcValue<RtcString<LAST_SESSION_LOGS_SIZE>> = RtcValue::new();
 
 /// The firmware-wide logging backend.
 ///
@@ -39,16 +45,9 @@ struct OsLogger {
     /// Whether the logger is enabled.
     enabled: AtomicBool,
 
-    /// Rotating buffer that keeps track of previous log messages
+    /// Buffer that keeps track of previously written messages.
     /// **This is used for diagnostics.**
-    history_buffer: HistoryBuffer,
-}
-
-struct HistoryBuffer {
-    enabled: AtomicBool,
-    inner: RwLock<String>,
-    lines_written: AtomicUsize,
-    max_lines: usize,
+    history_buffer: Mutex<String>,
 }
 
 /// A global logger that can be used to log messages.
@@ -59,7 +58,7 @@ impl OsLogger {
     pub const fn new() -> Self {
         Self {
             enabled: AtomicBool::new(true),
-            history_buffer: HistoryBuffer::new(),
+            history_buffer: Mutex::new(String::new()),
         }
     }
 }
@@ -72,17 +71,55 @@ impl GlobalOsLogger {
         LOGGER.enabled.store(false, Ordering::SeqCst);
     }
 
-    /// Enable the history buffer for diagnostics.
-    pub fn enable_history() {
-        LOGGER.history_buffer.enabled.store(true, Ordering::SeqCst);
+    /// Saves the current history buffer into the RTC memory for reporting.
+    ///
+    /// ## Note
+    /// This also clears the history bufffer.
+    pub fn save_history() {
+        let history = {
+            let mut history_lock = LOGGER
+                .history_buffer
+                .try_lock()
+                .expect("Failed to lock history buffer");
+            let history = history_lock.clone();
+            history_lock.clear();
+
+            history
+        };
+
+        if history.len() > LAST_SESSION_LOGS_SIZE {
+            log::error!(
+                "Cannot fit log history into RTC buffer ({}/{LAST_SESSION_LOGS_SIZE})",
+                history.len()
+            );
+            return;
+        }
+
+        let Ok(history) = RtcString::try_from(history.as_str()) else {
+            log::error!(
+                "Cannot fit log history into RTC buffer ({}/{LAST_SESSION_LOGS_SIZE})",
+                history.len()
+            );
+            return;
+        };
+
+        LAST_SESSION_LOGS.set(history);
+        log::debug!("Saved log history into RTC");
     }
 
-    pub fn extract() -> Box<str> {
-        LOGGER.history_buffer.extract()
-    }
+    /// Returns the log history from a previous run.
+    ///
+    /// ## Note
+    /// This also clears [`LAST_SESSION_LOGS`].
+    pub fn load_history() -> Option<Box<str>> {
+        let history: Box<str> = LAST_SESSION_LOGS.read().into();
+        LAST_SESSION_LOGS.set(RtcString::new());
 
-    pub fn is_history_enabled() -> bool {
-        LOGGER.history_buffer.enabled.load(Ordering::Relaxed)
+        if history.is_empty() {
+            return None;
+        }
+
+        Some(history)
     }
 
     /// Initialize the global logger.
@@ -174,50 +211,9 @@ impl Log for OsLogger {
             .and_then(|()| lock.flush())
             .expect("Failed to write log message to stdout");
 
-        if self.history_buffer.is_enabled() {
-            self.history_buffer.push(&buffer);
-        }
-    }
-}
-
-impl HistoryBuffer {
-    pub const fn new() -> Self {
-        Self {
-            enabled: AtomicBool::new(false),
-            inner: RwLock::new(String::new()),
-            lines_written: AtomicUsize::new(0),
-            max_lines: 100,
-        }
-    }
-
-    pub fn is_enabled(&self) -> bool {
-        self.enabled.load(Ordering::Relaxed)
-    }
-
-    pub fn push(&self, line: &str) {
-        let mut buffer = self
-            .inner
-            .try_write()
-            .expect("History buffer lock was poisoned");
-
-        if self.lines_written.load(Ordering::Relaxed) > self.max_lines {
-            let pos = buffer
-                .find('\n')
-                .expect("Expected to find one newline in history buffer");
-            buffer.replace_range(0..=pos, "");
-        }
-
-        buffer.push_str(line);
-        drop(buffer);
-        self.lines_written.fetch_add(1, Ordering::Relaxed);
-    }
-
-    pub fn extract(&self) -> Box<str> {
-        let buffer = self
-            .inner
-            .try_write()
-            .expect("History buffer lock was poisoned");
-
-        buffer.clone().into_boxed_str()
+        self.history_buffer
+            .try_lock()
+            .expect("Failed to lock history buffer")
+            .push_str(&buffer);
     }
 }
