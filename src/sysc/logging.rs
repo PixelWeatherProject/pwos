@@ -30,7 +30,7 @@ const ERROR_HEADER: &str = concatcp!(COLOR_ERROR, "ERROR", RESET_COLOR, " [");
 const DEBUG_HEADER: &str = concatcp!(COLOR_DEBUG, "DEBUG", RESET_COLOR, " [");
 const TRACE_HEADER: &str = "TRACE [";
 
-const LAST_SESSION_LOGS_SIZE: usize = 1024;
+const LAST_SESSION_LOGS_SIZE: usize = 4096;
 
 /// The global instance of the logger.
 static LOGGER: OsLogger = OsLogger::new();
