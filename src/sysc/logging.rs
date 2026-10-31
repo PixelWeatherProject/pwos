@@ -77,7 +77,7 @@ impl GlobalOsLogger {
         LOGGER.history_buffer.enabled.store(true, Ordering::SeqCst);
     }
 
-    pub fn extract() -> Box<[u8]> {
+    pub fn extract() -> Box<str> {
         LOGGER.history_buffer.extract()
     }
 
@@ -212,12 +212,12 @@ impl HistoryBuffer {
         self.lines_written.fetch_add(1, Ordering::Relaxed);
     }
 
-    pub fn extract(&self) -> Box<[u8]> {
+    pub fn extract(&self) -> Box<str> {
         let buffer = self
             .inner
             .try_write()
             .expect("History buffer lock was poisoned");
 
-        buffer.clone().as_bytes().into()
+        buffer.clone().into_boxed_str()
     }
 }

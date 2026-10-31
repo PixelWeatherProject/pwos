@@ -18,7 +18,7 @@ use core::sync::atomic::{AtomicU8, Ordering};
 use esp_idf_svc::{eventloop::EspSystemEventLoop, hal::modem::Modem, wifi::AccessPointInfo};
 use pwmp_client::{
     ota::UpdateStatus,
-    pwmp_msg::{settings::NodeSettings, version::Version, MsgId},
+    pwmp_msg::{artifact::Artifact, settings::NodeSettings, version::Version, MsgId},
     PwmpClient,
 };
 
@@ -118,7 +118,7 @@ pub fn fw_main(
 
     if GlobalOsLogger::is_history_enabled() {
         log::debug!("Sending diagnostic logs");
-        pws.send_diagnostic_data("logs", GlobalOsLogger::extract())
+        pws.send_diagnostic_data("logs", Artifact::from(GlobalOsLogger::extract()))
             .report("Failed to send log history");
     }
 
