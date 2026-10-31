@@ -115,14 +115,7 @@ pub fn fw_main(
     report_previous_run_error(&mut pws, nvs)?;
     report_ota_result(&mut pws, ota)?;
     ota_routine(&mut pws, ota)?;
-
-    if let Some(logs) = GlobalOsLogger::load_history() {
-        log::debug!("Sending diagnostic logs");
-        pws.send_diagnostic_data("logs", Artifact::String(logs))
-            .report("Failed to send log history");
-    } else {
-        log::debug!("No diagnostic logs were saved");
-    }
+    handle_diagnostics(&mut pws, cfg);
 
     pws.close_session(false)?;
 
@@ -305,6 +298,20 @@ fn ota_routine(pws: &mut PwmpClient, ota: &mut Ota) -> OsResult<()> {
     } // Handle will be dropped and the update should finalize
 
     Ok(())
+}
+
+fn handle_diagnostics(pws: &mut PwmpClient, appcfg: &NodeSettings) {
+    if !appcfg.diagnostics {
+        return;
+    }
+
+    if let Some(logs) = GlobalOsLogger::load_history() {
+        log::debug!("Sending diagnostic logs");
+        pws.send_diagnostic_data("logs", Artifact::String(logs))
+            .report("Failed to send log history");
+    } else {
+        log::debug!("No diagnostic logs were saved");
+    }
 }
 
 fn read_appcfg(pws: &mut PwmpClient, appcfg: &mut NodeSettings) -> OsResult<()> {
