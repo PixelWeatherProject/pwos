@@ -74,7 +74,7 @@ impl<T: RtcObject> RtcValue<T> {
         Self(UnsafeCell::new(MaybeUninit::uninit()))
     }
 
-    /// Reads the underlying value, initializing it when necessary.
+    /// Retunes a copy of the underlying value, initializing it when necessary.
     ///
     /// Initialization sets the value to `T::new_empty()` before returning.
     ///
@@ -84,14 +84,46 @@ impl<T: RtcObject> RtcValue<T> {
     ///
     /// However, if a memory corruption happens after (or during) the initialization, reading the value will be undefined
     /// behavior. The chance of this happening is **extremely** low, but it's worth to mention.
-    pub fn read(&self) -> T {
+    pub fn get(&self) -> T {
         if !self.is_init() {
-            let value = T::new_empty();
-            self.set(value);
-            return value;
+            self.init();
         }
 
         self.read_raw()
+    }
+
+    /// Returns a reference to the underlying value, initializing it when necessary.
+    ///
+    /// Refer to [`get()`](Self::get) for further documentation.
+    pub fn get_ref(&self) -> &T {
+        if !self.is_init() {
+            self.init();
+        }
+
+        self.read_raw_ref()
+    }
+
+    /// Updates the underlying value in place.
+    pub fn update<F, R>(&self, worker: F) -> R
+    where
+        F: FnOnce(&mut T) -> R,
+    {
+        if !self.is_init() {
+            self.init();
+        }
+
+        // if the power is lost after this, before reaching the next `write_magic`
+        // then we can treat the data as uninitialized
+        self.write_magic(0);
+
+        let value = self.read_raw_mut();
+        let result = worker(value);
+        let checksum = value.checksum();
+
+        self.write_crc(checksum);
+        self.write_magic(MAGIC_START_BYTE);
+
+        result
     }
 
     /// Overwites the current value with the specified one.
@@ -124,10 +156,19 @@ impl<T: RtcObject> RtcValue<T> {
         }
 
         let stored_checksum = self.read_crc();
-        let value = self.read_raw();
+        let value = self.read_raw_ref();
         let calculated_checksum = value.checksum();
 
         stored_checksum == calculated_checksum
+    }
+
+    /// Kept out of line so the `new_empty()` temporary only lives in this frame.
+    #[inline(never)]
+    fn init(&self) {
+        self.write_magic(0);
+        self.write_raw(T::new_empty());
+        self.write_crc(self.read_raw_ref().checksum());
+        self.write_magic(MAGIC_START_BYTE);
     }
 
     /// Returns a mutable pointer to the inner storage.
@@ -173,6 +214,29 @@ impl<T: RtcObject> RtcValue<T> {
             core::hint::black_box(&raw mut (*self.inner_ptr()).value)
                 .cast::<T>()
                 .read()
+        }
+    }
+
+    /// Reads the stored value of `T` **without performing any safety checks**, and returns a reference to it.
+    ///
+    /// This should only be used after the validation checks have been performed.
+    fn read_raw_ref(&self) -> &T {
+        unsafe {
+            core::hint::black_box(&raw mut (*self.inner_ptr()).value)
+                .cast::<T>()
+                .as_ref_unchecked()
+        }
+    }
+
+    /// Reads the stored value of `T` **without performing any safety checks**, and returns a mutable reference to it.
+    ///
+    /// This should only be used after the validation checks have been performed.
+    #[allow(clippy::mut_from_ref)]
+    fn read_raw_mut(&self) -> &mut T {
+        unsafe {
+            core::hint::black_box(&raw mut (*self.inner_ptr()).value)
+                .cast::<T>()
+                .as_mut_unchecked()
         }
     }
 
