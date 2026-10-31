@@ -24,7 +24,7 @@
 //! # Supported types (`T`s)
 //! This wrapper is primarily designed to hold simple primitives, like integers, `bool`s, integer arrays
 //! and simple `struct`s. It is **not** designed to hold complex types such as dynamic `String`s, `Box`es
-//! and `Vec`s. Such types will never be supported.
+//! and `Vec`s. Such types hold pointers to heap, which is cleared on reboot and thus you'd be left with dangling pointers.
 //!
 //! The type `T` must implement [`RtcObject`], which further requires `T` to implement:
 //! - [`Sized`],
@@ -104,6 +104,14 @@ impl<T: RtcObject> RtcValue<T> {
     }
 
     /// Updates the underlying value in place.
+    ///
+    /// # Example
+    /// ```rust
+    /// #[link_section = ".rtc_noinit"]
+    /// static MY_DATA: RtcValue<T> = RtcValue::new();
+    ///
+    /// MY_DATA.update(|v| /* mutate v */);
+    /// ```
     pub fn update<F, R>(&self, worker: F) -> R
     where
         F: FnOnce(&mut T) -> R,
