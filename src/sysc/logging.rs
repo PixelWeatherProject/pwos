@@ -88,7 +88,18 @@ impl GlobalOsLogger {
         };
 
         // Remove color codes
-        history.retain(|c| c.is_ascii_alphanumeric() || c.is_ascii_punctuation());
+        let mut in_escape = false;
+        history.retain(|c| {
+            if c == '\x1b' {
+                in_escape = true;
+            } else if in_escape {
+                in_escape = c != 'm';
+            } else {
+                return true;
+            }
+
+            false
+        });
 
         if history.len() > LAST_SESSION_LOGS_SIZE {
             log::error!(
@@ -98,15 +109,15 @@ impl GlobalOsLogger {
             return;
         }
 
-        let Ok(history) = RtcString::try_from(history.as_str()) else {
+        let success = LAST_SESSION_LOGS.update(|logs| logs.overwrite(&history).is_ok());
+        if !success {
             log::error!(
                 "Cannot fit log history into RTC buffer ({}/{LAST_SESSION_LOGS_SIZE})",
                 history.len()
             );
             return;
-        };
+        }
 
-        LAST_SESSION_LOGS.set(history);
         log::debug!("Saved log history into RTC");
     }
 
@@ -115,8 +126,10 @@ impl GlobalOsLogger {
     /// ## Note
     /// This also clears [`LAST_SESSION_LOGS`].
     pub fn load_history() -> Option<Box<str>> {
-        let history: Box<str> = LAST_SESSION_LOGS.read().into();
-        LAST_SESSION_LOGS.set(RtcString::new());
+        let history: Box<str> = LAST_SESSION_LOGS.get_ref().as_str().into();
+
+        // this way keeps the stack size small
+        LAST_SESSION_LOGS.update(super::rtcvar::string::RtcString::clear);
 
         if history.is_empty() {
             return None;
