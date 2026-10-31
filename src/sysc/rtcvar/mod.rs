@@ -170,9 +170,9 @@ impl<T: RtcObject> RtcValue<T> {
         // SAFETY: If this method is called after validation checks have been performed, then
         //         it's safe. Otherwise it's UB and the returned value will have garbage data.
         unsafe {
-            (&raw mut (*self.inner_ptr()).value)
+            core::hint::black_box(&raw mut (*self.inner_ptr()).value)
                 .cast::<T>()
-                .read_volatile()
+                .read()
         }
     }
 
@@ -180,9 +180,9 @@ impl<T: RtcObject> RtcValue<T> {
     fn write_raw(&self, val: T) {
         // SAFETY: Writes are safe.
         unsafe {
-            (&raw mut (*self.inner_ptr()).value)
+            core::hint::black_box(&raw mut (*self.inner_ptr()).value)
                 .cast::<T>()
-                .write_volatile(val);
+                .write(val);
         }
     }
 }
