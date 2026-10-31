@@ -54,23 +54,6 @@ impl<const N: usize> RtcString<N> {
     }
 }
 
-impl<const N: usize> TryFrom<&str> for RtcString<N> {
-    type Error = SourceTooLong;
-
-    fn try_from(value: &str) -> Result<Self, Self::Error> {
-        let src_len = value.len();
-
-        if src_len > usize::from(u16::MAX) || src_len > Self::capacity() {
-            return Err(SourceTooLong);
-        }
-
-        let mut buffer = [0u8; N];
-        let _ = (&mut buffer[..]).write_all(value.as_bytes());
-
-        Ok(Self(buffer))
-    }
-}
-
 impl<const N: usize> From<RtcString<N>> for Box<str> {
     fn from(value: RtcString<N>) -> Self {
         value.as_str().into()
