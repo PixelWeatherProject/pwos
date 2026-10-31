@@ -2,24 +2,28 @@ use std::io::Write;
 
 /// A fixed-capacity string that can be stored in RTC memory.
 #[derive(Clone, Copy)]
-pub struct RtcString<const N: usize> {
-    len: u16,
-    buf: [u8; N],
-}
+pub struct RtcString<const N: usize>([u8; N]);
 
 /// String length was too large to fit into [`RtcString`].
 pub struct SourceTooLong;
 
 impl<const N: usize> RtcString<N> {
     pub const fn new() -> Self {
-        Self {
-            len: 0,
-            buf: [0; N],
+        Self([0; N])
+    }
+
+    pub fn len(&self) -> usize {
+        for (i, b) in self.0.iter().enumerate() {
+            if *b == 0 {
+                return i;
+            }
         }
+
+        unreachable!()
     }
 
     pub fn as_bytes(&self) -> &[u8] {
-        &self.buf[..usize::from(self.len)]
+        &self.0[..self.len()]
     }
 
     pub fn as_str(&self) -> &str {
@@ -28,7 +32,7 @@ impl<const N: usize> RtcString<N> {
     }
 
     pub const fn capacity() -> usize {
-        N
+        N - 1
     }
 }
 
@@ -36,17 +40,16 @@ impl<const N: usize> TryFrom<&str> for RtcString<N> {
     type Error = SourceTooLong;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
-        if value.len() > usize::from(u16::MAX) || value.len() > N {
+        let src_len = value.len();
+
+        if src_len > usize::from(u16::MAX) || src_len > Self::capacity() {
             return Err(SourceTooLong);
         }
 
         let mut buffer = [0u8; N];
         let _ = (&mut buffer[..]).write_all(value.as_bytes());
 
-        // SAFETY: The above check ensures that the length of the string fits into a `u16`.
-        let len = unsafe { u16::try_from(value.len()).unwrap_unchecked() };
-
-        Ok(Self { len, buf: buffer })
+        Ok(Self(buffer))
     }
 }
 
