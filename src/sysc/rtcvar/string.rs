@@ -19,7 +19,7 @@ impl<const N: usize> RtcString<N> {
             }
         }
 
-        unreachable!()
+        N
     }
 
     pub fn as_bytes(&self) -> &[u8] {
@@ -29,6 +29,24 @@ impl<const N: usize> RtcString<N> {
     pub fn as_str(&self) -> &str {
         // SAFETY: RtcString can only store valid UTF-8 encoded strings.
         unsafe { std::str::from_utf8_unchecked(self.as_bytes()) }
+    }
+
+    pub const fn clear(&mut self) {
+        self.0[0] = 0;
+    }
+
+    pub fn overwrite(&mut self, other: &str) -> Result<(), SourceTooLong> {
+        let other_bytes = other.as_bytes();
+
+        if other_bytes.len() > Self::capacity() {
+            return Err(SourceTooLong);
+        }
+
+        (&mut self.0[..])
+            .write_all(other_bytes)
+            .map_err(|_| SourceTooLong)?;
+        self.0[other_bytes.len()] = 0;
+        Ok(())
     }
 
     pub const fn capacity() -> usize {
