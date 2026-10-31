@@ -76,7 +76,7 @@ impl GlobalOsLogger {
     /// ## Note
     /// This also clears the history bufffer.
     pub fn save_history() {
-        let history = {
+        let mut history = {
             let mut history_lock = LOGGER
                 .history_buffer
                 .try_lock()
@@ -86,6 +86,9 @@ impl GlobalOsLogger {
 
             history
         };
+
+        // Remove color codes
+        history.retain(|c| c.is_ascii_alphanumeric() || c.is_ascii_punctuation());
 
         if history.len() > LAST_SESSION_LOGS_SIZE {
             log::error!(
