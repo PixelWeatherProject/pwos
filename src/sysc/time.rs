@@ -68,7 +68,7 @@ pub fn resync_recommended() -> OsResult<bool> {
     let now = u64::try_from(now).map_err(|_| OsError::UnexpectedNull)?;
 
     // time of last sync
-    let last = SYNC_EPOCH.read();
+    let last = SYNC_EPOCH.get();
 
     // check if the clock was set backwards
     if now < last {

@@ -62,7 +62,7 @@ impl Ota {
             return Ok(false);
         }
 
-        Ok(!REPORTED.read())
+        Ok(!REPORTED.get())
     }
 
     /// Returns whether a firmware rollback has been detected.
@@ -97,7 +97,7 @@ impl Ota {
             return Ok(());
         }
 
-        if FAILIURES.read() >= MAX_FAILIURES {
+        if FAILIURES.get() >= MAX_FAILIURES {
             log::info!("Rolling back to previous version");
             self.0.mark_running_slot_invalid_and_reboot();
         }
@@ -119,7 +119,7 @@ impl Ota {
             return Ok(());
         }
 
-        let counter = FAILIURES.read() + 1;
+        let counter = FAILIURES.get() + 1;
         log::warn!("Firmware has failed {counter}/{MAX_FAILIURES} times");
 
         FAILIURES.set(counter);

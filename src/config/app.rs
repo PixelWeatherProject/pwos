@@ -19,7 +19,7 @@ static SETTINGS: RtcValue<NodeSettings> = RtcValue::new();
 ///
 /// If no settings were saved before, the defaults are returned instead.
 pub fn get_settings() -> NodeSettings {
-    SETTINGS.read()
+    SETTINGS.get()
 }
 
 #[allow(clippy::trivially_copy_pass_by_ref)]

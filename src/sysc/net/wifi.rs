@@ -187,11 +187,11 @@ impl WiFi {
     }
 
     pub fn last_ap() -> Option<ApMetadata> {
-        LAST_AP.read()
+        LAST_AP.get()
     }
 
     pub fn last_ip() -> Option<StaticIpSettings> {
-        LAST_IP.read()
+        LAST_IP.get()
     }
 
     pub fn set_dymanic_ip_config(&mut self) -> OsResult<()> {
