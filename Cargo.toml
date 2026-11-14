@@ -35,6 +35,7 @@ pwmp-client = { git = "https://github.com/PixelWeatherProject/pwmp-client", bran
 log = { version = "0.4.35", default-features = false, features = ["release_max_level_info", "max_level_debug"] }
 thiserror = { version = "2.0.21", default-features = false }
 heapless = "0.9.3"
+#argh = { version = "0.1.19", default-features = false, features = ["help"] }
 
 [build-dependencies]
 embuild = "0.33.7"
