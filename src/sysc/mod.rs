@@ -2,6 +2,7 @@ pub mod battery;
 #[cfg(debug_assertions)]
 pub mod brownout;
 pub mod ddls;
+pub mod diagnostics;
 pub mod drivers;
 mod error;
 pub mod ext_drivers;

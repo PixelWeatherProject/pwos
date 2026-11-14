@@ -5,10 +5,11 @@ use esp_idf_svc::{
     hal::{modem::Modem, peripherals::Peripherals, temp_sensor::TempSensor},
 };
 
-pub struct SystemPeripherals<I2C, SclPin, SdaPin, ADC, ADCPin, LedPin> {
+pub struct SystemPeripherals<I2C, SclPin, SdaPin, ADC, ADCPin, LedPin, DiagTriggerPin> {
     pub i2c: I2cPeripherals<I2C, SclPin, SdaPin>,
     pub battery: BatteryPeripherals<ADC, ADCPin>,
     pub onboard_led: OnboardLedPeripherals<LedPin>,
+    pub diag_trigger_pin: DiagTriggerPin,
     pub wifi: WifiPeripherals,
     pub temp_sensor: TempSensor<'static>,
 }

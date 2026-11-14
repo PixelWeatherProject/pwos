@@ -16,6 +16,7 @@ impl
         ADC1<'static>,
         Gpio3<'static>,
         Gpio21<'static>,
+        Gpio16<'static>,
     >
 {
     pub fn take() -> Self {
@@ -35,6 +36,7 @@ impl
                 pin: peripherals.pins.gpio21,
                 invert: true,
             },
+            diag_trigger_pin: peripherals.pins.gpio16,
             wifi: WifiPeripherals {
                 modem: peripherals.modem,
                 sys_loop,

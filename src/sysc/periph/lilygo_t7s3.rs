@@ -4,7 +4,7 @@ use super::{
 };
 use esp_idf_svc::hal::{
     adc::ADC1,
-    gpio::{Gpio17, Gpio3, Gpio5, Gpio8},
+    gpio::{Gpio16, Gpio17, Gpio3, Gpio5, Gpio8},
     i2c::I2C1,
 };
 
@@ -16,6 +16,7 @@ impl
         ADC1<'static>,
         Gpio3<'static>,
         Gpio17<'static>,
+        Gpio16<'static>,
     >
 {
     pub fn take() -> Self {
@@ -35,6 +36,7 @@ impl
                 pin: peripherals.pins.gpio17,
                 invert: false,
             },
+            diag_trigger_pin: peripherals.pins.gpio16,
             wifi: WifiPeripherals {
                 modem: peripherals.modem,
                 sys_loop,

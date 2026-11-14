@@ -6,6 +6,7 @@ use crate::sysc::{
     ReportableError,
 };
 use esp_idf_svc::hal::{
+    gpio::{PinDriver, Pull},
     i2c::{config::Config, I2cDriver},
     temp_sensor::{config::Config as TempSensorConfig, TempSensorDriver},
     units::FromValueType,
@@ -65,6 +66,10 @@ fn main() {
     )
     .expect("Failed to set up onboard LED");
 
+    log::debug!("Initializing diagnostics trigger pin");
+    let diag_trigger = PinDriver::input(peripherals.diag_trigger_pin, Pull::Down)
+        .expect("Failed to set up diagnostics trigger pin");
+
     log::debug!("Setting panic handle");
     sysc::panic::setup();
 
@@ -116,8 +121,22 @@ fn main() {
     log::debug!("Initializing app configuration");
     let mut appcfg = config::get_settings();
 
-    log::info!("Staring main");
+    if diag_trigger.is_high() {
+        log::info!("Entering diagnostics mode");
 
+        sysc::diagnostics::diagnostics_main(
+            battery,
+            peripherals.wifi.modem,
+            peripherals.wifi.sys_loop,
+            led,
+            &nvs,
+            &ota,
+            &appcfg,
+        );
+        return;
+    }
+
+    log::info!("Staring main");
     let start = Instant::now();
     let fw_exit = firmware::fw_main(
         battery,
