@@ -7,6 +7,7 @@ pub mod drivers;
 mod error;
 pub mod ext_drivers;
 pub mod hash;
+pub mod jtag_serial;
 pub mod ledctl;
 pub mod logging;
 mod macros;

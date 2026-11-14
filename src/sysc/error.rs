@@ -179,6 +179,10 @@ pub enum OsError {
     /// Failed to set the system time.
     #[error("set time: {0}")]
     SetTime(std::io::Error),
+
+    /// Failed to initialize USB JTAG Serial driver.
+    #[error("jtag serial init: {0}")]
+    JtagSerialInit(EspError),
 }
 
 /// Trait for non-fatal error types that can be "reported" to the console.

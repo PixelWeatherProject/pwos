@@ -123,16 +123,7 @@ fn main() {
 
     if diag_trigger.is_high() {
         log::info!("Entering diagnostics mode");
-
-        sysc::diagnostics::diagnostics_main(
-            battery,
-            peripherals.wifi.modem,
-            peripherals.wifi.sys_loop,
-            led,
-            &nvs,
-            &ota,
-            &appcfg,
-        );
+        sysc::diagnostics::diagnostics_main(battery, &nvs);
         return;
     }
 
