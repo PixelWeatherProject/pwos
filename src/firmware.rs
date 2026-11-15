@@ -18,7 +18,10 @@ use core::sync::atomic::{AtomicU8, Ordering};
 use esp_idf_svc::{eventloop::EspSystemEventLoop, hal::modem::Modem, wifi::AccessPointInfo};
 use pwmp_client::{
     ota::UpdateStatus,
-    pwmp_msg::{artifact::Artifact, settings::NodeSettings, version::Version, MsgId},
+    pwmp_msg::{
+        artifact::Artifact, measurement::MeasurementCollection, settings::NodeSettings,
+        version::Version, MsgId,
+    },
     PwmpClient,
 };
 
@@ -101,15 +104,16 @@ pub fn fw_main(
     );
 
     log::debug!("Posting results");
-    pws.post_measurements(
+    let mscol = MeasurementCollection {
         temperature,
         humidity,
         air_pressure,
-        bat_voltage,
-        cpu_die_temp,
-        &ap.ssid,
-        rssi,
-    )?;
+        battery: bat_voltage,
+        cpu_temp: cpu_die_temp,
+        wifi_ssid: ap.ssid.as_str().try_into().expect("AP length too long"),
+        wifi_rssi: rssi,
+    };
+    pws.post_measurements(mscol)?;
 
     report_reset_reason(&mut pws);
     report_previous_run_error(&mut pws, nvs)?;
