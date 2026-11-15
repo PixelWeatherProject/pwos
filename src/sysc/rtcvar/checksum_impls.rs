@@ -1,7 +1,7 @@
 use super::RtcObject;
 use crate::sysc::hash;
 use esp_idf_svc::ipv4::{self, Mask, Subnet};
-use pwmp_client::pwmp_msg::settings::NodeSettings;
+use pwmp_client::pwmp_msg::{measurement::MeasurementCollection, settings::NodeSettings};
 use std::net::Ipv4Addr;
 
 impl RtcObject for bool {
@@ -98,6 +98,40 @@ impl RtcObject for ipv4::ClientSettings {
             },
             dns: Some(Ipv4Addr::UNSPECIFIED),
             secondary_dns: None,
+        }
+    }
+}
+
+impl RtcObject for MeasurementCollection {
+    fn checksum(&self) -> u32 {
+        // temperature  - 2 bytes (i16)
+        // humidity     - 1 byte  (u8)
+        // air pressure - 1 byte presence flag + 2 bytes (Option<u16>)
+        // battery      - 2 bytes (u16)
+        // cpu temp     - 2 bytes (i16)
+        let mut raw = [0; 10];
+
+        raw[0..=1].copy_from_slice(&self.temperature.to_ne_bytes());
+        raw[2] = self.humidity;
+
+        if let Some(air_pressure) = self.air_pressure {
+            raw[3] = 1;
+            raw[4..=5].copy_from_slice(&air_pressure.to_ne_bytes());
+        }
+
+        raw[6..=7].copy_from_slice(&self.battery.to_ne_bytes());
+        raw[8..=9].copy_from_slice(&self.cpu_temp.to_ne_bytes());
+
+        hash::crc32(&raw)
+    }
+
+    fn new_empty() -> Self {
+        Self {
+            temperature: 0,
+            humidity: 0,
+            air_pressure: None,
+            battery: 0,
+            cpu_temp: 0,
         }
     }
 }
