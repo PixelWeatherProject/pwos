@@ -37,6 +37,39 @@ impl<T: RtcObject, const N: usize> RtcArray<T, N> {
         Ok(())
     }
 
+    /// Inserts a value at `index`, shifting subsequent values to the right.
+    ///
+    /// Returns an error if `index` is greater than the current length or if
+    /// the array is full.
+    pub const fn insert(&mut self, index: usize, value: T) -> Result<(), ()> {
+        if index > self.len || self.len >= N {
+            return Err(());
+        }
+
+        let mut current = self.len;
+        while current > index {
+            self.inner[current] = self.inner[current - 1];
+            current -= 1;
+        }
+
+        self.inner[index] = value;
+        self.len += 1;
+
+        Ok(())
+    }
+
+    /// Replaces the item at `index` with `value`.
+    ///
+    /// Returns an error if `index` is outside the current length.
+    pub const fn replace(&mut self, index: usize, value: T) -> Result<(), ()> {
+        if index >= self.len {
+            return Err(());
+        }
+
+        self.inner[index] = value;
+        Ok(())
+    }
+
     /// Removes the item at `index` from the array.
     ///
     /// # Performance note
@@ -53,6 +86,13 @@ impl<T: RtcObject, const N: usize> RtcArray<T, N> {
         }
 
         self.len -= 1;
+    }
+
+    /// Clears the array by setting the length back to zero.
+    ///
+    /// **This method does not erase the held data.**
+    pub const fn clear(&mut self) {
+        self.len = 0;
     }
 
     /// Returns the current length of the array.

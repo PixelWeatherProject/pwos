@@ -46,6 +46,7 @@ use std::{cell::UnsafeCell, mem::MaybeUninit};
 
 pub mod array;
 mod checksum_impls;
+pub mod ringbuf;
 pub mod string;
 
 const MAGIC_START_BYTE: u32 = 0xFEED_BEEF;

@@ -132,3 +132,13 @@ impl<T: RtcObject, const N: usize> RtcObject for super::array::RtcArray<T, N> {
         Self::const_new(T::new_empty())
     }
 }
+
+impl<T: RtcObject, const N: usize> RtcObject for super::ringbuf::RtcRingBuffer<T, N> {
+    fn checksum(&self) -> u32 {
+        self.crc32_hash()
+    }
+
+    fn new_empty() -> Self {
+        Self::const_new(T::new_empty())
+    }
+}
