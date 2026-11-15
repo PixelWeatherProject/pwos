@@ -7,6 +7,7 @@ use crate::{
         drivers::{AirPressureSensor, HumiditySensor, TemperatureSensor},
         ledctl::BoardLed,
         logging::GlobalOsLogger,
+        meas_history_repo::MeasurementHistoryRepository,
         net::wifi::{WiFi, RSSI_THRESHOLD},
         nvs::NonVolatileStorage,
         ota::{Ota, OtaHandle},
@@ -41,31 +42,6 @@ pub fn fw_main(
         log::warn!("Running unverified firmware");
     }
 
-    let (wifi, ap, cached) = setup_wifi(modem, sys_loop)?;
-    log::debug!("Connecting to PWMP");
-    let mut pws =
-        PwmpClient::new(PWMP_SERVER, &pwmp_msg_id_gen, None, None, None).inspect_err(|_| {
-            // if the reused AP has changed it's IP configuration, we won't have internet access
-            // this is not something that happens everyday, rather just a *VERY RARE* edge case
-            // we signal failiure and attempt DHCP on next boot
-            //
-            // there are other ways to fix this but this is probably the "cheapest" performance
-            // and memory wise
-            if cached {
-                log::error!("IP configuration may be outdated, clearing RTC cache");
-                wifi.clear_config_cache();
-            }
-        })?;
-
-    log::debug!("Sending handshake request");
-    pws.initialize_session(wifi.get_mac()?, ota.current_version()?, None)?;
-
-    log::debug!("Requesting app configuration");
-    read_appcfg(&mut pws, cfg)?;
-
-    log::debug!("Requesting date time");
-    update_system_time(&mut pws)?;
-
     let int_temperature_sensor =
         TemperatureSensor::get_internal().ok_or(OsError::UnexpectedNull)?;
     let ext_temperature_sensor = TemperatureSensor::get_external().ok_or(OsError::NoEnvSensor)?;
@@ -79,15 +55,6 @@ pub fn fw_main(
     }
     log::info!("Battery: {}.{:03}V", bat_voltage / 1000, bat_voltage % 1000);
 
-    if (bat_voltage <= CRITICAL_VOLTAGE) && cfg.sbop && !cfg.battery_ignore {
-        log::warn!("Battery voltage too low, activating sBOP");
-
-        pws.send_notification("Battery voltage too low, activating sBOP")
-            .report("Failed to send sBOP notification");
-
-        mcu_sleep(None);
-    }
-
     let sensor_measurements = MeasurementCollection {
         temperature: ext_temperature_sensor.read()?,
         humidity: humidity_sensor.read()?,
@@ -98,7 +65,6 @@ pub fn fw_main(
         battery: bat_voltage,
         cpu_temp: int_temperature_sensor.read()?,
     };
-    let wifi_stats = WiFiStats::new(ap.ssid, wifi.live_rssi()?).expect("WiFi AP name too long");
     log::info!(
         "{}{}.{}*C / {}%",
         if sensor_measurements.temperature < 0 {
@@ -111,9 +77,35 @@ pub fn fw_main(
         sensor_measurements.humidity
     );
 
+    let (wifi, ap, mut pws) = match go_online(modem, sys_loop, ota) {
+        Ok((wifi, ap, pws)) => (wifi, ap, pws),
+        Err(why) => {
+            log::error!("Failed to go online: {why}");
+            run_offline_tasks(sensor_measurements)?;
+            return Ok(());
+        }
+    };
+    let wifi_stats = WiFiStats::new(ap.ssid, wifi.live_rssi()?).expect("WiFi AP name too long");
+
+    if (bat_voltage <= CRITICAL_VOLTAGE) && cfg.sbop && !cfg.battery_ignore {
+        log::warn!("Battery voltage too low, activating sBOP");
+
+        pws.send_notification("Battery voltage too low, activating sBOP")
+            .report("Failed to send sBOP notification");
+
+        mcu_sleep(None);
+    }
+
+    log::debug!("Requesting app configuration");
+    read_appcfg(&mut pws, cfg)?;
+
+    log::debug!("Requesting date time");
+    update_system_time(&mut pws)?;
+
     log::debug!("Posting results");
     pws.post_measurements(sensor_measurements, wifi_stats)?;
 
+    send_historical_measurements(&mut pws);
     report_reset_reason(&mut pws);
     report_previous_run_error(&mut pws, nvs)?;
     report_ota_result(&mut pws, ota)?;
@@ -233,6 +225,35 @@ fn wifi_try_connect(wifi: &mut WiFi, ap: &AccessPointInfo, skip_save: bool) -> O
         }
         Err(why) => Err(why),
     }
+}
+
+fn go_online(
+    modem: Modem<'static>,
+    sys_loop: EspSystemEventLoop,
+    ota: &Ota,
+) -> OsResult<(WiFi, AccessPointInfo, PwmpClient)> {
+    let (wifi, ap, cached) = setup_wifi(modem, sys_loop)?;
+
+    log::debug!("Connecting to PWMP");
+    let mut pws =
+        PwmpClient::new(PWMP_SERVER, &pwmp_msg_id_gen, None, None, None).inspect_err(|_| {
+            // if the reused AP has changed it's IP configuration, we won't have internet access
+            // this is not something that happens everyday, rather just a *VERY RARE* edge case
+            // we signal failiure and attempt DHCP on next boot
+            //
+            // there are other ways to fix this but this is probably the "cheapest" performance
+            // and memory wise
+            if cached {
+                log::error!("IP configuration may be outdated, clearing RTC cache");
+                wifi.clear_config_cache();
+            }
+        })?;
+
+    log::debug!("Sending handshake request");
+    pws.initialize_session(wifi.get_mac()?, ota.current_version()?, None)?;
+
+    log::debug!("System online");
+    Ok((wifi, ap, pws))
 }
 
 fn report_reset_reason(pws: &mut PwmpClient) {
@@ -374,6 +395,38 @@ fn begin_update(pws: &mut PwmpClient, handle: &mut OtaHandle) -> OsResult<()> {
         re_esp!(handle.write(&chunk), OtaWrite)?;
         maybe_chunk = pws.next_update_chunk(Some(CHUNK_SIZE))?;
     }
+
+    Ok(())
+}
+
+fn send_historical_measurements(pws: &mut PwmpClient) {
+    if MeasurementHistoryRepository::is_empy() {
+        log::debug!("No historical measurements available");
+        return;
+    }
+
+    log::info!("Sending lost historical measurements");
+
+    let measurements = MeasurementHistoryRepository::get_all();
+    if let Err(why) = pws.post_historic_measurements(measurements) {
+        log::error!("Failed to send historic measurements: {why}");
+        return;
+    }
+
+    // clear the buffer
+    log::debug!("Clearning measurement history buffer");
+    MeasurementHistoryRepository::clear();
+}
+
+fn run_offline_tasks(sensor_measurements: MeasurementCollection) -> OsResult<()> {
+    if sysc::time::resync_recommended()? {
+        log::warn!("System clock out of sync, skipping offline tasks");
+        return Ok(());
+    }
+
+    log::info!("Saving sensor measurements for later");
+    MeasurementHistoryRepository::insert(sensor_measurements);
+    log::debug!("Saved sensor measurements");
 
     Ok(())
 }

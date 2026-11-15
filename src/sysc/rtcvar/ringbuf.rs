@@ -45,11 +45,6 @@ impl<T: RtcObject, const N: usize> RtcRingBuffer<T, N> {
         self.current_index = 0;
     }
 
-    /// Returns the amount of data stored by the buffer.
-    pub const fn len(&self) -> usize {
-        self.inner.len()
-    }
-
     /// Create a copy of the buffer.
     pub fn collect(&self) -> Box<[T]> {
         self.inner.collect()
