@@ -122,3 +122,13 @@ impl<const N: usize> RtcObject for super::string::RtcString<N> {
         Self::new()
     }
 }
+
+impl<T: RtcObject, const N: usize> RtcObject for super::array::RtcArray<T, N> {
+    fn checksum(&self) -> u32 {
+        self.crc32_hash()
+    }
+
+    fn new_empty() -> Self {
+        Self::const_new(T::new_empty())
+    }
+}

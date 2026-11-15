@@ -44,6 +44,7 @@ use crate::sysc::power;
 use esp_idf_svc::hal::reset::ResetReason;
 use std::{cell::UnsafeCell, mem::MaybeUninit};
 
+pub mod array;
 mod checksum_impls;
 pub mod string;
 
