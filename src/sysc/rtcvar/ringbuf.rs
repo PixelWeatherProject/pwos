@@ -50,6 +50,11 @@ impl<T: RtcObject, const N: usize> RtcRingBuffer<T, N> {
         self.inner.len()
     }
 
+    /// Create a copy of the buffer.
+    pub fn collect(&self) -> Box<[T]> {
+        self.inner.collect()
+    }
+
     pub fn crc32_hash(&self) -> u32 {
         let idx = hash::crc32(&self.current_index.to_be_bytes());
         self.inner.crc32_hash().rotate_left(5) ^ idx

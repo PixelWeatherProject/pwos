@@ -88,6 +88,10 @@ impl<T: RtcObject, const N: usize> RtcArray<T, N> {
         self.len -= 1;
     }
 
+    pub fn collect(&self) -> Box<[T]> {
+        self.inner.into()
+    }
+
     /// Clears the array by setting the length back to zero.
     ///
     /// **This method does not erase the held data.**

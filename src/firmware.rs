@@ -20,7 +20,7 @@ use pwmp_client::{
     ota::UpdateStatus,
     pwmp_msg::{
         artifact::Artifact, measurement::MeasurementCollection, settings::NodeSettings,
-        version::Version, MsgId,
+        version::Version, wlan_stats::WiFiStats, MsgId,
     },
     PwmpClient,
 };
@@ -88,32 +88,31 @@ pub fn fw_main(
         mcu_sleep(None);
     }
 
-    let rssi = wifi.live_rssi()?;
-    let temperature = ext_temperature_sensor.read()?;
-    let humidity = humidity_sensor.read()?;
-    let air_pressure = match air_pressure_sensor {
-        Some(s) => Some(s.read()?),
-        None => None,
+    let sensor_measurements = MeasurementCollection {
+        temperature: ext_temperature_sensor.read()?,
+        humidity: humidity_sensor.read()?,
+        air_pressure: match air_pressure_sensor {
+            Some(s) => Some(s.read()?),
+            None => None,
+        },
+        battery: bat_voltage,
+        cpu_temp: int_temperature_sensor.read()?,
     };
-    let cpu_die_temp = int_temperature_sensor.read()?;
+    let wifi_stats = WiFiStats::new(ap.ssid, wifi.live_rssi()?).expect("WiFi AP name too long");
     log::info!(
-        "{}{}.{}*C / {humidity}%",
-        if temperature < 0 { "-" } else { "" },
-        temperature.unsigned_abs() / 10,
-        temperature.unsigned_abs() % 10
+        "{}{}.{}*C / {}%",
+        if sensor_measurements.temperature < 0 {
+            "-"
+        } else {
+            ""
+        },
+        sensor_measurements.temperature.unsigned_abs() / 10,
+        sensor_measurements.temperature.unsigned_abs() % 10,
+        sensor_measurements.humidity
     );
 
     log::debug!("Posting results");
-    let mscol = MeasurementCollection {
-        temperature,
-        humidity,
-        air_pressure,
-        battery: bat_voltage,
-        cpu_temp: cpu_die_temp,
-        wifi_ssid: ap.ssid.as_str().try_into().expect("AP length too long"),
-        wifi_rssi: rssi,
-    };
-    pws.post_measurements(mscol)?;
+    pws.post_measurements(sensor_measurements, wifi_stats)?;
 
     report_reset_reason(&mut pws);
     report_previous_run_error(&mut pws, nvs)?;

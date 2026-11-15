@@ -11,6 +11,7 @@ pub mod jtag_serial;
 pub mod ledctl;
 pub mod logging;
 mod macros;
+pub mod meas_history_repo;
 pub mod net;
 pub mod nvs;
 pub mod ota;
