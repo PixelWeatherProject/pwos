@@ -1,7 +1,10 @@
 use super::RtcObject;
 use crate::sysc::hash;
 use esp_idf_svc::ipv4::{self, Mask, Subnet};
-use pwmp_client::pwmp_msg::{measurement::MeasurementCollection, settings::NodeSettings};
+use pwmp_client::pwmp_msg::{
+    measurement::{HistoricMeasurement, MeasurementCollection},
+    settings::NodeSettings,
+};
 use std::net::Ipv4Addr;
 
 impl RtcObject for bool {
@@ -133,6 +136,23 @@ impl RtcObject for MeasurementCollection {
             battery: 0,
             cpu_temp: 0,
         }
+    }
+}
+
+impl RtcObject for HistoricMeasurement {
+    fn checksum(&self) -> u32 {
+        // collection checksum - 4 bytes (u32)
+        // timestamp           - 8 bytes (u64)
+        let mut raw = [0; 12];
+
+        raw[0..=3].copy_from_slice(&self.collection().checksum().to_ne_bytes());
+        raw[4..=11].copy_from_slice(&self.timestamp().to_ne_bytes());
+
+        hash::crc32(&raw)
+    }
+
+    fn new_empty() -> Self {
+        Self::new(MeasurementCollection::new_empty(), 0)
     }
 }
 
