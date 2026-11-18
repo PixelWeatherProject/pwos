@@ -408,6 +408,7 @@ fn send_historical_measurements(pws: &mut PwmpClient) {
     log::info!("Sending lost historical measurements");
 
     let measurements = MeasurementHistoryRepository::get_all();
+    log::debug!("Sending {} historic measurements", measurements.len());
     if let Err(why) = pws.post_historic_measurements(measurements) {
         log::error!("Failed to send historic measurements: {why}");
         return;
