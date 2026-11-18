@@ -4,7 +4,7 @@
 //! sensors in RTC memory which were collected during runs where the node was offile or was
 //! otherwise unable to post the data to the PWMP server.
 //!
-//! The repository is backed by a ring buffer, which collects up to `N` amount if data, and
+//! The repository is backed by a FIFO buffer, which collects up to `N` amount if data, and
 //! when the device goes online successfully will then read the whole buffer and post all
 //! measurements. The buffer is then cleared.
 
