@@ -17,8 +17,13 @@ pub struct RtcArray<T: RtcObject, const N: usize> {
 }
 
 impl<T: RtcObject, const N: usize> RtcArray<T, N> {
+    /// Internal constant to assert that `N` > 0 at compile time.
+    const _ASSERT: () = assert!(N > 0, "RtcArray capacity must be > 0");
+
     /// Creates a new zero-length array.
     pub const fn const_new(default_value: T) -> Self {
+        let () = Self::_ASSERT;
+
         Self {
             inner: [default_value; N],
             len: 0,
@@ -37,16 +42,15 @@ impl<T: RtcObject, const N: usize> RtcArray<T, N> {
         Ok(())
     }
 
-    /// Replaces the item at `index` with `value`.
+    /// Rotates the initialized items to the left by `mid` positions.
     ///
-    /// Returns an error if `index` is outside the current length.
-    pub const fn replace(&mut self, index: usize, value: T) -> Result<(), ()> {
-        if index >= self.len {
-            return Err(());
-        }
+    /// Panics if `mid` is greater than the current length.
+    pub fn rotate_left(&mut self, mid: usize) {
+        self.inner[..self.len].rotate_left(mid);
+    }
 
-        self.inner[index] = value;
-        Ok(())
+    pub const fn pop(&mut self) {
+        self.len = self.len.saturating_sub(1);
     }
 
     pub fn collect(&self) -> Box<[T]> {

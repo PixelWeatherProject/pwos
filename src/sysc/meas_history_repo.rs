@@ -8,15 +8,14 @@
 //! when the device goes online successfully will then read the whole buffer and post all
 //! measurements. The buffer is then cleared.
 
-use crate::sysc::rtcvar::{ringbuf::RtcRingBuffer, RtcValue};
+use crate::sysc::rtcvar::{fifo::RtcFifo, RtcValue};
 use pwmp_client::pwmp_msg::measurement::{HistoricMeasurement, MeasurementCollection};
 
 /// Maximum amount of measurements remembered.
 const HISTORY_SIZE: usize = 32;
 
 #[link_section = ".rtc_noinit"]
-static MEASUREMENT_HISTORY: RtcValue<RtcRingBuffer<HistoricMeasurement, HISTORY_SIZE>> =
-    RtcValue::new();
+static MEASUREMENT_HISTORY: RtcValue<RtcFifo<HistoricMeasurement, HISTORY_SIZE>> = RtcValue::new();
 
 pub struct MeasurementHistoryRepository;
 
@@ -25,12 +24,12 @@ impl MeasurementHistoryRepository {
         let historic = HistoricMeasurement::new_now(measurement);
 
         MEASUREMENT_HISTORY.update(|buffer| {
-            buffer.insert(historic);
+            buffer.push(historic);
         });
     }
 
     pub fn is_empy() -> bool {
-        MEASUREMENT_HISTORY.get().is_empty()
+        MEASUREMENT_HISTORY.get().is_empy()
     }
 
     pub fn get_all() -> Box<[HistoricMeasurement]> {
@@ -38,6 +37,6 @@ impl MeasurementHistoryRepository {
     }
 
     pub fn clear() {
-        MEASUREMENT_HISTORY.update(RtcRingBuffer::clear);
+        MEASUREMENT_HISTORY.update(RtcFifo::clear);
     }
 }

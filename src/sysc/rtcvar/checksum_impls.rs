@@ -187,7 +187,7 @@ impl<T: RtcObject, const N: usize> RtcObject for super::array::RtcArray<T, N> {
     }
 }
 
-impl<T: RtcObject, const N: usize> RtcObject for super::ringbuf::RtcRingBuffer<T, N> {
+impl<T: RtcObject, const N: usize> RtcObject for super::fifo::RtcFifo<T, N> {
     fn checksum(&self) -> u32 {
         self.crc32_hash()
     }
