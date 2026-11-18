@@ -8,7 +8,11 @@ pub struct RtcString<const N: usize>([u8; N]);
 pub struct SourceTooLong;
 
 impl<const N: usize> RtcString<N> {
+    /// Internal constant to assert that `N` > 0 at compile time.
+    const _ASSERT: () = assert!(N > 0, "RtcString capacity must be > 0");
+
     pub const fn new() -> Self {
+        let () = Self::_ASSERT;
         Self([0; N])
     }
 
