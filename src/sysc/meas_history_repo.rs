@@ -29,7 +29,7 @@ impl MeasurementHistoryRepository {
     }
 
     pub fn is_empy() -> bool {
-        MEASUREMENT_HISTORY.get().is_empy()
+        MEASUREMENT_HISTORY.get_ref().is_empy()
     }
 
     pub fn get_all() -> Box<[HistoricMeasurement]> {
