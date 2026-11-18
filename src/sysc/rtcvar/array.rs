@@ -50,7 +50,7 @@ impl<T: RtcObject, const N: usize> RtcArray<T, N> {
     }
 
     pub fn collect(&self) -> Box<[T]> {
-        self.inner.into()
+        self.deref().into()
     }
 
     /// Clears the array by setting the length back to zero.
